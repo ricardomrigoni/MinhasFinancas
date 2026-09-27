@@ -136,6 +136,10 @@ summary .nm{font-weight:600;min-width:180px}
 .meter i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
 .meter b{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);border-radius:2px}
 a.hl{color:var(--accent);font-size:12.5px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-weight:500}
+.valx{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration-line:underline;text-decoration-style:dotted;text-decoration-color:currentColor;text-underline-offset:5px;border-radius:4px;text-align:inherit}
+.valx:hover{text-decoration-style:solid}
+.valx:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+td .valx,th .valx{font:inherit}
 /* ---- ajuda ---- */
 .helpwrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}
 .toc{position:sticky;top:20px;display:flex;flex-direction:column;gap:2px;padding:16px}
@@ -431,7 +435,7 @@ const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
 const state = {
   db: null, charts: {},
   ui: { regime: localStorage.getItem('mf_regime') || 'comp', semPont: localStorage.getItem('mf_sempont') === '1', tab: 'geral', preset: 'ult12', de: null, ate: null, futuro: false, fgts: false,
-        L: { tipo: '', q: '', conta: '', cartao: '', cat: '', sit: '', de: '', ate: '', pag: 0, sort: 'data', dir: -1 }, pend: [] }
+        L: { tipo: '', q: '', conta: '', cartao: '', cat: '', sit: '', de: '', ate: '', pag: 0, sort: 'data', dir: -1 }, pend: [], pilha: [], detalhe: null }
 };
 
 /* ---------- Persistência na nuvem (Supabase) ----------
@@ -728,14 +732,15 @@ const FUTURAS = [];
 function shell() {
   $('#nav').innerHTML = TABS.map(([k, n]) => `<button data-tab="${k}" ${state.ui.tab === k ? 'aria-current="page"' : ''}>${n}</button>`).join('') +
     '';
-  $$('#nav [data-tab]').forEach(b => b.onclick = () => { state.ui.tab = b.dataset.tab; render(); window.scrollTo(0, 0); });
+  $$('#nav [data-tab]').forEach(b => b.onclick = () => { state.ui.pilha = []; state.ui.tab = b.dataset.tab; render(); window.scrollTo(0, 0); });
 }
 function render() {
   shell();
   const v = $('#view');
   Object.values(state.charts).forEach(c => c.destroy()); state.charts = {};
-  ({ geral: viewGeral, desp: viewDesp, rec: viewRec, inv: viewInv, ins: viewIns, lanc: viewLanc, cad: viewCad, dados: viewDados, ajuda: viewAjuda })[state.ui.tab](v);
+  ({ geral: viewGeral, desp: viewDesp, rec: viewRec, inv: viewInv, ins: viewIns, lanc: viewLanc, cad: viewCad, dados: viewDados, ajuda: viewAjuda, _detalhe: viewDetalhe })[state.ui.tab](v);
   $$('[data-ajuda]').forEach(a => a.onclick = e => { e.preventDefault(); irAjuda(a.dataset.ajuda); });
+  $$('[data-ex]').forEach(b => b.onclick = () => abrirDetalhe(b.dataset.ex, JSON.parse(b.dataset.ctx)));
 }
 
 /* ---- Visão geral ---- */
@@ -783,11 +788,11 @@ function viewGeral(v) {
   <div class="top"><div><h1>Visão geral</h1><p class="sub">${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${n} ${n === 1 ? 'mês' : 'meses'} <br>${regimeTxt()}</p></div>${filtrosPeriodo()}</div>
   ${nD === 0 ? '<div class="panel empty">Nenhum dado carregado. Vá em “Importar e exportar” para importar os CSVs ou um JSON.</div>' : `
   <div class="ledger">
-    <div class="hero"><div class="lab">Sobra do período</div><div class="num ${cur.sobra >= 0 ? 'pos' : 'neg'}">${money(cur.sobra)}</div><div class="note">${delta(cur.sobra, ant.sobra)}<br>inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR)<br><a class="hl" data-ajuda="sobra">como é calculada</a></div></div>
-    <div><div class="lab">Receita líquida</div><div class="num">${money(cur.liq)}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)} (${pct(cur.rec ? (cur.ded + cur.custo) / cur.rec : NaN)})<br>${delta(cur.liq, ant.liq)}</div></div>
-    <div><div class="lab">Despesas</div><div class="num">${money(cur.desp)}</div><div class="note">média ${money(cur.desp / n)}/mês<br>${delta(cur.desp, ant.desp, true)}</div></div>
-    <div><div class="lab">Taxa de poupança</div><div class="num ${cur.taxa >= 0.2 ? 'pos' : cur.taxa < 0 ? 'neg' : 'warn'}">${pct(cur.taxa)}</div><div class="note">sobra ÷ receita líquida<br>sem sazonais: <b>${pct(cur.taxaRec)}</b> · meta ${state.db.config.metas.taxaPoupanca}%<br><a class="hl" data-ajuda="sobra">entenda</a></div></div>
-    <div><div class="lab">Investido no período</div><div class="num" style="color:var(--inv)">${money(fi.liq)}</div><div class="note">aportes ${money(fi.ap)} − resgates ${money(fi.rs)}<br>não reduz a sobra <a class="hl" data-ajuda="sobra">por quê?</a></div></div>
+    <div class="hero"><div class="lab">Sobra do período</div><div class="num ${cur.sobra >= 0 ? 'pos' : 'neg'}">${ex('sobra', money(cur.sobra))}</div><div class="note">${delta(cur.sobra, ant.sobra)}<br>inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR)<br><a class="hl" data-ajuda="sobra">como é calculada</a></div></div>
+    <div><div class="lab">Receita líquida</div><div class="num">${ex('receitaLiquida', money(cur.liq))}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)} (${pct(cur.rec ? (cur.ded + cur.custo) / cur.rec : NaN)})<br>${delta(cur.liq, ant.liq)}</div></div>
+    <div><div class="lab">Despesas</div><div class="num">${ex('despesasPeriodo', money(cur.desp))}</div><div class="note">média ${money(cur.desp / n)}/mês<br>${delta(cur.desp, ant.desp, true)}</div></div>
+    <div><div class="lab">Taxa de poupança</div><div class="num ${cur.taxa >= 0.2 ? 'pos' : cur.taxa < 0 ? 'neg' : 'warn'}">${ex('taxaPoupanca', pct(cur.taxa))}</div><div class="note">sobra ÷ receita líquida<br>sem sazonais: <b>${pct(cur.taxaRec)}</b> · meta ${state.db.config.metas.taxaPoupanca}%<br><a class="hl" data-ajuda="sobra">entenda</a></div></div>
+    <div><div class="lab">Investido no período</div><div class="num" style="color:var(--inv)">${ex('investidoPeriodo', money(fi.liq))}</div><div class="note">aportes ${money(fi.ap)} − resgates ${money(fi.rs)}<br>não reduz a sobra <a class="hl" data-ajuda="sobra">por quê?</a></div></div>
   </div>
   <div class="callout" style="margin-top:0">${state.db.contas.some(c => c.ativa === false) ? "Contas inativas fora das análises: <b>" + state.db.contas.filter(c => c.ativa === false).map(c => esc(c.nome)).join(", ") + "</b>.<br>" : ""}${state.ui.semPont ? pontResumo(p) + "<br>" : ""}${aReceberTxt()}${compTxt(p)}<br>Deduções obrigatórias (INSS, IRRF, descontos da folha e IR/perdas em investimentos) saem da receita e <b>não</b> contam como gasto. Ajustes de saldo não são receita nem despesa. 13º, férias e PLR são receitas <b>sazonais</b>: acontecem todo ano, mas em meses específicos; a taxa “sem sazonais” mostra o mês a mês sem elas.</div>
   <div class="grid g2">
@@ -840,7 +845,7 @@ function tabelaSaldos(L) {
   for (const tp of tipos) {
     const cs = state.db.contas.filter(c => c.tipo === tp && c.ativa !== false); if (!cs.length) continue;
     h += `<tr><td colspan="4" class="mut" style="padding-top:12px;font-size:12.5px">${Core.TIPOS_CONTA[tp]}</td></tr>`;
-    cs.forEach(c => { const x = s[c.nome], sal = (c.saldoInicial || 0) + x.ent - x.sai; h += `<tr><td>${esc(c.nome)}</td><td class="r">${money(x.ent)}</td><td class="r">${money(x.sai)}</td><td class="r ${sal < 0 ? 'neg' : ''}"><b>${money(sal)}</b></td></tr>`; });
+    cs.forEach(c => { const x = s[c.nome], sal = (c.saldoInicial || 0) + x.ent - x.sai; h += `<tr><td>${esc(c.nome)}</td><td class="r">${money(x.ent)}</td><td class="r">${money(x.sai)}</td><td class="r ${sal < 0 ? 'neg' : ''}"><b>${ex('contaSaldo', money(sal), { conta: c.nome })}</b></td></tr>`; });
   }
   return h + '</tbody></table></div><p class="sub" style="margin-top:8px">Sem o saldo inicial, o valor mostra só a movimentação dos dados importados. Ajuste em Cadastros → Contas.</p>';
 }
@@ -1156,10 +1161,10 @@ function viewDesp(v) {
 
   v.innerHTML = hdr('Despesas', `${fmtMes(p.de)} a ${fmtMes(p.ate)} · deduções da folha ficam fora · comparação: ${ui.cmp === 'ano' ? 'mesmo período do ano anterior' : 'período imediatamente anterior'} ${C.p.meses.length ? `(${fmtMes(cr.de)} a ${fmtMes(cr.ate)}, ${C.p.meses.length} ${C.p.meses.length === 1 ? 'mês' : 'meses'} disponíveis${fac > 1 ? ', valores ajustados à mesma duração' : ''})` : '(sem meses anteriores a 2025 para comparar)'}`) + `
   <div class="ledger" style="grid-template-columns:1.2fr repeat(3,1fr)">
-    <div class="hero"><div class="lab">Despesas no período</div><div class="num">${money(cur.desp)}</div><div class="note">${delta(cur.desp, C.cur.desp * fac, true)}</div></div>
-    <div><div class="lab">Média mensal</div><div class="num">${money(cur.desp / n)}</div><div class="note">${pct(A.baseTot ? cur.desp / A.baseTot : NaN)} da renda mensal base (${money(A.baseMes)})</div></div>
-    <div><div class="lab">No cartão</div><div class="num">${pct(totD ? 1 - pagam[0].tot / totD : 0, 0)}</div><div class="note">parcelado: ${pct(totD ? sum(pagam, x => x.parc) / totD : 0, 0)} do gasto</div></div>
-    <div><div class="lab">Acima das faixas</div><div class="num ${excTot > 0 ? 'neg' : 'pos'}">${money(excTot)}<span style="font-size:14px">/mês</span></div><div class="note">excesso somado nas categorias acima do teto</div></div></div>
+    <div class="hero"><div class="lab">Despesas no período</div><div class="num">${ex('despesasPeriodo', money(cur.desp))}</div><div class="note">${delta(cur.desp, C.cur.desp * fac, true)}</div></div>
+    <div><div class="lab">Média mensal</div><div class="num">${ex('mediaMensalDesp', money(cur.desp / n))}</div><div class="note">${pct(A.baseTot ? cur.desp / A.baseTot : NaN)} da renda mensal base (${money(A.baseMes)})</div></div>
+    <div><div class="lab">No cartão</div><div class="num">${ex('noCartao', pct(totD ? 1 - pagam[0].tot / totD : 0, 0))}</div><div class="note">parcelado: ${pct(totD ? sum(pagam, x => x.parc) / totD : 0, 0)} do gasto</div></div>
+    <div><div class="lab">Acima das faixas</div><div class="num ${excTot > 0 ? 'neg' : 'pos'}">${ex('acimaFaixas', money(excTot))}<span style="font-size:14px">/mês</span></div><div class="note">excesso somado nas categorias acima do teto</div></div></div>
   <div class="grid g2">
     <div class="panel"><h2>Necessidades, desejos e poupança sobre a renda mensal base</h2><p class="sub">Referência ajustada ao seu perfil: necessidades até ${state.db.config.metas.necessidadesMax}%, desejos até ${state.db.config.metas.desejosMax}%, poupança de ${state.db.config.metas.taxaPoupanca}% ou mais. A regra clássica (50/30/20) supõe pagar moradia; como isso é da sua mãe e do seu namorado, a poupança possível é maior. Ajuste em Insights e metas.</p>
       ${[['Necessidades', A.pn, state.db.config.metas.necessidadesMax / 100, false], ['Desejos e outros', A.pd, state.db.config.metas.desejosMax / 100, false], ['Poupança (sobra)', pp, state.db.config.metas.taxaPoupanca / 100, true]].map(([nm, val, alvo, inv]) => { const ruim = inv ? val < alvo : val > alvo; return `<div style="margin:14px 0 4px" class="row"><b style="min-width:150px">${nm}</b><span class="${ruim ? 'neg' : 'pos'}"><b>${pct(val)}</b></span><span class="mut">referência ${inv ? '≥' : '≤'} ${pct(alvo, 0)}</span></div>${meter(Math.max(0, val) * 100, alvo * 100, 100, ruim)}`; }).join('')}
@@ -1310,11 +1315,11 @@ function viewRec(v) {
   let acc = 0; const sobraAc = mensal.map(r => acc += r.sobra);
   v.innerHTML = hdr('Receitas e poupança', `${fmtMes(p.de)} a ${fmtMes(p.ate)} · da receita bruta à sobra`) + `
   <div class="ledger">
-    <div class="hero"><div class="lab">Receita líquida</div><div class="num">${money(cur.liq)}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)}</div></div>
-    <div><div class="lab">Sem sazonais (líquida)</div><div class="num">${money(cur.liqRec / n)}<span style="font-size:14px">/mês</span></div><div class="note">sem 13º, férias, PLR e similares · total ${money(cur.liqRec)}</div></div>
-    <div><div class="lab">Sazonais (líquidas)</div><div class="num" style="color:var(--warn)">${money(cur.extra)}</div><div class="note">${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida<br>13º, férias, PLR, DIRPF, horas extras: acontecem todo ano</div></div>
-    <div><div class="lab">Taxa de poupança</div><div class="num">${pct(cur.taxa)}</div><div class="note">sem sazonais: <b>${pct(cur.taxaRec)}</b></div></div>
-    <div><div class="lab">Estabilidade do salário</div><div class="num">${pct(mu ? sd / mu : NaN, 0)}</div><div class="note">variação mensal · média ${money(mu)}<br>mínimo ${money(Math.min(...trab))} · máximo ${money(Math.max(...trab))}</div></div></div>
+    <div class="hero"><div class="lab">Receita líquida</div><div class="num">${ex('receitaLiquida', money(cur.liq))}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)}</div></div>
+    <div><div class="lab">Sem sazonais (líquida)</div><div class="num">${ex('semSazonais', money(cur.liqRec / n))}<span style="font-size:14px">/mês</span></div><div class="note">sem 13º, férias, PLR e similares · total ${money(cur.liqRec)}</div></div>
+    <div><div class="lab">Sazonais (líquidas)</div><div class="num" style="color:var(--warn)">${ex('sazonais', money(cur.extra))}</div><div class="note">${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida<br>13º, férias, PLR, DIRPF, horas extras: acontecem todo ano</div></div>
+    <div><div class="lab">Taxa de poupança</div><div class="num">${ex('taxaPoupanca', pct(cur.taxa))}</div><div class="note">sem sazonais: <b>${pct(cur.taxaRec)}</b></div></div>
+    <div><div class="lab">Estabilidade do salário</div><div class="num">${ex('estabilidadeSalario', pct(mu ? sd / mu : NaN, 0))}</div><div class="note">variação mensal · média ${money(mu)}<br>mínimo ${money(Math.min(...trab))} · máximo ${money(Math.max(...trab))}</div></div></div>
   <div class="grid g2">
     <div class="panel"><h2>De onde vem a receita</h2><p class="sub">Por grupo, mês a mês</p><div class="chartbox"><canvas id="cRecGr"></canvas></div></div>
     <div class="panel"><h2>Da receita bruta à sobra</h2><table><tbody>
@@ -1429,17 +1434,17 @@ function viewInv(v) {
   v.innerHTML = hdr('Investimentos', `Rentabilidade real contra o CDI · fluxos rastreados desde ${fmtMes(cfg.invInicioMes)} (antes disso o relatório de transferências não existe)`) + `
   ${descal.length ? `<div class="callout"><b>Falta calibrar:</b> informe o saldo real de ${descal.map(I => esc(I.nome)).join(', ')} na tabela abaixo. Sem isso a base de cálculo fica subestimada e a rentabilidade aparece inflada.</div>` : ''}
   <div class="ledger">
-    <div class="hero"><div class="lab">Patrimônio investido (estimado)</div><div class="num">${money(pat)}</div><div class="note">em ${fmtMes(fimMesFechado())}, sem FGTS e sem renda variável<br><a class="hl" data-ajuda="invest">como é calculado</a></div></div>
-    <div><div class="lab">Aportes líquidos</div><div class="num">${money(apL)}</div><div class="note">${fmtMes(de)} a ${fmtMes(ate)}</div></div>
-    <div><div class="lab">Rendimentos líquidos</div><div class="num pos">${money(real)}</div><div class="note">depois de IR e perdas</div></div>
-    <div><div class="lab">Rentabilidade no período</div><div class="num">${okCal ? pct(acc - 1, 2) : '—'}</div><div class="note">${okCal ? 'CDI líquido no período ' + pct(accC - 1, 2) : 'calibre os saldos reais abaixo'}</div></div>
-    <div><div class="lab">Comparado ao CDI</div><div class="num ${okCal && accC > 1 && (acc - 1) / (accC - 1) >= (cfg.pctCdi / 100) ? 'pos' : 'warn'}">${okCal && accC > 1 ? pct((acc - 1) / (accC - 1), 0) : '—'}</div><div class="note">${okCal ? `esperado a ${cfg.pctCdi}% do CDI líquido: ${money(esp)}<br>real ${money(real)} → <b class="${real >= esp ? 'pos' : 'neg'}">${real >= esp ? '+' : ''}${money(real - esp)}</b>` : 'depende da calibração'}</div></div></div>
+    <div class="hero"><div class="lab">Patrimônio investido (estimado)</div><div class="num">${ex('patrimonioInvestido', money(pat))}</div><div class="note">em ${fmtMes(fimMesFechado())}, sem FGTS e sem renda variável<br><a class="hl" data-ajuda="invest">como é calculado</a></div></div>
+    <div><div class="lab">Aportes líquidos</div><div class="num">${ex('aportesLiquidos', money(apL))}</div><div class="note">${fmtMes(de)} a ${fmtMes(ate)}</div></div>
+    <div><div class="lab">Rendimentos líquidos</div><div class="num pos">${ex('rendimentosLiquidos', money(real))}</div><div class="note">depois de IR e perdas</div></div>
+    <div><div class="lab">Rentabilidade no período</div><div class="num">${okCal ? ex('rentabilidadePeriodo', pct(acc - 1, 2)) : '—'}</div><div class="note">${okCal ? 'CDI líquido no período ' + pct(accC - 1, 2) : 'calibre os saldos reais abaixo'}</div></div>
+    <div><div class="lab">Comparado ao CDI</div><div class="num ${okCal && accC > 1 && (acc - 1) / (accC - 1) >= (cfg.pctCdi / 100) ? 'pos' : 'warn'}">${okCal && accC > 1 ? ex('comparadoCDI', pct((acc - 1) / (accC - 1), 0)) : '—'}</div><div class="note">${okCal ? `esperado a ${cfg.pctCdi}% do CDI líquido: ${money(esp)}<br>real ${money(real)} → <b class="${real >= esp ? 'pos' : 'neg'}">${real >= esp ? '+' : ''}${money(real - esp)}</b>` : 'depende da calibração'}</div></div></div>
   <div class="grid g2e">
     <div class="panel"><h2>Aportes, rendimentos e patrimônio</h2><p class="sub">Em cima, o patrimônio no fim de cada mês (eixo a partir de zero). Embaixo, o que entrou como aporte líquido e como rendimento líquido em cada mês.</p><div class="chartbox" style="height:170px"><canvas id="cInvPat"></canvas></div><div class="chartbox" style="height:190px;margin-top:6px"><canvas id="cInvFlux"></canvas></div></div>
     <div class="panel"><h2>Rentabilidade contra o CDI</h2><p class="sub">Em cima, o retorno acumulado no período (a partir de 0%). Embaixo, o retorno de cada mês. A carteira é comparada ao CDI líquido de IR.</p><div class="chartbox" style="height:170px"><canvas id="cInvAcum"></canvas></div><div class="chartbox" style="height:190px;margin-top:6px"><canvas id="cInvRent"></canvas></div></div></div>
   <div class="panel" style="margin-bottom:16px"><h2>Por instituição</h2><p class="sub">Rentabilidade = rendimentos líquidos ÷ saldo médio do mês (aportes contam pela metade). “Esperado” = saldo × CDI líquido de ${cfg.irComparacao ?? 15}% de IR × ${cfg.pctCdi}%. Nomad é em dólar: a variação cambial não se compara ao CDI.</p>
     <div class="tblwrap"><table><thead><tr><th>Instituição</th><th class="r">Aportes líq.</th><th class="r">Rendimentos</th><th class="r">IR/perdas</th><th class="r">Saldo estimado</th><th class="r">Rentab.</th><th class="r">% do CDI</th><th class="r">Esperado</th><th class="r">Diferença</th><th>Situação</th><th class="r">Saldo real hoje</th></tr></thead><tbody>
-    ${W.map(({ I, w }) => { const dif = w.real - w.esp, sit = !I.calibrada ? '<span class="chip pend">Calibrar</span>' : I.nome === 'Nomad' ? '<span class="chip">Em dólar</span>' : w.saldoFim < 1 ? '<span class="chip">Sem saldo</span>' : !w.k ? '<span class="chip">Sem base</span>' : w.pcdi >= cfg.pctCdi / 100 * 0.98 ? '<span class="chip R">Dentro do esperado</span>' : '<span class="chip D">Abaixo do CDI</span>'; return `<tr><td><b>${esc(I.nome)}</b><div class="mut" style="font-size:12px">${I.contas.map(esc).join(', ')}</div></td><td class="r">${money(w.ap - w.rs)}</td><td class="r">${money(w.rd)}</td><td class="r">${money(w.ct)}</td><td class="r"><b>${money(w.saldoFim)}</b></td><td class="r">${I.calibrada && w.k ? pct(w.rent, 2) : '—'}</td><td class="r">${I.calibrada && w.k && Number.isFinite(w.pcdi) ? pct(w.pcdi, 0) : '—'}</td><td class="r">${I.calibrada ? money(w.esp) : '—'}</td><td class="r ${dif >= 0 ? 'pos' : 'neg'}">${I.calibrada && w.k ? money(dif) : '—'}</td><td>${sit}</td><td class="r"><input type="number" step="0.01" data-invreal="${esc(I.nome)}" value="${I.calibrada ? (I.ini + I.fim0).toFixed(2) : ''}" placeholder="informe" aria-label="Saldo real ${esc(I.nome)}"></td></tr>`; }).join('')}</tbody></table></div></div>
+    ${W.map(({ I, w }) => { const dif = w.real - w.esp, sit = !I.calibrada ? '<span class="chip pend">Calibrar</span>' : I.nome === 'Nomad' ? '<span class="chip">Em dólar</span>' : w.saldoFim < 1 ? '<span class="chip">Sem saldo</span>' : !w.k ? '<span class="chip">Sem base</span>' : w.pcdi >= cfg.pctCdi / 100 * 0.98 ? '<span class="chip R">Dentro do esperado</span>' : '<span class="chip D">Abaixo do CDI</span>'; return `<tr><td><b>${ex('instituicaoInvest', esc(I.nome), { inst: I.nome })}</b><div class="mut" style="font-size:12px">${I.contas.map(esc).join(', ')}</div></td><td class="r">${money(w.ap - w.rs)}</td><td class="r">${money(w.rd)}</td><td class="r">${money(w.ct)}</td><td class="r"><b>${money(w.saldoFim)}</b></td><td class="r">${I.calibrada && w.k ? pct(w.rent, 2) : '—'}</td><td class="r">${I.calibrada && w.k && Number.isFinite(w.pcdi) ? pct(w.pcdi, 0) : '—'}</td><td class="r">${I.calibrada ? money(w.esp) : '—'}</td><td class="r ${dif >= 0 ? 'pos' : 'neg'}">${I.calibrada && w.k ? money(dif) : '—'}</td><td>${sit}</td><td class="r"><input type="number" step="0.01" data-invreal="${esc(I.nome)}" value="${I.calibrada ? (I.ini + I.fim0).toFixed(2) : ''}" placeholder="informe" aria-label="Saldo real ${esc(I.nome)}"></td></tr>`; }).join('')}</tbody></table></div></div>
   <div class="grid g2e">
     <div class="panel"><h2>Renda variável: proventos</h2><p class="sub">FIIs e ações no período · ${money(rvTot)} (${money(rvTot / n)}/mês). Acompanhamento simples: só o que foi pago.</p><div class="chartbox sm"><canvas id="cRV"></canvas></div>
       <table><tbody>${tl.map(x => `<tr><td>${esc(x.k)}</td><td class="r">${money(x.tot)}</td><td class="r mut">${x.n} pgtos</td></tr>`).join('')}</tbody></table></div>
@@ -1875,6 +1880,312 @@ function viewAjuda(v) {
   if (u.ajudaSec) { const el = document.getElementById('h-' + u.ajudaSec); u.ajudaSec = null; if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 30); }
 }
 function irAjuda(id) { state.ui.tab = 'ajuda'; state.ui.ajudaQ = ''; state.ui.ajudaSec = id; render(); }
+
+/* ---------- Navegação com histórico (links explicativos + Voltar) ----------
+   Cada card com um valor clicável abre uma página de detalhe explicando como aquele número
+   foi formado. O botão Voltar empilha/desempilha um snapshot completo da tela (aba, filtros,
+   posição da rolagem), então volta exatamente para onde você estava, mesmo depois de vários
+   níveis de detalhe (ex.: Despesas → categoria → subcategoria). */
+const CAMPOS_CTX = ['regime', 'preset', 'de', 'ate', 'futuro', 'fgts', 'semPont', 'cmp'];
+function snapCtx(extra) { const c = {}; CAMPOS_CTX.forEach(k => c[k] = state.ui[k]); return { ...c, ...extra }; }
+function comContexto(ctx, fn) {
+  const u = state.ui, salvos = {};
+  CAMPOS_CTX.forEach(k => { salvos[k] = u[k]; if (ctx && ctx[k] !== undefined) u[k] = ctx[k]; });
+  try { return fn(); } finally { Object.assign(u, salvos); }
+}
+function ex(id, htmlValor, extraCtx) {
+  return `<button type="button" class="valx" data-ex="${id}" data-ctx='${esc(JSON.stringify(snapCtx(extraCtx)))}'>${htmlValor}</button>`;
+}
+// Exclui só 'pilha' do snapshot (evita nesting infinito); 'detalhe' fica dentro, para
+// que Voltar a partir de um detalhe encadeado (categoria -> despesas -> sobra) restaure
+// o detalhe anterior corretamente, e não apenas a aba normal.
+function cloneUiSemPilha() { const { pilha, ...resto } = state.ui; return JSON.parse(JSON.stringify(resto)); }
+// Contador de navegação: invalida um ajuste de rolagem agendado (rAF) se, antes dele rodar,
+// o usuário já navegou de novo (ex.: clicar em Voltar várias vezes seguidas rapidamente).
+let _navGen = 0;
+function abrirDetalhe(id, ctx) {
+  if (!state.ui.pilha) state.ui.pilha = [];
+  state.ui.pilha.push({ ui: cloneUiSemPilha(), scroll: window.scrollY });
+  state.ui.detalhe = { id, ctx };
+  state.ui.tab = '_detalhe';
+  _navGen++;
+  render(); window.scrollTo(0, 0);
+}
+function voltar() {
+  const pilha = state.ui.pilha || (state.ui.pilha = []);
+  const topo = pilha.pop();
+  if (!topo) { _navGen++; state.ui.tab = 'geral'; state.ui.detalhe = null; render(); window.scrollTo(0, 0); return; }
+  const pAtual = state.ui.pilha;
+  Object.assign(state.ui, topo.ui);
+  state.ui.pilha = pAtual;
+  render();
+  // setTimeout em vez de requestAnimationFrame: rAF pode ficar pausado em abas/páginas
+  // sem foco (ex.: testes automatizados, ou o usuário trocando de aba do navegador logo após clicar).
+  const y = topo.scroll || 0, g = ++_navGen;
+  setTimeout(() => { if (g === _navGen) window.scrollTo(0, y); }, 0);
+  setTimeout(() => { if (g === _navGen) window.scrollTo(0, y); }, 60);
+}
+function viewDetalhe(v) {
+  const d = state.ui.detalhe || {}, fn = EXPLICA[d.id];
+  if (!fn) { v.innerHTML = `<button type="button" class="btn" id="btnVoltar">← Voltar</button><div class="panel empty" style="margin-top:14px">Não foi possível abrir este detalhamento.</div>`; $('#btnVoltar').onclick = voltar; return; }
+  let out; try { out = fn(d.ctx || {}); }
+  catch (e) { v.innerHTML = `<button type="button" class="btn" id="btnVoltar">← Voltar</button><div class="panel empty" style="margin-top:14px">Não foi possível calcular este detalhamento: ${esc(e.message)}</div>`; $('#btnVoltar').onclick = voltar; return; }
+  v.innerHTML = `<div class="top"><div><button type="button" class="btn" id="btnVoltar">← Voltar</button><h1 style="margin-top:14px">${esc(out.titulo)}</h1>${out.sub ? `<p class="sub">${out.sub}</p>` : ''}</div></div>${out.html}`;
+  $('#btnVoltar').onclick = voltar;
+}
+
+/* ---------- Registro de explicações: cada função recalcula o valor exibido, com a fórmula,
+   o que entra, o que fica de fora e (quando faz sentido) os lançamentos que o formam. ---------- */
+const EXPLICA = {
+  sobra: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
+    const pa = periodoAnterior(p), ant = escala(resumo(pa.n ? txNoPeriodo(pa.de, pa.ate) : [], L), pa.fac);
+    return {
+      titulo: 'Como a sobra do período foi calculada', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${n_meses(p)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Receita líquida</td><td class="r">${ex('receitaLiquida', money(cur.liq))}</td></tr>
+        <tr><td>(−) Despesas</td><td class="r neg">${ex('despesasPeriodo', money(-cur.desp))}</td></tr>
+        <tr><td><b>= Sobra do período</b></td><td class="r ${cur.sobra >= 0 ? 'pos' : 'neg'}"><b>${money(cur.sobra)}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">Inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR) já dentro da receita líquida. Período anterior (${fmtMes(pa.de)} a ${fmtMes(pa.ate)}): sobra de ${money(ant.sobra)}${pa.n && Math.abs(pa.fac - 1) > 0.01 ? ` (ajustada para a mesma duração; valor real do período foi ${money(ant.sobra / pa.fac)})` : ''}.</p></div>
+      <div class="panel"><h2>O que entra e o que fica de fora</h2>
+        <p>Entram como <b>receita</b>: salários, bônus, 13º, férias, PLR e demais receitas do relatório, exceto as marcadas como ajuste de saldo. ${state.ui.fgts ? 'O FGTS entra na receita porque a opção "incluir FGTS na receita" está marcada.' : 'O FGTS <b>não</b> entra na receita (opção desmarcada nos filtros).'}</p>
+        <p>São descontados da receita bruta antes de virar "receita líquida": deduções obrigatórias da folha (INSS, IRRF e afins) e IR/perdas dentro de investimentos.</p>
+        <p>Entram como <b>despesa</b>: todo lançamento de despesa que não seja dedução da folha, custo de investimento ou ajuste de saldo.</p>
+        <p><b>Não entram nem como receita nem como despesa:</b> ajustes de saldo, movimentações com contas transitórias (Israel, Mãe, Outros) e aportes/resgates de investimentos — eles aparecem à parte, em "Investido no período", e não reduzem a sobra.${state.ui.semPont ? ' Compras pontuais grandes foram excluídas deste cálculo (opção marcada nos filtros).' : ''}</p></div>`
+    };
+  }),
+  receitaLiquida: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
+    const subDed = {}; txs.filter(t => t.t === 'D' && tipoDesp(t, L) === 'ded').forEach(t => subDed[t.cat] = (subDed[t.cat] || 0) + t.valor);
+    return {
+      titulo: 'Como a receita líquida foi calculada', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Receita bruta</td><td class="r">${money(cur.rec)}</td></tr>
+        ${Object.entries(subDed).sort((a, b) => b[1] - a[1]).map(([k, x]) => `<tr><td class="mut">(−) ${esc(k)}</td><td class="r neg">${money(-x)}</td></tr>`).join('')}
+        ${cur.custo ? `<tr><td class="mut">(−) IR e perdas em investimentos</td><td class="r neg">${money(-cur.custo)}</td></tr>` : ''}
+        <tr><td><b>= Receita líquida</b></td><td class="r"><b>${money(cur.liq)}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">Dos quais ${money(cur.extra)} são sazonais (13º, férias, PLR) — acontecem todo ano, mas em meses específicos. ${state.ui.fgts ? 'O FGTS está incluído na receita bruta acima (opção marcada nos filtros).' : 'O FGTS não está incluído (opção desmarcada).'}</p></div>`
+    };
+  }),
+  despesasPeriodo: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
+    const D = txs.filter(t => isDesp(t, L));
+    const porCat = {}; D.forEach(t => porCat[t.cat] = (porCat[t.cat] || 0) + t.valor);
+    const cats = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+    return {
+      titulo: 'Como as despesas do período foram calculadas', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${D.length.toLocaleString('pt-BR')} lançamento(s)`,
+      html: `<div class="panel"><h2>O que conta como despesa</h2><p>Somam-se todos os lançamentos de despesa do período, <b>exceto</b>: deduções obrigatórias da folha (INSS, IRRF), IR/perdas dentro de investimentos e ajustes de saldo. ${state.ui.semPont ? 'Compras pontuais grandes foram excluídas (opção marcada nos filtros).' : 'Compras pontuais grandes estão incluídas — marque a opção nos filtros para excluí-las.'}</p></div>
+      <div class="panel"><h2>Por categoria</h2><div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Categoria</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>${cats.map(([k, x]) => `<tr><td>${ex('categoriaDesp', esc(k), { cat: k })}</td><td class="r">${money(x)}</td><td class="r mut">${pct(cur.desp ? x / cur.desp : 0, 0)}</td></tr>`).join('')}</tbody></table></div><p class="sub" style="margin-top:8px">Clique numa categoria para ver o detalhamento.</p></div>`
+    };
+  }),
+  taxaPoupanca: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
+    return {
+      titulo: 'Como a taxa de poupança foi calculada', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Sobra do período</td><td class="r">${ex('sobra', money(cur.sobra))}</td></tr>
+        <tr><td>÷ Receita líquida</td><td class="r">${ex('receitaLiquida', money(cur.liq))}</td></tr>
+        <tr><td><b>= Taxa de poupança</b></td><td class="r"><b>${pct(cur.taxa)}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">Sem as receitas sazonais, a taxa seria <b>${pct(cur.taxaRec)}</b> (sobra sem sazonais ${money(cur.sobraRec)} ÷ receita líquida sem sazonais ${money(cur.liqRec)}). Meta atual: ${state.db.config.metas.taxaPoupanca}%.</p></div>
+      <div class="panel"><h2>Por que comparar as duas versões?</h2><p>13º, férias e PLR entram em meses específicos e podem esconder um padrão de gasto que não se sustenta no resto do ano. A versão "sem sazonais" mostra se você está poupando de forma consistente mês a mês.</p></div>`
+    };
+  }),
+  investidoPeriodo: ctx => comContexto(ctx, () => {
+    const p = periodo(), fi = fluxoInvest(p.de, p.ate);
+    return {
+      titulo: 'Como o valor investido no período foi calculado', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Aportes (transferências para contas de investimento)</td><td class="r">${money(fi.ap)}</td></tr>
+        <tr><td>(−) Resgates (transferências de volta)</td><td class="r neg">${money(-fi.rs)}</td></tr>
+        <tr><td><b>= Investido líquido no período</b></td><td class="r"><b style="color:var(--inv)">${money(fi.liq)}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">Contam só as transferências entre uma conta comum e uma conta marcada como "investimento" em Cadastros. Rendimentos e IR/perdas não entram aqui — eles aparecem na aba Investimentos.</p></div>
+      <div class="panel"><h2>Por que isso não reduz a sobra?</h2><p>Investir é mover dinheiro de um lugar para outro, não gastar: o valor continua seu. Por isso aportes e resgates ficam fora do cálculo de despesas e de sobra — aparecem aqui, à parte, para acompanhar quanto está sendo guardado.</p></div>`
+    };
+  }),
+  contaSaldo: ctx => comContexto(ctx, () => {
+    const L = lookups(), s = saldos(L), c = state.db.contas.find(x => x.nome === ctx.conta);
+    if (!c) return { titulo: ctx.conta || 'Conta', sub: '', html: '<div class="panel empty">Conta não encontrada.</div>' };
+    const x = s[c.nome] || { ent: 0, sai: 0, n: 0 }, sal = (c.saldoInicial || 0) + x.ent - x.sai, lim = fimMesFechado();
+    const movs = state.db.transacoes.filter(t => { const dc = t.t === 'T' ? t.venc : t.efet; if (!dc || dc < state.db.config.dataInicio || dc.slice(0, 7) > lim) return false; return (t.t !== 'T' && t.conta === c.nome) || (t.t === 'T' && (t.orig === c.nome || t.dest === c.nome)); })
+      .sort((a, b) => (b.efet || b.venc).localeCompare(a.efet || a.venc));
+    return {
+      titulo: `Conta: ${c.nome}`, sub: `Saldo estimado em ${fmtMes(lim)}`,
+      html: `<div class="ledger" style="grid-template-columns:repeat(4,1fr)">
+        <div class="hero"><div class="lab">Saldo estimado</div><div class="num ${sal < 0 ? 'neg' : ''}">${money(sal)}</div></div>
+        <div><div class="lab">Saldo inicial informado</div><div class="num">${money(c.saldoInicial || 0)}</div></div>
+        <div><div class="lab">Entradas até ${fmtMes(lim)}</div><div class="num pos">${money(x.ent)}</div></div>
+        <div><div class="lab">Saídas até ${fmtMes(lim)}</div><div class="num neg">${money(x.sai)}</div></div></div>
+      <div class="panel"><h2>Como é calculado</h2><p>Saldo estimado = saldo inicial informado em Cadastros + todas as entradas − todas as saídas efetivadas até ${fmtMes(lim)} (a partir de ${fmtData(state.db.config.dataInicio)}). Entradas e saídas contam receitas, despesas e as duas pontas das transferências.</p></div>
+      <div class="panel"><h2>Movimentações desta conta</h2><div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Descrição</th><th>Tipo</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${movs.slice(0, 300).map(t => { const tp = t.t === 'T' ? (t.orig === c.nome ? 'Saída (transf.)' : 'Entrada (transf.)') : (t.t === 'R' ? 'Receita' : 'Despesa'); const val = t.t === 'T' ? (t.orig === c.nome ? -t.valor : t.valor) : (t.t === 'R' ? t.valor : -t.valor); return `<tr><td>${esc(t.desc)}</td><td class="mut">${tp}</td><td>${fmtData(t.efet || t.venc)}</td><td class="r ${val < 0 ? 'neg' : 'pos'}">${money(val)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nenhuma movimentação.</td></tr>'}</tbody></table>${movs.length > 300 ? `<p class="sub">Mostrando as 300 mais recentes de ${movs.length}.</p>` : ''}</div></div>`
+    };
+  }),
+  categoriaDesp: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), A = calcDesp(p.de, p.ate, L);
+    const row = A.rows.find(r => r.nome === ctx.cat);
+    if (!row) return { titulo: ctx.cat || 'Categoria', sub: '', html: '<div class="panel empty">Sem gastos nesta categoria no período.</div>' };
+    const cr = cmpRange(p), C = calcDesp(cr.de, cr.ate, L), fac = C.p.meses.length ? A.n / C.p.meses.length : 0;
+    const rowAnt = C.rows.find(r => r.nome === ctx.cat), antTot = rowAnt ? rowAnt.total * fac : 0;
+    const subs = {}; A.D.filter(t => t.cat === ctx.cat).forEach(t => subs[t.sub || '—'] = (subs[t.sub || '—'] || 0) + t.valor);
+    const subsOrd = Object.entries(subs).sort((a, b) => b[1] - a[1]);
+    const txsCat = A.D.filter(t => t.cat === ctx.cat).sort((a, b) => b.valor - a.valor);
+    return {
+      titulo: `Categoria: ${ctx.cat}`, sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${row.n} lançamento(s)`,
+      html: `<div class="ledger" style="grid-template-columns:repeat(4,1fr)">
+        <div class="hero"><div class="lab">Total no período</div><div class="num">${money(row.total)}</div><div class="note">${delta(row.total, antTot, true)}</div></div>
+        <div><div class="lab">Média mensal</div><div class="num">${money(row.media)}</div></div>
+        <div><div class="lab">% da renda mensal base</div><div class="num ${row.st === 'acima' ? 'neg' : row.st === 'abaixo' ? 'warn' : ''}">${Number.isFinite(row.pc) ? pct(row.pc) : '—'}</div><div class="note">faixa adequada: ${row.min ?? '—'}–${row.max ?? '—'}% · base ${money(A.baseMes)}/mês</div></div>
+        <div><div class="lab">Situação</div><div class="num">${row.st === 'acima' ? 'Acima da faixa' : row.st === 'abaixo' ? 'Abaixo da faixa' : row.st === 'dentro' ? 'Dentro da faixa' : 'Sem faixa definida'}</div>${row.st === 'acima' ? `<div class="note neg">excesso de ${money(row.excesso)}/mês</div>` : ''}</div></div>
+      <div class="grid g2e">
+        <div class="panel"><h2>Por subcategoria</h2><table><tbody>${subsOrd.map(([s, x]) => `<tr><td>${esc(s)}</td><td class="r">${money(x)}</td><td class="r mut">${pct(row.total ? x / row.total : 0, 0)}</td></tr>`).join('')}</tbody></table></div>
+        <div class="panel"><h2>Como a faixa adequada é usada</h2><p class="sub">A faixa (mín–máx) é um percentual da sua renda mensal base (${money(A.baseMes)}/mês, calculada como ${MODO_BASE[state.db.config.baseRenda || 'anual']}). O excesso é o quanto o gasto do mês passaria da renda-base se ficasse exatamente no teto.</p></div></div>
+      <div class="panel"><h2>Lançamentos desta categoria no período</h2><div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Descrição</th><th>Subcategoria</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${txsCat.map(t => `<tr><td>${esc(t.desc)}${t.obs ? `<div class="mut" style="font-size:12px">${esc(t.obs)}</div>` : ''}</td><td class="mut">${esc(t.sub)}</td><td>${fmtData(dataReg(t))}</td><td class="r">${money(t.valor)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">Nenhum lançamento.</td></tr>'}</tbody></table></div></div>`
+    };
+  }),
+  mediaMensalDesp: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), A = calcDesp(p.de, p.ate, L);
+    return {
+      titulo: 'Como a média mensal de despesas foi calculada', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${A.n} meses`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Despesas do período</td><td class="r">${ex('despesasPeriodo', money(A.cur.desp))}</td></tr>
+        <tr><td>÷ meses no período</td><td class="r">${A.n}</td></tr>
+        <tr><td><b>= Média mensal</b></td><td class="r"><b>${money(A.cur.desp / A.n)}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">Corresponde a ${pct(A.baseTot ? A.cur.desp / A.baseTot : NaN)} da sua renda mensal base (${money(A.baseMes)}/mês, ${MODO_BASE[state.db.config.baseRenda || 'anual']}).</p></div>`
+    };
+  }),
+  noCartao: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), A = calcDesp(p.de, p.ate, L), D = A.D.filter(t => !t.virtual);
+    const cartoes = state.db.cartoes.filter(c => contaAtiva(c.conta)).map(c => c.nome);
+    const pagam = ['Sem cartão', ...cartoes].map(nm => { const xs = D.filter(t => (t.cartao || 'Sem cartão') === nm); return { nm, tot: sum(xs, t => t.valor), n: xs.length, parc: sum(xs.filter(t => t.rec === 'P'), t => t.valor) }; });
+    const totD = sum(pagam, x => x.tot);
+    return {
+      titulo: 'Como o percentual no cartão foi calculado', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><p>% no cartão = 1 − (gasto sem cartão ÷ total de despesas). Do total de ${money(totD)}, ${money(pagam[0].tot)} (${pct(totD ? pagam[0].tot / totD : 0)}) não passou por cartão de crédito.</p></div>
+      <div class="panel"><h2>Por forma de pagamento</h2><table><thead><tr><th>Forma</th><th class="r">Total</th><th class="r">%</th><th class="r">Lanç.</th><th class="r">Parcelado</th></tr></thead><tbody>${pagam.map(x => `<tr><td>${esc(x.nm)}</td><td class="r">${money(x.tot)}</td><td class="r">${pct(totD ? x.tot / totD : 0, 0)}</td><td class="r">${x.n}</td><td class="r">${pct(x.tot ? x.parc / x.tot : 0, 0)}</td></tr>`).join('')}</tbody></table></div>`
+    };
+  }),
+  acimaFaixas: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), A = calcDesp(p.de, p.ate, L);
+    const acima = A.rows.filter(r => r.st === 'acima').sort((a, b) => b.excesso - a.excesso);
+    return {
+      titulo: 'Categorias acima da faixa adequada', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · excesso somado ${money(sum(acima, r => r.excesso))}/mês`,
+      html: `<div class="panel"><h2>O que é "acima da faixa"</h2><p>Cada categoria tem uma faixa de % da renda mensal base considerada adequada (mín–máx). Quando o gasto médio mensal da categoria passa do teto, o excesso é a diferença, em R$/mês, entre o gasto e o teto.</p></div>
+      <div class="panel"><h2>Categorias acima do teto</h2><table><thead><tr><th>Categoria</th><th class="r">% da renda</th><th class="r">Teto</th><th class="r">Excesso/mês</th></tr></thead><tbody>${acima.map(r => `<tr><td>${ex('categoriaDesp', esc(r.nome), { cat: r.nome })}</td><td class="r">${pct(r.pc)}</td><td class="r mut">${r.max}%</td><td class="r neg"><b>${money(r.excesso)}</b></td></tr>`).join('') || '<tr><td colspan="4" class="empty">Nenhuma categoria acima do teto.</td></tr>'}</tbody></table></div>`
+    };
+  }),
+  semSazonais: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L), n = p.meses.length;
+    return {
+      titulo: 'Receita líquida sem sazonais', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Receita líquida</td><td class="r">${ex('receitaLiquida', money(cur.liq))}</td></tr>
+        <tr><td>(−) Sazonais (13º, férias, PLR)</td><td class="r neg">${ex('sazonais', money(-cur.extra))}</td></tr>
+        <tr><td><b>= Receita líquida sem sazonais</b></td><td class="r"><b>${money(cur.liqRec)}</b></td></tr>
+        <tr><td>÷ ${n} meses</td><td class="r">${money(cur.liqRec / n)}/mês</td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">É a parte da sua receita que se repete todo mês — a referência mais realista para planejar gastos fixos.</p></div>`
+    };
+  }),
+  sazonais: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
+    const linhas = txs.filter(t => t.t === 'R' && dedExtra(t));
+    return {
+      titulo: 'Receitas sazonais no período', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · 13º, férias, PLR e similares`,
+      html: `<div class="panel"><h2>O que entra aqui</h2><p>Receitas cujo texto ou subcategoria indica 13º salário, férias ou PLR. Somam ${money(cur.extra)}, ${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida do período.</p></div>
+      <div class="panel"><h2>Lançamentos</h2><table><thead><tr><th>Descrição</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${linhas.sort((a, b) => b.valor - a.valor).map(t => `<tr><td>${esc(t.desc)}</td><td>${fmtData(dataReg(t))}</td><td class="r">${money(t.valor)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Nenhuma no período.</td></tr>'}</tbody></table></div>`
+    };
+  }),
+  estabilidadeSalario: ctx => comContexto(ctx, () => {
+    const L = lookups(), p = periodo(), n = p.meses.length, txs = txNoPeriodo(p.de, p.ate);
+    const R = txs.filter(t => t.t === 'R' && !ehAjuste(t) && (state.ui.fgts || !ehFGTS(t, L)));
+    const trab = p.meses.map(m => sum(R.filter(t => mesReg(t) === m && L.catR.get(t.cat)?.grupo === 'ativa' && !L.catR.get(t.cat)?.extra), t => t.valor));
+    const mu = sum(trab, x => x) / n, sd = Math.sqrt(sum(trab, x => (x - mu) ** 2) / n);
+    return {
+      titulo: 'Estabilidade do salário', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · desvio padrão ÷ média`,
+      html: `<div class="panel"><h2>Fórmula</h2><p>Desvio padrão dos salários mensais (renda ativa recorrente, sem sazonais) dividido pela média. Quanto menor, mais estável. Média ${money(mu)} · desvio padrão ${money(sd)} · resultado ${pct(mu ? sd / mu : NaN, 0)}.</p></div>
+      <div class="panel"><h2>Mês a mês</h2><table><thead><tr><th>Mês</th><th class="r">Salário/renda ativa</th></tr></thead><tbody>${p.meses.map((m, i) => `<tr><td>${fmtMes(m)}</td><td class="r">${money(trab[i])}</td></tr>`).join('')}</tbody></table></div>`
+    };
+  }),
+  patrimonioInvestido: () => {
+    const { insts } = calcInv(), cap = insts.filter(I => I.temCap);
+    return {
+      titulo: 'Como o patrimônio investido foi calculado', sub: `Em ${fmtMes(fimMesFechado())}`,
+      html: `<div class="panel"><h2>O que entra</h2><p>Soma o saldo estimado de cada instituição de investimento rastreada (aportes − resgates + rendimentos − IR/perdas, a partir do saldo inicial calibrado). Não inclui FGTS nem renda variável (ações/FIIs), que ficam à parte por terem lógica própria.</p></div>
+      <div class="panel"><h2>Por instituição</h2><table><thead><tr><th>Instituição</th><th class="r">Saldo estimado</th></tr></thead><tbody>${cap.map(I => `<tr><td>${ex('instituicaoInvest', esc(I.nome), { inst: I.nome })}</td><td class="r">${money(I.serie.length ? I.serie[I.serie.length - 1].saldo : I.ini)}</td></tr>`).join('')}</tbody></table></div>`
+    };
+  },
+  aportesLiquidos: ctx => comContexto(ctx, () => {
+    const cfg = state.db.config, { insts, meses } = calcInv(), cons = consolidado(insts, meses), p = periodo();
+    const de = p.de < cfg.invInicioMes ? cfg.invInicioMes : p.de, ate = p.ate > fimMesFechado() ? fimMesFechado() : p.ate;
+    const win = cons.filter(x => x.m >= de && x.m <= ate), ap = sum(win, x => x.ap), rs = sum(win, x => x.rs);
+    return {
+      titulo: 'Como os aportes líquidos foram calculados', sub: `${fmtMes(de)} a ${fmtMes(ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody><tr><td>Aportes (transferências para investimentos)</td><td class="r">${money(ap)}</td></tr><tr><td>(−) Resgates</td><td class="r neg">${money(-rs)}</td></tr><tr><td><b>= Aportes líquidos</b></td><td class="r"><b>${money(ap - rs)}</b></td></tr></tbody></table></div>`
+    };
+  }),
+  rendimentosLiquidos: ctx => comContexto(ctx, () => {
+    const cfg = state.db.config, { insts, meses } = calcInv(), cons = consolidado(insts, meses), p = periodo();
+    const de = p.de < cfg.invInicioMes ? cfg.invInicioMes : p.de, ate = p.ate > fimMesFechado() ? fimMesFechado() : p.ate;
+    const win = cons.filter(x => x.m >= de && x.m <= ate), rd = sum(win, x => x.rd), ct = sum(win, x => x.ct);
+    return {
+      titulo: 'Como os rendimentos líquidos foram calculados', sub: `${fmtMes(de)} a ${fmtMes(ate)}`,
+      html: `<div class="panel"><h2>Fórmula</h2><table><tbody><tr><td>Rendimentos brutos</td><td class="r">${money(rd)}</td></tr><tr><td>(−) IR e perdas</td><td class="r neg">${money(-ct)}</td></tr><tr><td><b>= Rendimentos líquidos</b></td><td class="r pos"><b>${money(rd - ct)}</b></td></tr></tbody></table></div>`
+    };
+  }),
+  rentabilidadePeriodo: ctx => comContexto(ctx, () => {
+    const cfg = state.db.config, { insts, meses } = calcInv(), cap = insts.filter(I => I.temCap), cons = consolidado(insts, meses), p = periodo();
+    const de = p.de < cfg.invInicioMes ? cfg.invInicioMes : p.de, ate = p.ate > fimMesFechado() ? fimMesFechado() : p.ate;
+    const win = cons.filter(x => x.m >= de && x.m <= ate), descal = cap.filter(I => !I.calibrada), okCal = descal.length === 0;
+    let acc = 1, accC = 1; win.forEach(x => { if (x.r != null) { acc *= 1 + x.r; accC *= 1 + cdiCmp(x.m); } });
+    return {
+      titulo: 'Como a rentabilidade do período foi calculada', sub: `${fmtMes(de)} a ${fmtMes(ate)}`,
+      html: okCal ? `<div class="panel"><h2>Fórmula</h2><p>Retorno acumulado mês a mês da carteira toda: cada mês multiplica (1 + retorno do mês), sendo o retorno do mês = rendimento líquido ÷ saldo-base. Resultado do período: <b>${pct(acc - 1, 2)}</b>. No mesmo período, o CDI líquido acumulado foi <b>${pct(accC - 1, 2)}</b>.</p></div>
+        <div class="panel"><h2>Mês a mês</h2><table><thead><tr><th>Mês</th><th class="r">Carteira</th><th class="r">CDI líquido</th></tr></thead><tbody>${win.map(x => `<tr><td>${fmtMes(x.m)}</td><td class="r">${x.r != null ? pct(x.r, 2) : '—'}</td><td class="r mut">${pct(cdiCmp(x.m), 2)}</td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="panel empty">Calibre o saldo real de todas as instituições (aba Investimentos) para calcular a rentabilidade. Faltam: ${descal.map(I => esc(I.nome)).join(', ')}.</div>`
+    };
+  }),
+  comparadoCDI: ctx => comContexto(ctx, () => {
+    const cfg = state.db.config, { insts, meses } = calcInv(), cap = insts.filter(I => I.temCap), cons = consolidado(insts, meses), p = periodo();
+    const de = p.de < cfg.invInicioMes ? cfg.invInicioMes : p.de, ate = p.ate > fimMesFechado() ? fimMesFechado() : p.ate;
+    const win = cons.filter(x => x.m >= de && x.m <= ate), descal = cap.filter(I => !I.calibrada), okCal = descal.length === 0;
+    let acc = 1, accC = 1, esp = 0; win.forEach(x => { if (x.r != null) { acc *= 1 + x.r; accC *= 1 + cdiCmp(x.m); esp += x.base * cdiCmp(x.m) * cfg.pctCdi / 100; } });
+    const real = sum(win, x => x.rd - x.ct);
+    return {
+      titulo: 'Como a comparação com o CDI foi calculada', sub: `${fmtMes(de)} a ${fmtMes(ate)} · meta: ${cfg.pctCdi}% do CDI líquido`,
+      html: okCal ? `<div class="panel"><h2>Fórmula</h2><table><tbody>
+        <tr><td>Rendimento esperado (saldo × CDI líquido × ${cfg.pctCdi}%, mês a mês)</td><td class="r">${money(esp)}</td></tr>
+        <tr><td>Rendimento líquido real</td><td class="r">${ex('rendimentosLiquidos', money(real))}</td></tr>
+        <tr><td><b>Diferença</b></td><td class="r ${real >= esp ? 'pos' : 'neg'}"><b>${real >= esp ? '+' : ''}${money(real - esp)}</b></td></tr>
+        <tr><td><b>% do CDI atingido</b></td><td class="r"><b>${accC > 1 ? pct((acc - 1) / (accC - 1), 0) : '—'}</b></td></tr>
+      </tbody></table>
+      <p class="sub" style="margin-top:10px">O CDI líquido usa ${cfg.irComparacao ?? 15}% de IR sobre o CDI bruto informado em "Parâmetros de comparação".</p></div>`
+        : `<div class="panel empty">Calibre o saldo real de todas as instituições para comparar com o CDI. Faltam: ${descal.map(I => esc(I.nome)).join(', ')}.</div>`
+    };
+  }),
+  instituicaoInvest: ctx => comContexto(ctx, () => {
+    const cfg = state.db.config, { insts } = calcInv(), I = insts.find(i => i.nome === ctx.inst);
+    if (!I) return { titulo: ctx.inst || 'Instituição', sub: '', html: '<div class="panel empty">Instituição não encontrada.</div>' };
+    const p = periodo(), de = p.de < cfg.invInicioMes ? cfg.invInicioMes : p.de, ate = p.ate > fimMesFechado() ? fimMesFechado() : p.ate;
+    const w = janela(I, de, ate);
+    return {
+      titulo: `Investimentos: ${I.nome}`, sub: `${I.contas.join(', ') || I.nome} · ${fmtMes(de)} a ${fmtMes(ate)}`,
+      html: `<div class="ledger" style="grid-template-columns:repeat(4,1fr)">
+        <div class="hero"><div class="lab">Saldo estimado</div><div class="num">${money(w.saldoFim)}</div></div>
+        <div><div class="lab">Aportes líquidos</div><div class="num">${money(w.ap - w.rs)}</div><div class="note">aportes ${money(w.ap)} − resgates ${money(w.rs)}</div></div>
+        <div><div class="lab">Rendimentos líquidos</div><div class="num pos">${money(w.rd - w.ct)}</div><div class="note">rendimentos ${money(w.rd)} − IR/perdas ${money(w.ct)}</div></div>
+        <div><div class="lab">Rentabilidade</div><div class="num">${I.calibrada && w.k ? pct(w.rent, 2) : '—'}</div><div class="note">${I.calibrada ? (Number.isFinite(w.pcdi) ? pct(w.pcdi, 0) + ' do CDI líquido' : 'sem base para comparar') : 'calibre o saldo real para calcular'}</div></div></div>
+      <div class="panel"><h2>Como é calculado</h2><p>Rentabilidade do mês = (rendimentos − IR/perdas) ÷ saldo-base do mês, onde o saldo-base soma o saldo do início do mês com metade dos aportes/resgates do mês. O "esperado" usa ${cfg.pctCdi}% do CDI líquido de ${cfg.irComparacao ?? 15}% de IR.</p>
+        ${I.nome === 'Nomad' ? '<p><b>Nomad é em dólar:</b> a variação inclui câmbio, então não é comparável ao CDI.</p>' : ''}
+        ${!I.calibrada ? '<p class="warn"><b>Ainda não calibrada:</b> informe o saldo real na tabela de Investimentos para obter a rentabilidade correta.</p>' : ''}</div>
+      <div class="panel"><h2>Mês a mês</h2><div class="tblwrap"><table><thead><tr><th>Mês</th><th class="r">Aportes</th><th class="r">Resgates</th><th class="r">Rendimentos</th><th class="r">IR/perdas</th><th class="r">Saldo fim do mês</th><th class="r">Rentab. do mês</th></tr></thead><tbody>${I.serie.filter(x => x.m >= de && x.m <= ate).map(x => `<tr><td>${fmtMes(x.m)}</td><td class="r">${money(x.ap)}</td><td class="r">${money(x.rs)}</td><td class="r">${money(x.rd)}</td><td class="r">${money(x.ct)}</td><td class="r">${money(x.saldo)}</td><td class="r">${x.r != null ? pct(x.r, 2) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`
+    };
+  })
+};
+function n_meses(p) { const n = p.meses.length; return n === 1 ? '1 mês' : n + ' meses'; }
 
 /* ---------- Inicialização ---------- */
 /* Ajustes de versão que não dependem de dados externos (rodam depois de carregar da nuvem; se nada mudar, nada é enviado). */
