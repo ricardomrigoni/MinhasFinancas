@@ -741,6 +741,7 @@ function render() {
   ({ geral: viewGeral, desp: viewDesp, rec: viewRec, inv: viewInv, ins: viewIns, lanc: viewLanc, cad: viewCad, dados: viewDados, ajuda: viewAjuda, _detalhe: viewDetalhe })[state.ui.tab](v);
   $$('[data-ajuda]').forEach(a => a.onclick = e => { e.preventDefault(); irAjuda(a.dataset.ajuda); });
   $$('[data-ex]').forEach(b => b.onclick = () => abrirDetalhe(b.dataset.ex, JSON.parse(b.dataset.ctx)));
+  $$('[data-chip]').forEach(b => b.onclick = () => perguntar(b.dataset.chip));
 }
 
 /* ---- Visão geral ---- */
@@ -783,10 +784,14 @@ function viewGeral(v) {
   desp.filter(t => !t.virtual).forEach(t => perfil[t.cartao ? (t.rec === 'P' ? 'Cartão parcelado' : 'Cartão à vista') : (t.rec === 'P' ? 'Parcelado sem cartão' : 'Sem cartão')] += t.valor);
   const totD = sum(Object.values(perfil), x => x), cores = ['var(--c2)', 'var(--c7)', 'var(--c3)', 'var(--c4)'];
   const nD = state.db.transacoes.length, pendentes = txAtivas().filter(t => situacao(t) === 'pend').length;
+  const catExemplo = cats[0]?.[0] || 'Mercado', contaExemplo = (state.db.contas.find(c => c.ativa !== false) || {}).nome || '';
+  const CHIPS_Q = [`quanto gastei com ${catExemplo} este ano`, 'quanto gastei este mês', 'onde mais gastei nos últimos 6 meses', 'quanto recebi de salário este ano', 'quanto recebi de hora extra', 'quanto recebi de 13º salário', 'quanto investi nos últimos 12 meses', contaExemplo ? `qual o saldo da conta ${contaExemplo}` : null].filter(Boolean);
+  const perguntaBox = `<div class="panel" id="painelPergunta" style="margin-bottom:16px;border-left:3px solid var(--accent)"><h2>Pergunte sobre suas finanças</h2><p class="sub">Escreva do seu jeito: categoria, loja, produto, "hora extra", "salário", período (mês, ano, "últimos 6 meses"...). Eu procuro e mostro como cheguei no valor.</p><form id="fPergunta" class="row" style="gap:8px"><input type="text" id="qPergunta" autocomplete="off" placeholder="Ex.: quanto gastei com ${esc(catExemplo)} este ano" style="flex:1;min-width:240px;background:var(--panel);border:1px solid var(--line2);border-radius:9px;padding:9px 13px;font-size:14.5px;color:inherit"><button type="submit" class="btn">Perguntar</button></form><div id="qSugestoes" class="mut" style="font-size:12.5px;margin-top:8px;min-height:16px"></div><div class="row" style="gap:6px;margin-top:10px">${CHIPS_Q.map(q => `<button type="button" class="btn sm" data-chip="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`;
 
   v.innerHTML = `
   <div class="top"><div><h1>Visão geral</h1><p class="sub">${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${n} ${n === 1 ? 'mês' : 'meses'} <br>${regimeTxt()}</p></div>${filtrosPeriodo()}</div>
   ${nD === 0 ? '<div class="panel empty">Nenhum dado carregado. Vá em “Importar e exportar” para importar os CSVs ou um JSON.</div>' : `
+  ${perguntaBox}
   <div class="ledger">
     <div class="hero"><div class="lab">Sobra do período</div><div class="num ${cur.sobra >= 0 ? 'pos' : 'neg'}">${ex('sobra', money(cur.sobra))}</div><div class="note">${delta(cur.sobra, ant.sobra)}<br>inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR)<br><a class="hl" data-ajuda="sobra">como é calculada</a></div></div>
     <div><div class="lab">Receita líquida</div><div class="num">${ex('receitaLiquida', money(cur.liq))}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)} (${pct(cur.rec ? (cur.ded + cur.custo) / cur.rec : NaN)})<br>${delta(cur.liq, ant.liq)}</div></div>
@@ -810,6 +815,12 @@ function viewGeral(v) {
   </div>`}`;
   bindPeriodo();
   if (!nD) return;
+  if ($('#fPergunta')) {
+    $('#fPergunta').onsubmit = e => { e.preventDefault(); perguntar($('#qPergunta').value); };
+    const nomesSug = [...new Set([...state.db.categorias.despesa.map(x => x.nome), ...state.db.categorias.receita.map(x => x.nome), ...[...mapaEstab().values()].map(x => x.nome).filter(n => n !== SEM_LOJA)])];
+    let sugT;
+    $('#qPergunta').oninput = e => { clearTimeout(sugT); const v = e.target.value.trim(); sugT = setTimeout(() => { const box = $('#qSugestoes'); if (!box) return; if (v.length < 2) { box.innerHTML = ''; return; } const vn = normTxt(v), ms = nomesSug.filter(n => normTxt(n).includes(vn)).slice(0, 6); box.innerHTML = ms.length ? 'sugestões: ' + ms.map(esc).join(' · ') : ''; }, 200); };
+  }
   const c = { pos: css('--pos'), neg: css('--neg'), acc: css('--accent'), warn: css('--warn'), mut: css('--line') };
   chart('cMensal', { data: { labels: p.meses.map(fmtMes), datasets: [
     { type: 'line', label: 'Sobra', data: mensal.map(r => r.sobra), borderColor: css('--ink'), backgroundColor: css('--ink'), tension: 0, pointRadius: 3, order: 0 },
@@ -2186,6 +2197,244 @@ const EXPLICA = {
   })
 };
 function n_meses(p) { const n = p.meses.length; return n === 1 ? '1 mês' : n + ' meses'; }
+
+/* ---------- Perguntas em linguagem natural ("Pergunte sobre suas finanças") ----------
+   Interpreta uma pergunta digitada em português (verbo + o quê + período) e monta uma
+   resposta com o valor, como ele foi formado e os lançamentos por trás dele. Reaproveita ao
+   máximo os detalhamentos que já existem (categoriaDesp, contaSaldo, instituicaoInvest,
+   aportesLiquidos, rendimentosLiquidos) para garantir que a resposta bate com o resto do
+   painel — a pergunta é só outra porta de entrada para os mesmos cálculos. */
+const MESES_LONGO = { janeiro: 1, jan: 1, fevereiro: 2, fev: 2, marco: 3, mar: 3, abril: 4, abr: 4, maio: 5, mai: 5, junho: 6, jun: 6, julho: 7, jul: 7, agosto: 8, ago: 8, setembro: 9, set: 9, outubro: 10, out: 10, novembro: 11, nov: 11, dezembro: 12, dez: 12 };
+const STOPWORDS_Q = 'quanto quanta quantos quantas gastei gasto gastos gastar pago paga pagas pagamento pagamentos paguei comprei compra compras comprar custou custo custos despesa despesas recebi recebo recebido receber receita receitas ganhei ganho ganhos ganhar entrou entraram entrada entradas renda investi invisto investido investimento investimentos aportei aporte aportes aportar resgatei resgate resgates resgatar rentabilidade patrimonio saldo saldos tenho tinha ter vezes fui foi ir lancamento lancamentos quero saber dizer diz me mim minha minhas meu meus sua suas seu seus qual quais foram sao ser e ou um uma uns umas o a os as de da do das dos em no na nos nas ao aos pelo pela pelos pelas com para por sobre ate desde mais menos onde que esse essa esses essas este esta estes estas isso isto ano anos mes meses periodo total geral todo toda todos todas'.split(' ');
+const STOP_RE_Q = new RegExp('\\b(' + STOPWORDS_Q.join('|') + ')\\b', 'g');
+const ESPECIAIS_RECEITA = [
+  { re: /\bhora(s)? extras?\b/i, label: 'Horas extras', test: t => /hora(s)? extras?/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /\b13[oº]?\b|d[eé]cimo\s*terceiro/i, label: '13º salário', test: t => /\b13[oº]?\b|d[eé]cimo\s*terceiro/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /f[eé]rias/i, label: 'Férias', test: t => /f[eé]rias/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /\bplr\b|participa[cç][aã]o nos lucros/i, label: 'PLR', test: t => /\bplr\b|participa[cç][aã]o nos lucros/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /\bb[oô]nus\b/i, label: 'Bônus', test: t => /\bb[oô]nus\b/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /\bfgts\b/i, label: 'FGTS', test: (t, L) => L.catR.get(t.cat)?.grupo === 'fgts' },
+  { re: /cashback/i, label: 'Cashback', test: (t, L) => L.catR.get(t.cat)?.grupo === 'cashback' },
+  { re: /reembolso/i, label: 'Reembolsos', test: (t, L) => L.catR.get(t.cat)?.grupo === 'reembolsos' },
+  { re: /\brendiment\w*|\bjuros\b/i, label: 'Rendimentos de investimentos', test: (t, L) => L.catR.get(t.cat)?.grupo === 'rendimentos' },
+  { re: /\bsal[aá]rio\b/i, label: 'Salário (renda recorrente)', test: (t, L) => L.catR.get(t.cat)?.grupo === 'ativa' && !L.catR.get(t.cat)?.extra && !dedExtra(t) && !/hora(s)? extras?/i.test(t.desc + ' ' + (t.sub || '')) },
+];
+const DESCR_TIPO_Q = { despesa: 'gasto (despesa)', receita: 'recebimento (receita)', investimento: 'movimentação de investimentos', saldo: 'saldo de conta', contagem: 'contagem de ocorrências' };
+
+function extrairPeriodo(qn) {
+  const { mn, mx } = extremos(), anoAtual = +fimMesFechado().slice(0, 4);
+  const regras = [
+    [/\b(sempre|todo o periodo|desde o inicio|no total|ao todo|historico|geral)\b/, () => ({ de: mn, ate: mx, label: 'em todo o período' })],
+    [/\b(este|esse) ano\b/, () => { const de = anoAtual + '-01', ate = mx < anoAtual + '-12' ? mx : anoAtual + '-12'; return { de: de < mn ? mn : de, ate, label: `em ${anoAtual}` }; }],
+    [/\bano passado\b/, () => { const a = anoAtual - 1; return { de: a + '-01', ate: a + '-12', label: `em ${a}` }; }],
+    [/\b(\d{1,2})[\/\-](\d{4})\b/, m => { const ym = m[2] + '-' + String(+m[1]).padStart(2, '0'); return { de: ym, ate: ym, label: `em ${fmtMes(ym)}` }; }],
+    [/\b(este|esse) mes\b|\bmes atual\b/, () => ({ de: fimMesFechado(), ate: fimMesFechado(), label: `em ${fmtMes(fimMesFechado())}` })],
+    [/\bmes passado\b|\bultimo mes\b/, () => { const ym = addMonths(fimMesFechado(), -1); return { de: ym, ate: ym, label: `em ${fmtMes(ym)}` }; }],
+    [/\bultimos? (\d{1,2}) meses\b/, m => { const n = +m[1], ate = fimMesFechado(), de = addMonths(ate, -(n - 1)); return { de: de < mn ? mn : de, ate, label: `nos últimos ${n} meses` }; }],
+    [/\bultimo(s)? 12 meses\b|\bultimo ano\b/, () => { const ate = fimMesFechado(), de = addMonths(ate, -11); return { de: de < mn ? mn : de, ate, label: 'nos últimos 12 meses' }; }],
+  ];
+  for (const nome in MESES_LONGO) regras.push([new RegExp('\\b' + nome + '\\b(?:\\s*(?:de|\\/)\\s*(\\d{4}))?'), m => { const ano = m[1] ? +m[1] : anoAtual, ym = ano + '-' + String(MESES_LONGO[nome]).padStart(2, '0'); return { de: ym, ate: ym, label: `em ${fmtMes(ym)}` }; }]);
+  regras.push([/\b(20\d{2})\b/, m => { const a = m[1], de = a + '-01', ate = (a === String(anoAtual)) ? mx : a + '-12'; return { de: de < mn ? mn : de, ate, label: `em ${a}` }; }]);
+  for (const [re, fn] of regras) { const m = qn.match(re); if (m) return { ...fn(m), match: m[0] }; }
+  return null;
+}
+function acharCategoria(cats, termo) {
+  if (!termo) return null;
+  const tn = normTxt(termo);
+  let c = cats.find(x => normTxt(x.nome) === tn);
+  if (c) return c;
+  c = cats.find(x => tn.length >= 3 && (tn.includes(normTxt(x.nome)) || normTxt(x.nome).includes(tn)));
+  return c || null;
+}
+function acharSubcategoria(cats, termo) {
+  if (!termo || termo.length < 3) return null;
+  const tn = normTxt(termo);
+  for (const c of cats) for (const s of (c.subs || [])) { const sn = normTxt(s); if (sn === tn || tn.includes(sn) || sn.includes(tn)) return { cat: c.nome, sub: s }; }
+  return null;
+}
+function acharEstabelecimento(termo) {
+  if (!termo || termo.length < 3) return null;
+  const M = mapaEstab(), nomes = [...new Set([...M.values()].map(x => x.nome))].filter(n => n !== SEM_LOJA);
+  const tn = normTxt(termo);
+  return nomes.find(n => normTxt(n) === tn) || nomes.find(n => normTxt(n).includes(tn) || tn.includes(normTxt(n))) || null;
+}
+function buscaLivre(txs, termo) {
+  const palavras = normTxt(termo).split(/\s+/).filter(w => w.length >= 3);
+  if (!palavras.length) return txs;
+  return txs.filter(t => { const alvo = normTxt(t.desc + ' ' + (t.obs || '') + ' ' + (t.cat || '') + ' ' + (t.sub || '')); return palavras.every(w => alvo.includes(w)); });
+}
+function descrFiltro(f) {
+  if (!f) return '';
+  if (f.tipo === 'categoria') return `categoria "${f.valor}"`;
+  if (f.tipo === 'subcategoria') return `subcategoria "${f.valor}" (categoria ${f.catNome})`;
+  if (f.tipo === 'estabelecimento') return `estabelecimento "${f.valor}"`;
+  if (f.tipo === 'especial') return f.valor;
+  if (f.tipo === 'conta') return `conta "${f.valor}"`;
+  if (f.tipo === 'instituicao') return `instituição "${f.valor}"`;
+  if (f.tipo === 'texto') return `busca por "${f.valor}"`;
+  return '';
+}
+function interpretarPergunta(bruto) {
+  const raw = String(bruto || '').trim();
+  if (!raw) return { ok: false, motivo: 'Digite uma pergunta para eu responder.' };
+  const qn0 = normTxt(raw).replace(/[?!.,;:]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const per = extrairPeriodo(qn0);
+  let de, ate, periodoLabel, base;
+  if (per) { de = per.de; ate = per.ate; periodoLabel = per.label; base = qn0.replace(per.match, ' ').replace(/\s+/g, ' ').trim(); }
+  else { const p = periodo(); de = p.de; ate = p.ate; periodoLabel = `no período selecionado (${fmtMes(p.de)} a ${fmtMes(p.ate)})`; base = qn0; }
+
+  let tipo;
+  if (/\bquantas vezes\b|\bquantos lancamentos\b|\bquantas compras\b/.test(base)) tipo = 'contagem';
+  else if (/\bsaldo\b|\bquanto tenho\b/.test(base)) tipo = 'saldo';
+  else if (/\binvest\w*|\baport\w*|\bresgat\w*|\brentabilidade\b|\bpatrimonio\b/.test(base)) tipo = 'investimento';
+  else if (/\brecebi\b|\brecebo\b|\brecebido\b|\bganhei\b|\bganho\b|\bentrou\b|\bentraram\b|\breceita\b|\brenda\b/.test(base)) tipo = 'receita';
+  else tipo = 'despesa';
+
+  const L = lookups();
+  let filtro = null;
+  if (tipo === 'receita') { const g = ESPECIAIS_RECEITA.find(g => g.re.test(base)); if (g) filtro = { tipo: 'especial', idx: ESPECIAIS_RECEITA.indexOf(g), valor: g.label }; }
+
+  const termo = base.replace(STOP_RE_Q, ' ').replace(/\s+/g, ' ').trim();
+
+  if (!filtro && tipo === 'saldo' && termo) { const c = state.db.contas.find(x => { const n = normTxt(x.nome); return n === normTxt(termo) || normTxt(termo).includes(n) || n.includes(normTxt(termo)); }); if (c) filtro = { tipo: 'conta', valor: c.nome }; }
+  if (!filtro && tipo === 'investimento' && termo) { const { insts } = calcInv(); const I = insts.find(x => { const n = normTxt(x.nome); return n === normTxt(termo) || normTxt(termo).includes(n) || n.includes(normTxt(termo)); }); if (I) filtro = { tipo: 'instituicao', valor: I.nome }; }
+  if (!filtro && (tipo === 'despesa' || tipo === 'contagem')) {
+    const cat = acharCategoria(state.db.categorias.despesa, termo);
+    if (cat) filtro = { tipo: 'categoria', valor: cat.nome };
+    else { const sub = acharSubcategoria(state.db.categorias.despesa, termo); if (sub) filtro = { tipo: 'subcategoria', catNome: sub.cat, valor: sub.sub }; }
+    if (!filtro) { const est = acharEstabelecimento(termo); if (est) filtro = { tipo: 'estabelecimento', valor: est }; }
+  }
+  if (!filtro && tipo === 'receita') {
+    const cat = acharCategoria(state.db.categorias.receita, termo);
+    if (cat) filtro = { tipo: 'categoria', valor: cat.nome };
+    else { const sub = acharSubcategoria(state.db.categorias.receita, termo); if (sub) filtro = { tipo: 'subcategoria', catNome: sub.cat, valor: sub.sub }; }
+  }
+  if (!filtro && termo && (tipo === 'despesa' || tipo === 'receita' || tipo === 'contagem')) filtro = { tipo: 'texto', valor: termo };
+
+  return { ok: true, raw, tipo, de, ate, periodoLabel, filtro };
+}
+function perguntar(texto) {
+  const r = interpretarPergunta(texto);
+  if (!r.ok) { toast(r.motivo); return; }
+  abrirDetalhe('pergunta', r);
+}
+function listaLancamentos(txs, max) {
+  max = max || 300;
+  const rows = txs.slice().sort((a, b) => b.valor - a.valor);
+  return `<div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Descrição</th><th>Categoria</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${rows.slice(0, max).map(t => `<tr><td>${esc(t.desc)}${t.obs ? `<div class="mut" style="font-size:12px">${esc(t.obs)}</div>` : ''}</td><td class="mut">${esc(t.cat || '')}${t.sub ? ' / ' + esc(t.sub) : ''}</td><td>${fmtData(dataReg(t))}</td><td class="r">${money(t.valor)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">Nenhum lançamento encontrado.</td></tr>'}</tbody></table>${rows.length > max ? `<p class="sub" style="margin-top:8px">Mostrando os ${max} maiores de ${rows.length}.</p>` : ''}</div>`;
+}
+function tabelaPorMes(txs, meses) {
+  const m = {}; meses.forEach(mm => m[mm] = 0); txs.forEach(t => { const mm = mesReg(t); if (mm in m) m[mm] += t.valor; });
+  return `<table><tbody>${meses.map(mm => `<tr><td>${fmtMes(mm)}</td><td class="r">${money(m[mm])}</td></tr>`).join('')}</tbody></table>`;
+}
+EXPLICA.pergunta = ctx => {
+  const L = lookups(), de = ctx.de, ate = ctx.ate, periodoLabel = ctx.periodoLabel, meses = monthsRange(de, ate), nMeses = Math.max(1, meses.length);
+  const cabecalho = `<div class="panel" style="border-left:3px solid var(--brass)"><p class="sub" style="margin:0"><b>Sua pergunta:</b> "${esc(ctx.raw)}"<br>Entendi como: <b>${DESCR_TIPO_Q[ctx.tipo] || ctx.tipo}</b>${ctx.filtro ? ' · ' + esc(descrFiltro(ctx.filtro)) : ''} · <b>${esc(periodoLabel)}</b>. Se não é isso, tente reformular a pergunta.</p></div>`;
+  const titBase = `Sobre: "${ctx.raw}"`;
+
+  if (ctx.tipo === 'despesa' && ctx.filtro?.tipo === 'categoria') { const d = EXPLICA.categoriaDesp({ cat: ctx.filtro.valor, preset: 'custom', de, ate }); return { titulo: d.titulo, sub: periodoLabel, html: cabecalho + d.html }; }
+  if (ctx.tipo === 'saldo' && ctx.filtro?.tipo === 'conta') { const d = EXPLICA.contaSaldo({ conta: ctx.filtro.valor }); return { titulo: d.titulo, sub: d.sub, html: cabecalho + d.html }; }
+  if (ctx.tipo === 'investimento' && ctx.filtro?.tipo === 'instituicao') { const d = EXPLICA.instituicaoInvest({ inst: ctx.filtro.valor, preset: 'custom', de, ate }); return { titulo: d.titulo, sub: periodoLabel, html: cabecalho + d.html }; }
+
+  if (ctx.tipo === 'despesa' || ctx.tipo === 'contagem') {
+    const D = txNoPeriodo(de, ate).filter(t => isDesp(t, L));
+    let filtrados = D, M = null;
+    if (ctx.filtro?.tipo === 'categoria') filtrados = D.filter(t => t.cat === ctx.filtro.valor);
+    else if (ctx.filtro?.tipo === 'subcategoria') filtrados = D.filter(t => t.cat === ctx.filtro.catNome && t.sub === ctx.filtro.valor);
+    else if (ctx.filtro?.tipo === 'estabelecimento') { M = mapaEstab(); filtrados = D.filter(t => (M.get(t.id)?.nome) === ctx.filtro.valor); }
+    else if (ctx.filtro?.tipo === 'texto') filtrados = buscaLivre(D, ctx.filtro.valor);
+    const total = sum(filtrados, t => t.valor);
+    if (ctx.tipo === 'contagem') {
+      M = M || mapaEstab();
+      const cupons = new Set(filtrados.map(t => M.get(t.id)?.cupom || t.id));
+      return { titulo: titBase, sub: periodoLabel, html: cabecalho + `<div class="ledger" style="grid-template-columns:repeat(3,1fr)">
+        <div class="hero"><div class="lab">Vezes (visitas/ocorrências)</div><div class="num">${cupons.size}</div><div class="note">${filtrados.length} lançamento(s)</div></div>
+        <div><div class="lab">Total gasto</div><div class="num neg">${money(total)}</div></div>
+        <div><div class="lab">Ticket médio por visita</div><div class="num">${money(cupons.size ? total / cupons.size : 0)}</div></div></div>
+        <div class="panel"><h2>Lançamentos</h2>${listaLancamentos(filtrados)}</div>` };
+    }
+    let antTotal = 0;
+    const pObj = { de, ate, meses }, pa = periodoAnterior(pObj);
+    if (pa.n) {
+      const Dant = txNoPeriodo(pa.de, pa.ate).filter(t => isDesp(t, L));
+      let antFiltrados = Dant;
+      if (ctx.filtro?.tipo === 'categoria') antFiltrados = Dant.filter(t => t.cat === ctx.filtro.valor);
+      else if (ctx.filtro?.tipo === 'subcategoria') antFiltrados = Dant.filter(t => t.cat === ctx.filtro.catNome && t.sub === ctx.filtro.valor);
+      else if (ctx.filtro?.tipo === 'estabelecimento') antFiltrados = Dant.filter(t => (mapaEstab().get(t.id)?.nome) === ctx.filtro.valor);
+      else if (ctx.filtro?.tipo === 'texto') antFiltrados = buscaLivre(Dant, ctx.filtro.valor);
+      antTotal = sum(antFiltrados, t => t.valor) * pa.fac;
+    }
+    let composicao = '';
+    if (!ctx.filtro) {
+      const porCat = {}; filtrados.forEach(t => porCat[t.cat] = (porCat[t.cat] || 0) + t.valor);
+      const catsOrd = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+      composicao = `<div class="panel"><h2>Por categoria</h2><table><tbody>${catsOrd.map(([k, v]) => `<tr><td>${ex('categoriaDesp', esc(k), { cat: k, preset: 'custom', de, ate })}</td><td class="r">${money(v)}</td><td class="r mut">${pct(total ? v / total : 0, 0)}</td></tr>`).join('')}</tbody></table></div>`;
+    } else if (ctx.filtro.tipo === 'estabelecimento' || ctx.filtro.tipo === 'texto') {
+      const porCat = {}; filtrados.forEach(t => porCat[t.cat] = (porCat[t.cat] || 0) + t.valor);
+      const catsOrd = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+      if (catsOrd.length > 1) composicao = `<div class="panel"><h2>Por categoria</h2><table><tbody>${catsOrd.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${money(v)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+    return { titulo: titBase, sub: periodoLabel, html: cabecalho + `<div class="ledger" style="grid-template-columns:repeat(3,1fr)">
+      <div class="hero"><div class="lab">Total gasto</div><div class="num neg">${money(total)}</div><div class="note">${filtrados.length} lançamento(s)</div></div>
+      <div><div class="lab">Média mensal</div><div class="num">${money(total / nMeses)}</div></div>
+      <div><div class="lab">vs. período anterior equivalente</div><div class="num">${pa.n ? delta(total, antTotal, true) : '<span class="mut">sem período anterior para comparar</span>'}</div></div></div>
+      ${composicao}
+      ${meses.length > 1 ? `<div class="panel"><h2>Mês a mês</h2>${tabelaPorMes(filtrados, meses)}</div>` : ''}
+      <div class="panel"><h2>Lançamentos</h2>${filtrados.length ? listaLancamentos(filtrados) : `<div class="empty">Nenhum lançamento encontrado com esses critérios. Tente outro termo — por exemplo o nome de uma categoria (${state.db.categorias.despesa.slice(0, 6).map(c => esc(c.nome)).join(', ')}…) ou de uma loja.</div>`}</div>` };
+  }
+
+  if (ctx.tipo === 'receita') {
+    const R = txNoPeriodo(de, ate).filter(t => t.t === 'R' && !ehAjuste(t));
+    let filtrados = R;
+    if (ctx.filtro?.tipo === 'categoria') filtrados = R.filter(t => t.cat === ctx.filtro.valor);
+    else if (ctx.filtro?.tipo === 'subcategoria') filtrados = R.filter(t => t.cat === ctx.filtro.catNome && t.sub === ctx.filtro.valor);
+    else if (ctx.filtro?.tipo === 'especial') filtrados = R.filter(t => ESPECIAIS_RECEITA[ctx.filtro.idx].test(t, L));
+    else if (ctx.filtro?.tipo === 'texto') filtrados = buscaLivre(R, ctx.filtro.valor);
+    const total = sum(filtrados, t => t.valor);
+    let antTotal = 0;
+    const pObj = { de, ate, meses }, pa = periodoAnterior(pObj);
+    if (pa.n) {
+      const Rant = txNoPeriodo(pa.de, pa.ate).filter(t => t.t === 'R' && !ehAjuste(t));
+      let antFiltrados = Rant;
+      if (ctx.filtro?.tipo === 'categoria') antFiltrados = Rant.filter(t => t.cat === ctx.filtro.valor);
+      else if (ctx.filtro?.tipo === 'subcategoria') antFiltrados = Rant.filter(t => t.cat === ctx.filtro.catNome && t.sub === ctx.filtro.valor);
+      else if (ctx.filtro?.tipo === 'especial') antFiltrados = Rant.filter(t => ESPECIAIS_RECEITA[ctx.filtro.idx].test(t, L));
+      else if (ctx.filtro?.tipo === 'texto') antFiltrados = buscaLivre(Rant, ctx.filtro.valor);
+      antTotal = sum(antFiltrados, t => t.valor) * pa.fac;
+    }
+    let composicao = '';
+    if (!ctx.filtro) {
+      const porCat = {}; filtrados.forEach(t => porCat[t.cat] = (porCat[t.cat] || 0) + t.valor);
+      const catsOrd = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+      composicao = `<div class="panel"><h2>Por categoria</h2><table><tbody>${catsOrd.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${money(v)}</td><td class="r mut">${pct(total ? v / total : 0, 0)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+    return { titulo: titBase, sub: periodoLabel, html: cabecalho + `<div class="ledger" style="grid-template-columns:repeat(3,1fr)">
+      <div class="hero"><div class="lab">Total recebido</div><div class="num pos">${money(total)}</div><div class="note">${filtrados.length} lançamento(s)</div></div>
+      <div><div class="lab">Média mensal</div><div class="num">${money(total / nMeses)}</div></div>
+      <div><div class="lab">vs. período anterior equivalente</div><div class="num">${pa.n ? delta(total, antTotal, false) : '<span class="mut">sem período anterior para comparar</span>'}</div></div></div>
+      ${composicao}
+      ${meses.length > 1 ? `<div class="panel"><h2>Mês a mês</h2>${tabelaPorMes(filtrados, meses)}</div>` : ''}
+      <div class="panel"><h2>Lançamentos</h2>${filtrados.length ? listaLancamentos(filtrados) : `<div class="empty">Nenhum lançamento encontrado com esses critérios. Tente outro termo — por exemplo "salário", "hora extra", "13º", "férias" ou o nome de uma categoria (${state.db.categorias.receita.slice(0, 6).map(c => esc(c.nome)).join(', ')}…).</div>`}</div>` };
+  }
+
+  if (ctx.tipo === 'investimento') {
+    const cfg = state.db.config, { insts, meses: mesesInv } = calcInv(), cons = consolidado(insts, mesesInv);
+    const de2 = de < cfg.invInicioMes ? cfg.invInicioMes : de, ate2 = ate > fimMesFechado() ? fimMesFechado() : ate;
+    const win = cons.filter(x => x.m >= de2 && x.m <= ate2);
+    const ap = sum(win, x => x.ap), rs = sum(win, x => x.rs), rd = sum(win, x => x.rd), ct = sum(win, x => x.ct);
+    const pat = insts.filter(I => I.temCap).reduce((s, I) => s + (I.serie.length ? I.serie[I.serie.length - 1].saldo : I.ini), 0);
+    return { titulo: titBase, sub: periodoLabel, html: cabecalho + `<div class="ledger" style="grid-template-columns:repeat(3,1fr)">
+      <div class="hero"><div class="lab">Aportes líquidos</div><div class="num">${money(ap - rs)}</div><div class="note">aportes ${money(ap)} − resgates ${money(rs)}<br>${ex('aportesLiquidos', 'ver fórmula completa', { preset: 'custom', de, ate })}</div></div>
+      <div><div class="lab">Rendimentos líquidos</div><div class="num pos">${money(rd - ct)}</div><div class="note">rendimentos ${money(rd)} − IR/perdas ${money(ct)}<br>${ex('rendimentosLiquidos', 'ver fórmula completa', { preset: 'custom', de, ate })}</div></div>
+      <div><div class="lab">Patrimônio investido hoje</div><div class="num" style="color:var(--inv)">${money(pat)}</div><div class="note">em ${fmtMes(fimMesFechado())} · ${ex('patrimonioInvestido', 'ver por instituição', {})}</div></div></div>` };
+  }
+
+  if (ctx.tipo === 'saldo') {
+    return { titulo: titBase, sub: periodoLabel, html: cabecalho + `<div class="panel"><h2>Saldo por conta</h2><p class="sub">Não identifiquei uma conta específica na sua pergunta — aqui está o saldo estimado de todas.</p>${tabelaSaldos(lookups())}</div>` };
+  }
+
+  return { titulo: titBase, sub: periodoLabel, html: cabecalho + '<div class="panel empty">Não consegui entender essa pergunta. Tente algo como "quanto gastei com mercado este ano" ou "quanto recebi de salário".</div>' };
+};
 
 /* ---------- Inicialização ---------- */
 /* Ajustes de versão que não dependem de dados externos (rodam depois de carregar da nuvem; se nada mudar, nada é enviado). */
