@@ -189,6 +189,7 @@ td .valx,th .valx{font:inherit}
 <noscript>Este painel precisa de JavaScript.</noscript>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>/* ===== NÚCLEO: leitura de CSV, normalização, deduplicação, cadastros ===== */
 const Core = (() => {
   const CP1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
@@ -228,10 +229,29 @@ const Core = (() => {
 
   const normH = h => h.replace(/[\uFEFF"]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+  // O app exporta dois layouts de cabe\u00E7alho: o CSV cl\u00E1ssico ("Vencimento", "Cart\u00E3o") e o XLSX mais
+  // detalhado ("DATA VENCIMENTO", "Cart\u00E3o de Cr\u00E9dito"). As listas abaixo cobrem as varia\u00E7\u00F5es j\u00E1
+  // vistas; detectLayout/rowsToTx resolvem por aqui em vez de um nome de coluna fixo.
+  const HEAD_ALIASES = {
+    descricao: ['descricao'], valor: ['valor'], categoria: ['categoria'], subcategoria: ['subcategoria'],
+    lancamento: ['lancamento', 'datalancamento'], vencimento: ['vencimento', 'datavencimento'], efetivacao: ['efetivacao', 'datapagamento'],
+    recorrencia: ['recorrencia'], parcela: ['parcela'], parcelas: ['parcelas'], conta: ['conta'],
+    cartao: ['cartao', 'cartaodecredito'], origem: ['origem', 'contadeorigem', 'contaorigem'], destino: ['destino', 'contadedestino', 'contadestino'],
+    observacoes: ['observacoes'], encargos: ['encargos']
+  };
+  function buildIdx(headers) {
+    const norm = headers.map(normH), idx = {};
+    for (const [chave, nomes] of Object.entries(HEAD_ALIASES)) {
+      const i = nomes.map(n => norm.indexOf(n)).find(i => i !== -1);
+      if (i !== undefined) idx[chave] = i;
+    }
+    return idx;
+  }
+
   function detectLayout(headers) {
     const h = headers.map(normH);
-    if (h.includes('cartao')) return 'D';
-    if (h.includes('origem') && h.includes('destino')) return 'T';
+    if (h.includes('cartao') || h.includes('cartaodecredito')) return 'D';
+    if ((h.includes('origem') || h.includes('contadeorigem') || h.includes('contaorigem')) && (h.includes('destino') || h.includes('contadedestino') || h.includes('contadestino'))) return 'T';
     if (h.includes('categoria')) return 'R';
     return null;
   }
@@ -264,9 +284,9 @@ const Core = (() => {
 
   const REC = s => { s = (s || '').toLowerCase(); return s.startsWith('parcel') ? 'P' : s.startsWith('fixa') ? 'F' : (s === '' || s.startsWith('nenhuma')) ? 'N' : 'O'; };
 
-  // Converte linhas do CSV em transações normalizadas
+  // Converte linhas (de CSV ou XLSX, já tokenizadas em linhas/colunas de texto) em transações normalizadas
   function rowsToTx(layout, headers, rows) {
-    const idx = {}; headers.forEach((h, i) => idx[normH(h)] = i);
+    const idx = buildIdx(headers);
     const g = (r, k) => (idx[k] === undefined ? '' : (r[idx[k]] ?? '').trim());
     const out = [], erros = [];
     rows.forEach((r, n) => {
@@ -276,10 +296,19 @@ const Core = (() => {
       if (!Number.isFinite(valor) || !venc) { erros.push({ linha: n + 2, motivo: !venc ? 'vencimento inválido' : 'valor inválido' }); return; }
       const efet = parseDate(g(r, 'efetivacao'));
       const rec = REC(g(r, 'recorrencia'));
+      const desc = g(r, 'descricao'); let p = parseInt(g(r, 'parcela')) || 0, np = parseInt(g(r, 'parcelas')) || 0;
+      // O relatório XLSX não tem colunas de parcela: o número "atual/total" vem embutido no fim da
+      // descrição (ex.: "Castração Bilbo  2/2"), igual ao CSV — que também guarda esse sufixo em
+      // "Descrição" mesmo tendo colunas próprias. Por isso o sufixo NÃO é removido daqui: mantê-lo
+      // reproduz a mesma descrição (e o mesmo id) que o CSV já gera para a mesma parcela.
+      if (!p && !np && rec === 'P') {
+        const m = /\s+(\d{1,2})\/(\d{1,2})$/.exec(desc);
+        if (m) { p = +m[1]; np = +m[2]; }
+      }
       const tx = {
-        t: layout, desc: g(r, 'descricao'), valor,
+        t: layout, desc, valor,
         lanc: lanc ? lanc.d : venc.d, hora: lanc ? lanc.h : '', venc: venc.d, efet: efet ? efet.d : null,
-        rec, p: parseInt(g(r, 'parcela')) || 0, np: parseInt(g(r, 'parcelas')) || 0,
+        rec, p, np,
         cat: '', sub: '', cartao: '', conta: '', orig: '', dest: '', obs: g(r, 'observacoes')
       };
       if (layout === 'T') { tx.orig = g(r, 'origem'); tx.dest = g(r, 'destino'); tx.conta = tx.orig; tx.lanc = venc.d; }
@@ -301,14 +330,16 @@ const Core = (() => {
     return { txs: out, erros };
   }
 
-  function parseFile(text) {
-    text = fixMojibake(text);
-    const rows = parseCSV(text);
+  // Processa linhas já tokenizadas (de CSV ou de uma planilha XLSX) em transações
+  function parseRows(rows) {
     if (!rows.length) return { layout: null, txs: [], erros: [], total: 0 };
     const layout = detectLayout(rows[0]);
     if (!layout) return { layout: null, txs: [], erros: [], total: rows.length - 1 };
     const r = rowsToTx(layout, rows[0], rows.slice(1));
     return { layout, ...r, total: rows.length - 1 };
+  }
+  function parseFile(text) {
+    return parseRows(parseCSV(fixMojibake(text)));
   }
 
   // Fora do recorte: nenhuma das datas relevantes (lançamento, vencimento, efetivação) cai a partir do início da análise.
@@ -344,7 +375,9 @@ const Core = (() => {
     'Rendimentos': 'rendimentos', 'FGTS': 'fgts', 'Benefícios': 'beneficios', 'Cashbacks': 'cashback', 'Mãe': 'reembolsos', 'DIRPF': 'reembolsos', 'Outros': 'reembolsos'
   };
 
-  const REC_EXTRA = ['Férias', '13° Salário', 'PLR/AIP', 'DIRPF', 'Fiscal de Provas', 'Horas Extras'];
+  // "Férias" fica de fora: só o 1/3 constitucional é sazonal (detectado por transação em dedExtra);
+  // o restante da categoria (a antecipação do salário do próprio mês) é receita normal recorrente.
+  const REC_EXTRA = ['13° Salário', 'PLR/AIP', 'DIRPF', 'Fiscal de Provas', 'Horas Extras'];
   function configPadrao() {
     return { ignorarMeses: ['2026-09'], ultimoMesFechado: '2026-08', terceiros: 'liquido',
       cdi: { 2023: 13.04, 2024: 10.88, 2025: 14.32, 2026: 13.8 }, pctCdi: 100, irComparacao: 15, invInicioMes: '2025-06', invInicial: {}, rvCapital: 0, calibracaoVersao: 0, dataInicio: '2025-01-01', recorteVersao: 0,
@@ -408,7 +441,7 @@ const Core = (() => {
   }
 
   const ROTULO = { D: 'Despesas', R: 'Receitas', T: 'Transferências' };
-  return { normH, parseNum, detectLayout, foraDoInicio, podar, REC_EXTRA, configPadrao, fixMojibake, parseCSV, parseFile, importar, novoBanco, garantirCadastros, isIgnored, hash, TIPOS_CONTA, GRUPOS_DESPESA, GRUPOS_RECEITA, ROTULO, guessTipoConta };
+  return { normH, parseNum, detectLayout, foraDoInicio, podar, REC_EXTRA, configPadrao, fixMojibake, parseCSV, parseFile, parseRows, importar, novoBanco, garantirCadastros, isIgnored, hash, TIPOS_CONTA, GRUPOS_DESPESA, GRUPOS_RECEITA, ROTULO, guessTipoConta };
 })();
 </script>
 <script>/* ===== APLICAÇÃO ===== */
@@ -649,7 +682,18 @@ function periodo() {
   return { de, ate, meses: monthsRange(de, ate) };
 }
 const ehAjuste = t => (t.t === 'R' || t.t === 'D') && (/ajuste de saldo|(receita|despesa) de ajuste|zeramento/i.test(t.desc) || t.sub === 'Ajustes');
-const dedExtra = t => /f[eé]rias|13|PLR/i.test(t.desc) || t.sub === 'Adiantamento Férias';
+// Sazonal = não se repete todo mês, mesmo sendo receita "normal" no mês em que cai.
+// Férias e Adiantamento de Férias são a antecipação do salário do próprio mês (não sazonal);
+// o que é sazonal é o 1/3 constitucional de férias, o 13º salário, o PLR, e qualquer categoria
+// marcada manualmente como "sazonal (anual)" em Cadastros (ex.: Horas Extras, DIRPF, Fiscal de Provas).
+// L é opcional (lookups() recalcula se não vier) para não quebrar chamadas antigas sem o parâmetro.
+function dedExtra(t, L) {
+  if (/\b13[oº]?\b|d[eé]cimo\s*terceiro/i.test(t.desc)) return true;
+  if (/\bplr\b/i.test(t.desc)) return true;
+  if (/f[eé]rias/i.test(t.desc) && /1\s*\/?\s*3|ter[cç]o/i.test(t.desc)) return true;
+  if (t.t === 'R' && (L || lookups()).catR.get(t.cat)?.extra) return true;
+  return false;
+}
 // 'ded' = dedução obrigatória da folha · 'custo' = IR/perdas dentro de investimentos · 'ajuste' = acerto de saldo · 'desp' = gasto real
 function tipoDesp(t, L) {
   if (t.t !== 'D') return null;
@@ -662,8 +706,8 @@ const ehFGTS = (t, L) => t.t === 'R' && L.catR.get(t.cat)?.grupo === 'fgts';
 function resumo(txs, L) {
   let rec = 0, ded = 0, custo = 0, desp = 0, recX = 0, dedX = 0;
   for (const t of txs) {
-    if (t.t === 'R') { if (ehAjuste(t) || (ehFGTS(t, L) && !state.ui.fgts)) continue; rec += t.valor; if (L.catR.get(t.cat)?.extra) recX += t.valor; }
-    else if (t.t === 'D') { const k = t.virtual ? 'desp' : tipoDesp(t, L); if (k === 'ded') { ded += t.valor; if (dedExtra(t)) dedX += t.valor; } else if (k === 'custo') custo += t.valor; else if (k === 'desp') desp += t.valor; }
+    if (t.t === 'R') { if (ehAjuste(t) || (ehFGTS(t, L) && !state.ui.fgts)) continue; rec += t.valor; if (dedExtra(t, L)) recX += t.valor; }
+    else if (t.t === 'D') { const k = t.virtual ? 'desp' : tipoDesp(t, L); if (k === 'ded') { ded += t.valor; if (dedExtra(t, L)) dedX += t.valor; } else if (k === 'custo') custo += t.valor; else if (k === 'desp') desp += t.valor; }
   }
   const liq = rec - ded - custo, extra = recX - dedX, liqRec = liq - extra, sobra = liq - desp, sobraRec = liqRec - desp;
   return { rec, ded, custo, desp, liq, sobra, extra, liqRec, sobraRec, taxa: liq > 0 ? sobra / liq : NaN, taxaRec: liqRec > 0 ? sobraRec / liqRec : NaN };
@@ -679,7 +723,7 @@ function txNoPeriodo(de, ate, raw) {
   if (!raw && state.ui.semPont) { const P = pontuais(); base = base.filter(t => !(t.t === 'D' && P.ids.has(t.id))); }
   return base.concat(virtuais(de, ate, L, raw));
 }
-// Renda mensal base: referência para faixas, metas e taxa de poupança. 'anual' = média dos últimos 12 meses fechados (inclui 13º, férias e PLR, que são anuais)
+// Renda mensal base: referência para faixas, metas e taxa de poupança. 'anual' = média dos últimos 12 meses fechados (inclui 13º, 1/3 de férias e PLR, que são anuais)
 function rendaBase(cur, n) {
   const mode = state.db.config.baseRenda || 'anual';
   if (mode === 'periodo') return cur.liq / Math.max(1, n);
@@ -692,7 +736,7 @@ function aReceberTxt() {
   const P = state.db.contas.filter(c => RC.has(c.nome)).map(c => [c.nome, (c.saldoInicial || 0) + s[c.nome].ent - s[c.nome].sai]).filter(x => Math.abs(x[1]) > 0.5);
   return P.length ? '<b>Contas transitórias (não são receita nem despesa):</b> ' + P.map(([n, x]) => `${esc(n)} ${x >= 0 ? 'a receber ' + money(x) : 'a pagar ' + money(-x)}`).join('; ') + ' em ' + fmtMes(fimMesFechado()) + '.<br>' : '';
 }
-const MODO_BASE = { anual: 'média dos últimos 12 meses, incluindo 13º, férias e PLR', periodo: 'receita líquida do próprio período', recorrente: 'receita líquida sem as sazonais' };
+const MODO_BASE = { anual: 'média dos últimos 12 meses, incluindo 13º, 1/3 de férias e PLR', periodo: 'receita líquida do próprio período', recorrente: 'receita líquida sem as sazonais' };
 function compTxt(p) {
   const pa = periodoAnterior(p), n = p.meses.length;
   if (!pa.n) return '<b>Comparação (▲▼):</b> não há meses anteriores a 01/01/2025 para comparar neste período.';
@@ -790,16 +834,16 @@ function viewGeral(v) {
 
   v.innerHTML = `
   <div class="top"><div><h1>Visão geral</h1><p class="sub">${fmtMes(p.de)} a ${fmtMes(p.ate)} · ${n} ${n === 1 ? 'mês' : 'meses'} <br>${regimeTxt()}</p></div>${filtrosPeriodo()}</div>
-  ${nD === 0 ? '<div class="panel empty">Nenhum dado carregado. Vá em “Importar e exportar” para importar os CSVs ou um JSON.</div>' : `
+  ${nD === 0 ? '<div class="panel empty">Nenhum dado carregado. Vá em “Importar e exportar” para importar os relatórios ou um JSON.</div>' : `
   ${perguntaBox}
   <div class="ledger">
-    <div class="hero"><div class="lab">Sobra do período</div><div class="num ${cur.sobra >= 0 ? 'pos' : 'neg'}">${ex('sobra', money(cur.sobra))}</div><div class="note">${delta(cur.sobra, ant.sobra)}<br>inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR)<br><a class="hl" data-ajuda="sobra">como é calculada</a></div></div>
+    <div class="hero"><div class="lab">Sobra do período</div><div class="num ${cur.sobra >= 0 ? 'pos' : 'neg'}">${ex('sobra', money(cur.sobra))}</div><div class="note">${delta(cur.sobra, ant.sobra)}<br>inclui ${money(cur.extra)} de receitas sazonais (13º, 1/3 de férias, PLR)<br><a class="hl" data-ajuda="sobra">como é calculada</a></div></div>
     <div><div class="lab">Receita líquida</div><div class="num">${ex('receitaLiquida', money(cur.liq))}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)} (${pct(cur.rec ? (cur.ded + cur.custo) / cur.rec : NaN)})<br>${delta(cur.liq, ant.liq)}</div></div>
     <div><div class="lab">Despesas</div><div class="num">${ex('despesasPeriodo', money(cur.desp))}</div><div class="note">média ${money(cur.desp / n)}/mês<br>${delta(cur.desp, ant.desp, true)}</div></div>
     <div><div class="lab">Taxa de poupança</div><div class="num ${cur.taxa >= 0.2 ? 'pos' : cur.taxa < 0 ? 'neg' : 'warn'}">${ex('taxaPoupanca', pct(cur.taxa))}</div><div class="note">sobra ÷ receita líquida<br>sem sazonais: <b>${pct(cur.taxaRec)}</b> · meta ${state.db.config.metas.taxaPoupanca}%<br><a class="hl" data-ajuda="sobra">entenda</a></div></div>
     <div><div class="lab">Investido no período</div><div class="num" style="color:var(--inv)">${ex('investidoPeriodo', money(fi.liq))}</div><div class="note">aportes ${money(fi.ap)} − resgates ${money(fi.rs)}<br>não reduz a sobra <a class="hl" data-ajuda="sobra">por quê?</a></div></div>
   </div>
-  <div class="callout" style="margin-top:0">${state.db.contas.some(c => c.ativa === false) ? "Contas inativas fora das análises: <b>" + state.db.contas.filter(c => c.ativa === false).map(c => esc(c.nome)).join(", ") + "</b>.<br>" : ""}${state.ui.semPont ? pontResumo(p) + "<br>" : ""}${aReceberTxt()}${compTxt(p)}<br>Deduções obrigatórias (INSS, IRRF, descontos da folha e IR/perdas em investimentos) saem da receita e <b>não</b> contam como gasto. Ajustes de saldo não são receita nem despesa. 13º, férias e PLR são receitas <b>sazonais</b>: acontecem todo ano, mas em meses específicos; a taxa “sem sazonais” mostra o mês a mês sem elas.</div>
+  <div class="callout" style="margin-top:0">${state.db.contas.some(c => c.ativa === false) ? "Contas inativas fora das análises: <b>" + state.db.contas.filter(c => c.ativa === false).map(c => esc(c.nome)).join(", ") + "</b>.<br>" : ""}${state.ui.semPont ? pontResumo(p) + "<br>" : ""}${aReceberTxt()}${compTxt(p)}<br>Deduções obrigatórias (INSS, IRRF, descontos da folha e IR/perdas em investimentos) saem da receita e <b>não</b> contam como gasto. Ajustes de saldo não são receita nem despesa. 13º, 1/3 de férias e PLR são receitas <b>sazonais</b>: acontecem todo ano, mas em meses específicos; a taxa “sem sazonais” mostra o mês a mês sem elas.</div>
   <div class="grid g2">
     <div class="panel"><h2>Receita, despesas e sobra por mês</h2><p class="sub">A barra da esquerda soma receita líquida + deduções (= bruta).</p><div class="chartbox"><canvas id="cMensal"></canvas></div></div>
     <div class="panel"><h2>Onde o dinheiro foi</h2><p class="sub">10 maiores categorias · % das despesas</p><div class="chartbox"><canvas id="cCats"></canvas></div></div>
@@ -808,9 +852,9 @@ function viewGeral(v) {
     <div class="panel"><h2>Como você paga</h2><p class="sub">Forma de pagamento das despesas no período</p>
       <div class="bar">${Object.entries(perfil).map(([k, x], i) => x > 0 ? `<i style="width:${x / totD * 100}%;background:${cores[i]}" title="${k}"></i>` : '').join('')}</div>
       <div class="legend">${Object.entries(perfil).map(([k, x], i) => `<span><span class="dot" style="background:${cores[i]}"></span>${k}: <b>${money(x)}</b> (${pct(totD ? x / totD : 0, 0)})</span>`).join('')}</div>
-      <h2 style="margin-top:22px">Parcelas já comprometidas</h2><p class="sub">Parcelas de compras passadas que vencem depois de ${fmtMes(fimMesFechado())} (setembro não foi importado)</p>
+      <h2 style="margin-top:22px">Parcelas já comprometidas</h2><p class="sub">Parcelas de compras passadas que vencem depois de ${fmtMes(fimMesFechado())} (${fmtMes(addMonths(fimMesFechado(), 1))} em diante ainda não foi importado)</p>
       <div class="chartbox sm"><canvas id="cFut"></canvas></div></div>
-    <div class="panel"><h2>Saldo por conta</h2><p class="sub">Movimentação efetivada até ${fmtMes(fimMesFechado())} + saldo inicial informado em Cadastros</p>${tabelaSaldos(L)}
+    <div class="panel"><h2>Saldo por conta</h2><p class="sub">Saldo do app em ${fmtData(saldoBase())} + movimentação efetivada até ${fmtMes(fimMesFechado())}</p>${tabelaSaldos(L)}
       ${pendentes ? `<div class="callout">${pendentes} lançamentos com vencimento passado ainda constam como <b>pendentes</b> (sem data de efetivação). Veja em Lançamentos → Situação: Pendente.</div>` : ''}</div>
   </div>`}`;
   bindPeriodo();
@@ -825,7 +869,7 @@ function viewGeral(v) {
   chart('cMensal', { data: { labels: p.meses.map(fmtMes), datasets: [
     { type: 'line', label: 'Sobra', data: mensal.map(r => r.sobra), borderColor: css('--ink'), backgroundColor: css('--ink'), tension: 0, pointRadius: 3, order: 0 },
     { type: 'bar', label: 'Receita líquida (sem sazonais)', data: mensal.map(r => r.liqRec), backgroundColor: c.pos, stack: 'a', order: 2 },
-    { type: 'bar', label: 'Sazonais (13º, férias, PLR)', data: mensal.map(r => r.extra), backgroundColor: css('--c8'), stack: 'a', order: 2 },
+    { type: 'bar', label: 'Sazonais (13º, 1/3 de férias, PLR)', data: mensal.map(r => r.extra), backgroundColor: css('--c8'), stack: 'a', order: 2 },
     { type: 'bar', label: 'Deduções obrigatórias', data: mensal.map(r => r.ded + r.custo), backgroundColor: c.warn, stack: 'a', order: 2 },
     { type: 'bar', label: 'Despesas', data: mensal.map(r => r.desp), backgroundColor: c.neg, stack: 'b', order: 2 }] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: axisMoney, x: { grid: { display: false } } }, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: x => ` ${x.dataset.label}: ${money(x.parsed.y)}` } } } } });
@@ -838,27 +882,37 @@ function viewGeral(v) {
     options: { responsive: true, maintainAspectRatio: false, scales: { y: axisMoney, x: { grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => ' ' + money(x.parsed.y) } } } } });
 }
 
-function saldos(L) {
+/* Ajustes de conciliação: diferenças entre o saldo real (app) e o saldo calculado com os relatórios.
+   Entram só no saldo das contas; nunca contam como receita, despesa, aporte ou resgate. */
+const ajustesConc = () => state.db.config.ajustes || (state.db.config.ajustes = []);
+/* Data dos saldos de abertura das contas (fim do dia). Só o que acontece DEPOIS dela entra no saldo.
+   Sem ela, vale o início da análise (saldo de abertura = véspera de dataInicio). */
+const saldoBase = () => state.db.config.saldoData || diaAntes(state.db.config.dataInicio);
+const movNoSaldo = d => !!d && d > saldoBase();
+function saldos(L, ateData) {
   const lim = fimMesFechado(), r = {};
-  state.db.contas.forEach(c => r[c.nome] = { ent: 0, sai: 0, n: 0 });
+  const dentro = d => movNoSaldo(d) && (ateData ? d <= ateData : d.slice(0, 7) <= lim);
+  state.db.contas.forEach(c => r[c.nome] = { ent: 0, sai: 0, n: 0, aj: 0 });
   for (const t of state.db.transacoes) {
-    const dc = t.t === 'T' ? t.venc : t.efet, ok = !!dc && dc >= state.db.config.dataInicio && dc.slice(0, 7) <= lim;
-    if (!ok) continue;
+    const dc = t.t === 'T' ? t.venc : t.efet;
+    if (!dentro(dc)) continue;
     if (t.t === 'R' && r[t.conta]) { r[t.conta].ent += t.valor; r[t.conta].n++; }
     else if (t.t === 'D' && r[t.conta]) { r[t.conta].sai += t.valor; r[t.conta].n++; }
     else if (t.t === 'T') { if (r[t.orig]) { r[t.orig].sai += t.valor; r[t.orig].n++; } if (r[t.dest]) { r[t.dest].ent += t.valor; r[t.dest].n++; } }
   }
+  for (const a of ajustesConc()) { const x = r[a.conta]; if (!x || !dentro(a.data)) continue; x.aj += a.valor; if (a.valor >= 0) x.ent += a.valor; else x.sai -= a.valor; }
   return r;
 }
 function tabelaSaldos(L) {
-  const s = saldos(L), tipos = Object.keys(Core.TIPOS_CONTA);
-  let h = '<div class="tblwrap"><table><thead><tr><th>Conta</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Saldo estimado</th></tr></thead><tbody>';
+  const s = saldos(L), tipos = Object.keys(Core.TIPOS_CONTA), temAj = ajustesConc().length > 0;
+  let h = `<div class="tblwrap"><table><thead><tr><th>Conta</th><th class="r">Entradas</th><th class="r">Saídas</th>${temAj ? '<th class="r" title="Acertos manuais de saldo feitos no app que os relatórios não exportam (Cadastros → Conciliação)">Ajuste manual</th>' : ''}<th class="r">Saldo estimado</th></tr></thead><tbody>`;
   for (const tp of tipos) {
     const cs = state.db.contas.filter(c => c.tipo === tp && c.ativa !== false); if (!cs.length) continue;
-    h += `<tr><td colspan="4" class="mut" style="padding-top:12px;font-size:12.5px">${Core.TIPOS_CONTA[tp]}</td></tr>`;
-    cs.forEach(c => { const x = s[c.nome], sal = (c.saldoInicial || 0) + x.ent - x.sai; h += `<tr><td>${esc(c.nome)}</td><td class="r">${money(x.ent)}</td><td class="r">${money(x.sai)}</td><td class="r ${sal < 0 ? 'neg' : ''}"><b>${ex('contaSaldo', money(sal), { conta: c.nome })}</b></td></tr>`; });
+    h += `<tr><td colspan="${temAj ? 5 : 4}" class="mut" style="padding-top:12px;font-size:12.5px">${Core.TIPOS_CONTA[tp]}</td></tr>`;
+    cs.forEach(c => { const x = s[c.nome], aE = Math.max(0, x.aj), aS = Math.max(0, -x.aj), sal = (c.saldoInicial || 0) + x.ent - x.sai;
+      h += `<tr><td>${esc(c.nome)}</td><td class="r">${money(x.ent - aE)}</td><td class="r">${money(x.sai - aS)}</td>${temAj ? `<td class="r mut">${Math.abs(x.aj) < 0.005 ? '—' : money(x.aj)}</td>` : ''}<td class="r ${sal < 0 ? 'neg' : ''}"><b>${ex('contaSaldo', money(sal), { conta: c.nome })}</b></td></tr>`; });
   }
-  return h + '</tbody></table></div><p class="sub" style="margin-top:8px">Sem o saldo inicial, o valor mostra só a movimentação dos dados importados. Ajuste em Cadastros → Contas.</p>';
+  return h + `</tbody></table></div><p class="sub" style="margin-top:8px">Saldo = saldo de abertura em ${fmtData(saldoBase())} (Cadastros → Contas) + entradas − saídas a partir do dia seguinte${temAj ? ' + ajustes manuais' : ''}. Confira com o app em Cadastros → Conciliação de saldos.</p>`;
 }
 
 /* ---- Lançamentos ---- */
@@ -918,6 +972,63 @@ function viewLanc(v) {
 function baixar(conteudo, nome, tipo) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
 
 /* ---- Cadastros ---- */
+/* ---------------- CONCILIAÇÃO DE SALDOS ----------------
+   O app (Minhas Finanças) é a fonte da verdade. Os relatórios exportados não trazem tudo (ex.: o de Transferências
+   só começa em 30/06/2025). Aqui você informa o saldo real numa data; a diferença vira um "ajuste de conciliação",
+   que corrige só o saldo da conta — não entra em receitas, despesas, investimentos nem em nenhuma análise. */
+const ultimoDiaMes = m => { const [a, mm] = m.split('-').map(Number); return new Date(Date.UTC(a, mm, 0)).toISOString().slice(0, 10); };
+function diaAntes(d) { return new Date(Date.parse(d + 'T12:00:00Z') - 864e5).toISOString().slice(0, 10); }
+function inicioTransf() { let mn = null; for (const t of state.db.transacoes) if (t.t === 'T' && t.venc && t.venc >= state.db.config.dataInicio && (!mn || t.venc < mn)) mn = t.venc; return mn; }
+const transfFaltando = () => { const it = inicioTransf(); return it && it > diaAntes(saldoBase()) && diaAntes(it) > saldoBase() ? it : null; };
+function dataAjustePadrao(dataConc) {
+  return dataConc;
+}
+function concUI() {
+  const u = state.ui.conc = state.ui.conc || {};
+  if (!u.data) u.data = ultimoDiaMes(fimMesFechado());
+  if (!u.dataAj) u.dataAj = dataAjustePadrao(u.data);
+  if (!u.reais) { const h = (state.db.config.conciliacoes || []).filter(c => c.data === u.data).pop(); u.reais = h ? { ...h.saldos } : {}; }
+  return u;
+}
+function painelConc() {
+  const db = state.db, u = concUI(), L = lookups(), s = saldos(L, u.data), it = inicioTransf(), aj = ajustesConc().slice().sort((a, b) => a.data.localeCompare(b.data) || a.conta.localeCompare(b.conta, 'pt-BR'));
+  const tf = transfFaltando(), avisoT = tf ? `<div class="callout" style="margin:8px 0">As transferências importadas começam em <b>${fmtData(tf)}</b>, depois da data dos saldos de abertura (${fmtData(saldoBase())}). Sem elas o saldo calculado diverge do app. Use como data dos saldos de abertura a véspera de ${fmtData(tf)} (Cadastros → Contas).</div>` : '';
+  const rows = db.contas.map(c => { const x = s[c.nome] || { ent: 0, sai: 0 }, est = (c.saldoInicial || 0) + x.ent - x.sai, rv = u.reais[c.nome], d = rv == null || rv === '' ? null : Number(rv) - est;
+    return `<tr><td>${esc(c.nome)}${c.ativa === false ? ' <span class="mut">(inativa)</span>' : ''}</td><td class="r ${est < 0 ? 'neg' : ''}">${money(est)}</td><td class="r"><input type="number" step="0.01" data-concreal="${esc(c.nome)}" value="${rv ?? ''}" placeholder="—" style="width:120px" aria-label="Saldo real de ${esc(c.nome)}"></td><td class="r" data-concdif="${esc(c.nome)}" data-est="${est}">${d == null ? '<span class="mut">—</span>' : Math.abs(d) < 0.005 ? '<span class="pos">bate</span>' : `<b class="${d < 0 ? 'neg' : 'warn'}">${money(d)}</b>`}</td></tr>`; }).join('');
+  const lista = aj.length ? `<div class="tblwrap" style="max-height:320px;overflow:auto"><table><thead><tr><th>Data</th><th>Conta</th><th class="r">Ajuste</th><th>Origem</th><th></th></tr></thead><tbody>${aj.map(a => `<tr><td>${fmtData(a.data)}</td><td>${esc(a.conta)}</td><td class="r ${a.valor < 0 ? 'neg' : 'pos'}">${money(a.valor)}</td><td class="mut">${esc(a.obs || '')}</td><td class="r"><button class="btn sm" data-concdel="${esc(a.id)}" title="Remover este ajuste">Remover</button></td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:8px;justify-content:space-between"><span class="sub">Total líquido dos ajustes: <b>${money(sum(aj, a => a.valor))}</b></span><button class="btn sm" id="concLimpar">Remover todos</button></div>` : '<p class="sub">Nenhum ajuste manual.</p>';
+  return `<div class="panel" style="margin-bottom:16px" id="painelConc"><h2>Conciliação de saldos</h2>
+    <p class="sub">Confira todo mês, depois de importar: digite o saldo de cada conta como aparece no app e veja se bate com o painel (saldo de abertura + movimentos até a data). Se não bater, falta importar algo ou algum lançamento mudou no app. Só use “Gerar ajustes” para correções manuais de saldo que o app não exporta (ex.: conversão de moeda) — o ajuste mexe só no saldo da conta, nunca em receitas, despesas ou investimentos.</p>
+    ${avisoT}
+    <div class="row" style="gap:16px;margin:8px 0;flex-wrap:wrap"><label class="row sub">Saldo real em <input type="date" id="concData" value="${u.data}"></label><label class="row sub" title="Dia em que a diferença será lançada.">Lançar ajustes em <input type="date" id="concDataAj" value="${u.dataAj}"></label></div>
+    <div>
+      <div><div class="tblwrap"><table><thead><tr><th>Conta</th><th class="r">Saldo no painel em ${fmtData(u.data)}</th><th class="r">Saldo real (app)</th><th class="r">Diferença</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="row" style="margin-top:8px;gap:8px"><button class="btn primary" id="concGerar">Gerar ajustes das diferenças</button><span class="sub">Deixe em branco as contas que não quer conciliar.</span></div></div>
+      <div style="margin-top:16px"><h3 style="margin:0 0 6px">Ajustes lançados</h3>${lista}</div>
+    </div></div>`;
+}
+function bindConc() {
+  const db = state.db, u = concUI(); if (!$('#painelConc')) return;
+  $('#concData').onchange = e => { u.data = e.target.value || ultimoDiaMes(fimMesFechado()); u.dataAj = dataAjustePadrao(u.data); u.reais = null; render(); };
+  $('#concDataAj').onchange = e => { u.dataAj = e.target.value || u.data; };
+  $$('[data-concreal]').forEach(e => e.oninput = () => { const n = e.dataset.concreal, cel = $(`[data-concdif="${CSS.escape(n)}"]`); u.reais[n] = e.value === '' ? null : e.value; if (!cel) return; if (e.value === '') { cel.innerHTML = '<span class="mut">—</span>'; return; } const d = Number(e.value) - Number(cel.dataset.est); cel.innerHTML = Math.abs(d) < 0.005 ? '<span class="pos">bate</span>' : `<b class="${d < 0 ? 'neg' : 'warn'}">${money(d)}</b>`; });
+  $('#concGerar').onclick = () => {
+    const n = gerarAjustesConc(u.data, u.dataAj, u.reais);
+    save(); u.reais = null; render(); toast(n ? `${n} ajuste(s) lançado(s) em ${fmtData(u.dataAj)}. Os saldos em ${fmtData(u.data)} agora batem com o app.` : 'Nada a ajustar: os saldos informados já batem.');
+  };
+  $$('[data-concdel]').forEach(b => b.onclick = () => { db.config.ajustes = ajustesConc().filter(a => a.id !== b.dataset.concdel); save(); render(); toast('Ajuste removido.'); });
+  const lp = $('#concLimpar'); if (lp) lp.onclick = () => { if (!confirm('Remover todos os ajustes manuais? Os saldos voltam a ser só saldo de abertura + movimentos.')) return; db.config.ajustes = []; save(); render(); toast('Ajustes removidos.'); };
+}
+/* Lança a diferença (saldo real − saldo do painel na data) de cada conta informada. Retorna quantos ajustes criou. */
+function gerarAjustesConc(dataConc, dataAj, reais) {
+  const db = state.db, s = saldos(lookups(), dataConc), r2 = x => Math.round(x * 100) / 100, lim = {}; let n = 0;
+  if (dataAj > dataConc) dataAj = dataConc;
+  if (dataAj <= saldoBase()) dataAj = dataConc;
+  Object.entries(reais || {}).forEach(([nome, v]) => { if (v == null || v === '') return; const c = db.contas.find(x => x.nome === nome); if (!c) return; const x = s[nome] || { ent: 0, sai: 0 }, d = r2(Number(v) - ((c.saldoInicial || 0) + x.ent - x.sai)); lim[nome] = Number(v); if (Math.abs(d) < 0.005) return;
+    ajustesConc().push({ id: 'aj' + Date.now().toString(36) + (n++), conta: nome, data: dataAj, valor: d, obs: `Saldo do app em ${fmtData(dataConc)}` }); });
+  const h = (db.config.conciliacoes = db.config.conciliacoes || []).filter(c => c.data !== dataConc); h.push({ data: dataConc, saldos: lim }); db.config.conciliacoes = h;
+  return n;
+}
 function viewCad(v) {
   const db = state.db, L = lookups(), s = saldos(L);
   const uso = {}; db.transacoes.forEach(t => { const k = t.t + '|' + t.cat; uso[k] = uso[k] || { n: 0, v: 0, sub: {} }; uso[k].n++; uso[k].v += t.valor; if (t.sub) { uso[k].sub[t.sub] = (uso[k].sub[t.sub] || 0) + 1; } });
@@ -925,21 +1036,22 @@ function viewCad(v) {
   const catRow = (tp, c) => { const u = uso[(tp === 'despesa' ? 'D' : 'R') + '|' + c.nome] || { n: 0, v: 0, sub: {} };
     return `<details><summary><span class="nm">${esc(c.nome)}</span><span class="mut">${u.n} lanç. · ${money(u.v)}</span>
       <select data-catgrp="${tp}|${esc(c.nome)}" aria-label="Grupo de ${esc(c.nome)}" onclick="event.stopPropagation()">${sel(tp === 'despesa' ? Core.GRUPOS_DESPESA : Core.GRUPOS_RECEITA, c.grupo)}</select>
-      ${tp === 'receita' ? `<label class="chk" onclick="event.stopPropagation()"><input type="checkbox" data-catextra="${esc(c.nome)}" ${c.extra ? 'checked' : ''}> sazonal (anual)</label>` : ''}
+      ${tp === 'receita' ? `<label class="chk" onclick="event.stopPropagation()" title="${/^(F[ée]rias|13[°º]? Sal[aá]rio|PLR\/AIP)$/.test(c.nome) ? 'Nesta categoria o painel já identifica o que é sazonal pelo texto do lançamento (13º, PLR, ou “1/3”/“terço” nas férias). Esta marcação só afeta lançamentos cujo texto não deixa isso claro.' : 'Marca esta categoria inteira como sazonal (não recorrente) nas análises.'}"><input type="checkbox" data-catextra="${esc(c.nome)}" ${c.extra ? 'checked' : ''}> sazonal (anual)</label>` : ''}
       ${tp === 'despesa' ? `<span class="mut" onclick="event.stopPropagation()">faixa adequada <input type="number" step="0.5" min="0" max="100" data-catmin="${esc(c.nome)}" value="${c.min ?? ''}" placeholder="mín" style="width:64px"> a <input type="number" step="0.5" min="0" max="100" data-catmax="${esc(c.nome)}" value="${c.max ?? ''}" placeholder="máx" style="width:64px"> % da renda líquida</span>` : ''}</summary>
       <div class="subs">${c.subs.map(sb => `<span class="chip">${esc(sb)} · ${u.sub[sb] || 0}</span>`).join('') || '<span class="mut">sem subcategorias</span>'}<button class="btn sm" data-addsub="${tp}|${esc(c.nome)}">+ subcategoria</button></div></details>`; };
   v.innerHTML = `<div class="top"><div><h1>Cadastros</h1><p class="sub">Contas, cartões e categorias criados a partir dos relatórios. Ajuste aqui o que o app não informa.</p></div></div>
   <div class="grid g2e" style="align-items:start">
    <div class="panel"><div class="row" style="justify-content:space-between"><h2>Contas</h2><button class="btn sm" id="addConta">+ Nova conta</button></div>
-     <p class="sub" style="margin-bottom:8px">Só entram no saldo as movimentações efetivadas a partir de ${fmtData(db.config.dataInicio)}. Se souber o saldo em 31/12/2024, digite-o; se souber o saldo atual, digite o real e o app calcula o inicial.</p>
-     <div class="tblwrap"><table><thead><tr><th>Conta</th><th>Tipo</th><th class="r">Saldo em 31/12/2024</th><th class="r">Saldo real em ${fmtData(fimMesFechado() + '-01').slice(3)}</th><th title="Contas inativas saem de todos os gráficos e dashboards">Ativa</th></tr></thead><tbody>
+     <p class="sub" style="margin-bottom:8px">Saldo de abertura = saldo de cada conta no app no fim do dia <input type="date" id="cfgSaldoData" value="${saldoBase()}" style="width:150px">. Só os movimentos do dia seguinte em diante entram no saldo. Receitas, despesas e todas as análises continuam desde ${fmtData(db.config.dataInicio)}.</p>
+     <div class="tblwrap"><table><thead><tr><th>Conta</th><th>Tipo</th><th class="r">Saldo em ${fmtData(saldoBase())}</th><th class="r">Saldo estimado em ${fmtData(fimMesFechado() + '-01').slice(3)}</th><th title="Contas inativas saem de todos os gráficos e dashboards">Ativa</th></tr></thead><tbody>
      ${db.contas.map(c => { const x = s[c.nome] || { ent: 0, sai: 0 }; const est = (c.saldoInicial || 0) + x.ent - x.sai; return `<tr><td>${esc(c.nome)}</td><td><select data-contatipo="${esc(c.nome)}" aria-label="Tipo de ${esc(c.nome)}">${sel(Core.TIPOS_CONTA, c.tipo)}</select></td>
-       <td class="r"><input type="number" step="0.01" data-containi="${esc(c.nome)}" value="${(c.saldoInicial || 0).toFixed(2)}" aria-label="Saldo inicial de ${esc(c.nome)}"></td><td class="r"><input type="number" step="0.01" data-contasaldo="${esc(c.nome)}" value="${est.toFixed(2)}" aria-label="Saldo real de ${esc(c.nome)}"></td><td><input type="checkbox" data-contaativa="${esc(c.nome)}" ${c.ativa !== false ? 'checked' : ''} aria-label="Ativa"></td></tr>`; }).join('')}</tbody></table></div></div>
+       <td class="r"><input type="number" step="0.01" data-containi="${esc(c.nome)}" value="${(c.saldoInicial || 0).toFixed(2)}" aria-label="Saldo inicial de ${esc(c.nome)}"></td><td class="r ${est < 0 ? 'neg' : ''}">${money(est)}</td><td><input type="checkbox" data-contaativa="${esc(c.nome)}" ${c.ativa !== false ? 'checked' : ''} aria-label="Ativa"></td></tr>`; }).join('')}</tbody></table></div></div>
    <div class="panel"><div class="row" style="justify-content:space-between"><h2>Cartões de crédito</h2></div>
      <div class="tblwrap"><table><thead><tr><th>Cartão</th><th>Conta que paga a fatura</th><th class="r">Limite</th><th class="r">Fecha dia</th><th class="r">Vence dia</th></tr></thead><tbody>
      ${db.cartoes.map(c => `<tr><td>${esc(c.nome)}</td><td><select data-cartaoconta="${esc(c.nome)}"><option value=""></option>${db.contas.map(a => `<option ${a.nome === c.conta ? 'selected' : ''}>${esc(a.nome)}</option>`).join('')}</select></td>
        ${['limite', 'fechamentoDia', 'vencimentoDia'].map(k => `<td class="r"><input type="number" min="0" style="width:${k === 'limite' ? 90 : 56}px" data-cartaocampo="${k}|${esc(c.nome)}" value="${c[k] ?? ''}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
      <p class="sub" style="margin-top:8px">Limite e dias de fechamento/vencimento serão usados nas análises de uso do cartão (etapa 2).</p></div></div>
+  ${painelConc()}
   <div class="panel" style="margin-bottom:16px"><h2>Perfil da casa</h2><p class="sub">Você mora com sua mãe e seu namorado. Eles pagam as contas fixas da casa (luz, água, internet, gás) e você paga o mercado dos três. Por isso as faixas de Moradia e Mercado foram ajustadas e o mercado também é mostrado por pessoa.</p>
     <div class="row" style="margin-top:8px"><label class="row sub">Pessoas que consomem o mercado <input type="number" min="1" id="perfMor" value="${db.config.perfil.moradores}" style="width:80px"></label></div></div>
   <div class="grid g2e" style="align-items:start">
@@ -950,7 +1062,8 @@ function viewCad(v) {
   $$('[data-contatipo]').forEach(e => e.onchange = () => { db.contas.find(c => c.nome === e.dataset.contatipo).tipo = e.value; save(); toast('Tipo da conta atualizado.'); render(); });
   $$('[data-containi]').forEach(e => e.onchange = () => { db.contas.find(c => c.nome === e.dataset.containi).saldoInicial = parseFloat(e.value) || 0; save(); render(); });
   $$('[data-contaativa]').forEach(e => e.onchange = () => { db.contas.find(c => c.nome === e.dataset.contaativa).ativa = e.checked; save(); toast(e.checked ? 'Conta ativa: volta aos gráficos e dashboards.' : 'Conta inativa: removida dos gráficos e dashboards.'); });
-  $$('[data-contasaldo]').forEach(e => e.onchange = () => { const c = db.contas.find(c => c.nome === e.dataset.contasaldo), x = saldos(L)[c.nome]; c.saldoInicial = Math.round((parseFloat(e.value || 0) - (x.ent - x.sai)) * 100) / 100; save(); toast('Saldo inicial recalculado: ' + money(c.saldoInicial)); });
+  bindConc();
+  $('#cfgSaldoData').onchange = e => { if (!e.target.value) return; db.config.saldoData = e.target.value; save(); render(); toast('Data dos saldos de abertura: ' + fmtData(e.target.value) + '. Confira os saldos dessa data em Cadastros → Contas.'); };
   $$('[data-cartaoconta]').forEach(e => e.onchange = () => { db.cartoes.find(c => c.nome === e.dataset.cartaoconta).conta = e.value; save(); });
   $$('[data-cartaocampo]').forEach(e => e.onchange = () => { const [k, n] = e.dataset.cartaocampo.split('|'); db.cartoes.find(c => c.nome === n)[k] = e.value === '' ? null : Number(e.value); save(); });
   $$('[data-catgrp]').forEach(e => e.onchange = () => { const [tp, n] = e.dataset.catgrp.split('|'); db.categorias[tp].find(c => c.nome === n).grupo = e.value; save(); toast('Grupo atualizado.'); });
@@ -969,22 +1082,47 @@ async function lerTexto(file) {
   const buf = await file.arrayBuffer();
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); }
 }
+// Converte uma célula do XLSX (número, texto ou Date já decodificado pela SheetJS) no mesmo
+// formato de texto que o parser de CSV espera (datas dd/mm/aaaa[ hh:mm], números com ponto).
+// A SheetJS (com cellDates:true) monta o Date a partir dos componentes "de parede" da planilha
+// usando o construtor local (new Date(ano,mês,dia,h,m)) — por isso lemos de volta com os getters
+// locais (getDate/getHours...), não os UTC, senão o horário desloca pelo fuso do navegador.
+function celulaXlsxParaTexto(v) {
+  if (v == null) return '';
+  if (v instanceof Date) {
+    const dd = String(v.getDate()).padStart(2, '0'), mm = String(v.getMonth() + 1).padStart(2, '0'), yy = v.getFullYear();
+    const hh = v.getHours(), mi = v.getMinutes();
+    return `${dd}/${mm}/${yy}` + ((hh || mi) ? ` ${String(hh).padStart(2, '0')}:${String(mi).padStart(2, '0')}` : '');
+  }
+  return typeof v === 'number' ? String(v) : String(v).trim();
+}
+// Lê um arquivo de relatório (.csv ou .xlsx) e devolve as linhas já tokenizadas (array de arrays de texto)
+async function arquivoParaLinhas(file) {
+  if (/\.xlsx?$/i.test(file.name)) {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const planilha = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(planilha, { header: 1, raw: true, defval: '' });
+    return aoa.map(row => row.map(celulaXlsxParaTexto)).filter(r => r.some(c => c.trim() !== ''));
+  }
+  return Core.parseCSV(Core.fixMojibake(await lerTexto(file)));
+}
 function mesesStr(a) { return (a || []).join(', '); }
 function viewDados(v) {
   const db = state.db, u = state.ui, pend = u.pend;
-  v.innerHTML = `<div class="top"><div><h1>Importar e exportar</h1><p class="sub">Alimente o painel todo mês com os CSVs do app Minhas Finanças. Tudo fica guardado na nuvem e aparece em qualquer aparelho.</p></div></div>
+  v.innerHTML = `<div class="top"><div><h1>Importar e exportar</h1><p class="sub">Alimente o painel todo mês com os relatórios do app Minhas Finanças. Tudo fica guardado na nuvem e aparece em qualquer aparelho.</p></div></div>
   ${Cloud.vazio && !db.transacoes.length ? `<div class="panel" style="border-left:3px solid var(--brass);margin-bottom:16px"><b>A nuvem ainda está vazia.</b> Para trazer seus dados: em “2. Backup em JSON”, escolha o arquivo <b>migracao_painel.json</b>, marque <b>substituir tudo</b> e confirme. Depois disso, tudo passa a ser salvo sozinho.</div>` : ''}
   <div class="grid g2e" style="align-items:start">
-   <div class="panel"><h2>1. Importar relatórios CSV</h2>
-    <p class="sub" style="margin-bottom:12px">Aceita Despesas, Receitas e Transferências no layout original do app. O tipo é detectado pelas colunas. Lançamentos já existentes não são duplicados.</p>
-    <label class="drop" id="drop" for="fCsv"><b>Arraste os CSVs aqui</b><div class="mut">ou clique para escolher (pode selecionar vários)</div></label>
-    <input type="file" id="fCsv" accept=".csv,text/csv" multiple hidden>
+   <div class="panel"><h2>1. Importar relatórios (CSV ou XLSX)</h2>
+    <p class="sub" style="margin-bottom:12px">Aceita Despesas, Receitas e Transferências no layout original do app, em CSV ou XLSX. O tipo é detectado pelas colunas. Lançamentos já existentes não são duplicados.</p>
+    <label class="drop" id="drop" for="fCsv"><b>Arraste os arquivos aqui</b><div class="mut">CSV ou XLSX · ou clique para escolher (pode selecionar vários)</div></label>
+    <input type="file" id="fCsv" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden>
     <div id="prev" style="margin-top:14px">${pend.length ? prevHtml() : ''}</div>
     <h2 style="margin-top:22px">Início da análise</h2>
     <p class="sub" style="margin-bottom:8px">Entram apenas lançamentos com alguma data (lançamento, vencimento ou efetivação) a partir daqui. Parcelas e contas fixas antigas que continuam valendo ficam.</p>
     <div class="row"><input type="date" id="cfgIni" value="${db.config.dataInicio}"></div>
     <h2 style="margin-top:22px">Meses ignorados na importação</h2>
-    <p class="sub" style="margin-bottom:8px">Lançamentos desses meses são descartados para evitar duplicidade com um relatório futuro. Use o formato AAAA-MM, separados por vírgula. Quando importar o relatório completo de setembro, deixe em branco.</p>
+    <p class="sub" style="margin-bottom:8px">Lançamentos desses meses são descartados para evitar duplicidade com um relatório futuro. Use o formato AAAA-MM, separados por vírgula. Quando importar o relatório completo desses meses, esvazie o campo.</p>
     <div class="row"><input type="text" id="cfgIgn" value="${esc(mesesStr(db.config.ignorarMeses))}" placeholder="2026-09" style="width:200px"><label class="row sub">Último mês fechado <input type="month" id="cfgUlt" value="${db.config.ultimoMesFechado}"></label></div></div>
    <div class="panel"><h2>2. Backup em JSON</h2>
     <p class="sub" style="margin-bottom:12px">Os dados já ficam salvos na nuvem: o JSON é só uma <b>cópia de segurança</b> (contas, cartões, categorias, transações e histórico de importações) e serve para restaurar ou migrar. Baixe uma de vez em quando.</p>
@@ -1005,11 +1143,11 @@ function viewDados(v) {
   <div class="panel"><h2>Histórico de importações</h2>${db.importacoes.length ? `<div class="tblwrap"><table><thead><tr><th>Data</th><th>Arquivo</th><th>Tipo</th><th class="r">Novas</th><th class="r">Atualizadas</th><th class="r">Já existiam</th><th class="r">Ignoradas</th><th class="r">Antes do início</th><th class="r">Erros</th></tr></thead><tbody>${[...db.importacoes].reverse().map(i => `<tr><td>${fmtData(i.data)}</td><td>${esc(i.arquivo)}</td><td>${Core.ROTULO[i.tipo] || i.tipo}</td><td class="r">${i.novas}</td><td class="r">${i.atualizadas}</td><td class="r">${i.duplicadas}</td><td class="r">${i.ignoradas}</td><td class="r">${i.anteriores ?? 0}</td><td class="r">${i.erros}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Nenhuma importação registrada.</div>'}</div>`;
 
   const drop = $('#drop'), inp = $('#fCsv');
-  const tratar = async files => { state.ui.pend = []; for (const f of files) { const p = Core.parseFile(await lerTexto(f)); p.nome = f.name; p.prev = p.layout ? Core.importar(db, p, { dryRun: true }) : null; state.ui.pend.push(p); } render(); };
+  const tratar = async files => { state.ui.pend = []; for (const f of files) { const p = Core.parseRows(await arquivoParaLinhas(f)); p.nome = f.name; p.prev = p.layout ? Core.importar(db, p, { dryRun: true }) : null; state.ui.pend.push(p); } render(); };
   inp.onchange = () => tratar([...inp.files]);
   ['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', e => tratar([...e.dataTransfer.files].filter(f => /\.csv$/i.test(f.name))));
+  drop.addEventListener('drop', e => tratar([...e.dataTransfer.files].filter(f => /\.(csv|xlsx?)$/i.test(f.name))));
   const ok = $('#okImp'); if (ok) ok.onclick = () => {
     let novas = 0;
     for (const p of state.ui.pend) { if (!p.layout) continue; const st = Core.importar(db, p); novas += st.novas; db.importacoes.push({ data: new Date().toISOString().slice(0, 10), arquivo: p.nome, tipo: p.layout, novas: st.novas, atualizadas: st.atualizadas, duplicadas: st.duplicadas, ignoradas: st.ignoradas, anteriores: st.anteriores, erros: st.erros }); }
@@ -1044,7 +1182,7 @@ function viewDados(v) {
 function prevHtml() {
   const pend = state.ui.pend;
   return `<div class="tblwrap"><table><thead><tr><th>Arquivo</th><th>Tipo</th><th class="r">Linhas</th><th class="r">Novas</th><th class="r">Atualizam</th><th class="r">Já existem</th><th class="r">Ignoradas</th><th class="r">Antes do início</th><th class="r">Erros</th></tr></thead><tbody>
-  ${pend.map(p => p.layout ? `<tr><td>${esc(p.nome)}${(p.avisos || []).map(x => `<div class="mut" style="font-size:11.5px;white-space:normal">${esc(x)}</div>`).join('')}</td><td>${Core.ROTULO[p.layout]}</td><td class="r">${p.total}</td><td class="r"><b class="pos">${p.prev.novas}</b></td><td class="r">${p.prev.atualizadas}</td><td class="r">${p.prev.duplicadas}</td><td class="r">${p.prev.ignoradas}</td><td class="r">${p.prev.anteriores}</td><td class="r ${p.prev.erros ? 'neg' : ''}">${p.prev.erros}</td></tr>` : `<tr><td>${esc(p.nome)}</td><td colspan="8" class="neg">Layout não reconhecido. Use os CSVs de Despesas, Receitas ou Transferências do app.</td></tr>`).join('')}</tbody></table></div>
+  ${pend.map(p => p.layout ? `<tr><td>${esc(p.nome)}${(p.avisos || []).map(x => `<div class="mut" style="font-size:11.5px;white-space:normal">${esc(x)}</div>`).join('')}</td><td>${Core.ROTULO[p.layout]}</td><td class="r">${p.total}</td><td class="r"><b class="pos">${p.prev.novas}</b></td><td class="r">${p.prev.atualizadas}</td><td class="r">${p.prev.duplicadas}</td><td class="r">${p.prev.ignoradas}</td><td class="r">${p.prev.anteriores}</td><td class="r ${p.prev.erros ? 'neg' : ''}">${p.prev.erros}</td></tr>` : `<tr><td>${esc(p.nome)}</td><td colspan="8" class="neg">Layout não reconhecido. Use os relatórios (CSV ou XLSX) de Despesas, Receitas ou Transferências do app.</td></tr>`).join('')}</tbody></table></div>
   <div class="row" style="margin-top:10px"><button class="btn primary" id="okImp">Confirmar importação</button><button class="btn" id="noImp">Cancelar</button></div>`;
 }
 
@@ -1085,19 +1223,19 @@ function pontuais() {
 
   });
   const porNome = new Map(); grupos.forEach(g => { const kk = g.tipo + '|' + g.nome + '|' + (g.dest || ''); (porNome.get(kk) || porNome.set(kk, []).get(kk)).push(g); });
-  const lista = [], ids = new Set(), tids = new Set();
+  const lista = [], ids = new Set();
   grupos.forEach(g => {
     g.impacto = Math.max(...Object.values(g.meses));
     if (g.impacto < 0.25 * limiar) return;
     const outros = new Set(); (porNome.get(g.tipo + '|' + g.nome + '|' + (g.dest || '')) || []).forEach(o => { if (o !== g) Object.keys(o.meses).forEach(m => outros.add(m)); });
-    g.mesesOutros = outros.size; g.mediaCat = g.tipo === 'D' ? Math.max(0, ((catTot[g.cat] || 0) - g.total) / nMeses) : 0;
-    g.c1 = g.impacto >= limiar; g.c2 = g.mesesOutros <= pc.maxMeses; g.c3 = g.tipo === 'T' ? true : g.impacto >= pc.multCat * g.mediaCat;
+    g.mesesOutros = outros.size; g.mediaCat = Math.max(0, ((catTot[g.cat] || 0) - g.total) / nMeses);
+    g.c1 = g.impacto >= limiar; g.c2 = g.mesesOutros <= pc.maxMeses; g.c3 = g.impacto >= pc.multCat * g.mediaCat;
     g.auto = g.c1 && g.c2 && g.c3; const ov = pc.marcar[g.key]; g.manual = ov !== undefined; g.marcada = g.manual ? ov : g.auto;
-    if (g.marcada) g.ids.forEach(i => (g.tipo === 'D' ? ids : tids).add(i));
+    if (g.marcada) g.ids.forEach(i => ids.add(i));
     lista.push(g);
   });
   lista.sort((a, b) => b.impacto - a.impacto);
-  const v = { limiar, rb, lista: lista.slice(0, 30), ids, tids };
+  const v = { limiar, rb, lista: lista.slice(0, 30), ids };
   _pontCache = { k, v }; return v;
 }
 function pontResumo(p) {
@@ -1122,7 +1260,7 @@ function painelPontuais(p) {
       <label class="row sub">× média da categoria <input type="number" id="pcMult" style="width:70px" value="${pc.multCat}"></label>
       <label class="row sub">Máx. de outros meses <input type="number" id="pcMax" style="width:70px" value="${pc.maxMeses}"></label></div>
     <div class="tblwrap"><table><thead><tr><th>Compra</th><th>Tipo</th><th>Data</th><th class="r">Total</th><th class="r">Maior mês</th><th class="r" title="Concentração">1</th><th class="r" title="Sem hábito">2</th><th class="r" title="Destoa da categoria">3</th><th>Tratar como pontual</th></tr></thead><tbody>
-    ${P.lista.map(g => `<tr><td><b>${esc(g.nome)}</b><div class="mut" style="font-size:12px">${esc(g.cat)}${g.tipo === 'T' ? ' → ' + esc(g.dest) : ''} · ${g.n} ${g.n === 1 ? 'lançamento' : 'lançamentos'}</div></td><td>${g.tipo === 'D' ? 'Despesa' : 'Transferência'}</td><td>${fmtData(g.data)}</td><td class="r">${money(g.total)}</td><td class="r">${money(g.impacto)}</td><td class="r">${ck(g.c1)}</td><td class="r">${ck(g.c2)}</td><td class="r">${g.tipo === 'T' ? '—' : ck(g.c3)}</td><td><label class="chk"><input type="checkbox" data-pont="${esc(g.key)}" ${g.marcada ? 'checked' : ''}> ${g.marcada ? 'sim' : 'não'}${g.manual ? ' (manual)' : g.auto ? ' (automático)' : ''}</label></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Nenhuma compra próxima dos critérios.</td></tr>'}</tbody></table></div>
+    ${P.lista.map(g => `<tr><td><b>${esc(g.nome)}</b><div class="mut" style="font-size:12px">${esc(g.cat)} · ${g.n} ${g.n === 1 ? 'lançamento' : 'lançamentos'}</div></td><td>Despesa</td><td>${fmtData(g.data)}</td><td class="r">${money(g.total)}</td><td class="r">${money(g.impacto)}</td><td class="r">${ck(g.c1)}</td><td class="r">${ck(g.c2)}</td><td class="r">${ck(g.c3)}</td><td><label class="chk"><input type="checkbox" data-pont="${esc(g.key)}" ${g.marcada ? 'checked' : ''}> ${g.marcada ? 'sim' : 'não'}${g.manual ? ' (manual)' : g.auto ? ' (automático)' : ''}</label></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Nenhuma compra próxima dos critérios.</td></tr>'}</tbody></table></div>
     <p class="sub" style="margin-top:8px">Critérios: 1 = concentração em um mês · 2 = sem hábito · 3 = destoa da categoria. A lista mostra compras a partir de 25% do limiar, para você poder marcar manualmente as que ficaram de fora.</p></div>`;
 }
 const meter = (val, alvo, max, ruim) => `<div class="meter"><i style="width:${Math.max(0, Math.min(100, val / max * 100))}%;background:${ruim ? 'var(--neg)' : 'var(--pos)'}"></i><b style="left:${Math.min(100, alvo / max * 100)}%"></b></div>`;
@@ -1197,7 +1335,7 @@ function viewDesp(v) {
     <div class="panel"><h2>Cartão e outras formas de pagamento</h2><p class="sub">Gasto por mês (competência)</p><div class="chartbox sm"><canvas id="cCartMes"></canvas></div>
       <table style="margin-top:12px"><thead><tr><th>Forma</th><th class="r">Total</th><th class="r">%</th><th class="r">Lanç.</th><th class="r">Ticket</th><th class="r">Parcelado</th></tr></thead><tbody>${pagam.map(x => `<tr><td>${esc(x.nm)}</td><td class="r">${money(x.tot)}</td><td class="r">${pct(totD ? x.tot / totD : 0, 0)}</td><td class="r">${x.n}</td><td class="r">${money(x.n ? x.tot / x.n : 0)}</td><td class="r">${pct(x.tot ? x.parc / x.tot : 0, 0)}</td></tr>`).join('')}</tbody></table>
       ${pagam.some(x => x.lim) ? `<p class="sub" style="margin-top:8px">Uso do limite (média mensal ÷ limite): ${pagam.filter(x => x.lim).map(x => `${esc(x.nm)} ${pct(x.tot / n / x.lim, 0)}`).join(' · ')}</p>` : '<p class="sub" style="margin-top:8px">Informe o limite dos cartões em Cadastros para ver o uso do limite.</p>'}</div>
-    <div class="panel"><h2>Parcelamentos em andamento</h2><p class="sub">Ainda a pagar depois de ${fmtMes(lim)}: <b>${money(restTot)}</b> · próximos 3 meses ≈ ${money(proxMed)}/mês (${pct(liqMes ? proxMed / liqMes : NaN, 0)} da renda mensal base). Setembro não foi importado.</p>
+    <div class="panel"><h2>Parcelamentos em andamento</h2><p class="sub">Ainda a pagar depois de ${fmtMes(lim)}: <b>${money(restTot)}</b> · próximos 3 meses ≈ ${money(proxMed)}/mês (${pct(liqMes ? proxMed / liqMes : NaN, 0)} da renda mensal base). ${fmtMes(addMonths(lim, 1))} em diante ainda não foi importado.</p>
       <div class="tblwrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>Compra</th><th class="r">Parcela</th><th class="r">Faltam</th><th class="r">Restante</th><th>Até</th></tr></thead><tbody>${ser.slice(0, 25).map(s => `<tr><td>${esc(s.nome)}<div class="mut" style="font-size:12px">${esc(s.cat)} · ${esc(s.cartao)}</div></td><td class="r">${money(s.parc)}</td><td class="r">${s.np}</td><td class="r">${money(s.rest)}</td><td>${fmtMes(s.fim.slice(0, 7))}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Nenhuma parcela futura.</td></tr>'}</tbody></table></div></div></div>
   ${painelPontuais(p)}
   <div class="panel"><h2>Contas transitórias (Israel, Mãe e Outros)</h2><p class="sub">Não são receita nem despesa: só movimentam os saldos das suas contas. O que você envia vira <b>valor a receber</b>; o que elas enviam abate esse valor. Se o saldo fica negativo, é <b>valor a pagar</b>.</p>
@@ -1310,11 +1448,11 @@ function viewRec(v) {
   const L = lookups(), p = periodo(), n = p.meses.length, ui = state.ui, cfg = state.db.config;
   const txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
   const R = txs.filter(t => t.t === 'R' && !ehAjuste(t) && (ui.fgts || !ehFGTS(t, L)));
-  const gr = ['ativa', 'extra', ...Object.keys(Core.GRUPOS_RECEITA).filter(g => g !== 'ativa' && (ui.fgts || g !== 'fgts'))], NOME_G = { ...Core.GRUPOS_RECEITA, ativa: 'Salário e renda recorrente', extra: 'Sazonais (13º, férias, PLR…)' };
-  const grDe = t => { const c = L.catR.get(t.cat); return c?.extra ? 'extra' : (c?.grupo || 'reembolsos'); };
+  const gr = ['ativa', 'extra', ...Object.keys(Core.GRUPOS_RECEITA).filter(g => g !== 'ativa' && (ui.fgts || g !== 'fgts'))], NOME_G = { ...Core.GRUPOS_RECEITA, ativa: 'Salário e renda recorrente', extra: 'Sazonais (13º, 1/3 de férias, PLR…)' };
+  const grDe = t => dedExtra(t, L) ? 'extra' : (L.catR.get(t.cat)?.grupo || 'reembolsos');
   const porGr = {}; R.forEach(t => { const g = grDe(t); porGr[g] = (porGr[g] || 0) + t.valor; });
   const mensal = p.meses.map(m => resumo(txs.filter(t => mesReg(t) === m), L));
-  const trab = p.meses.map(m => sum(R.filter(t => mesReg(t) === m && L.catR.get(t.cat)?.grupo === 'ativa' && !L.catR.get(t.cat)?.extra), t => t.valor));
+  const trab = p.meses.map(m => sum(R.filter(t => mesReg(t) === m && L.catR.get(t.cat)?.grupo === 'ativa' && !dedExtra(t, L)), t => t.valor));
   const mu = sum(trab, x => x) / n, sd = Math.sqrt(sum(trab, x => (x - mu) ** 2) / n);
   const subDed = {}; txs.filter(t => t.t === 'D' && !t.virtual && tipoDesp(t, L) === 'ded').forEach(t => subDed[t.sub || 'Outros'] = (subDed[t.sub || 'Outros'] || 0) + t.valor);
   const fontes = new Map(); R.forEach(t => { const k = baseNome(t); const o = fontes.get(k) || { nome: k, cat: t.cat, tot: 0, n: 0 }; o.tot += t.valor; o.n++; fontes.set(k, o); });
@@ -1327,8 +1465,8 @@ function viewRec(v) {
   v.innerHTML = hdr('Receitas e poupança', `${fmtMes(p.de)} a ${fmtMes(p.ate)} · da receita bruta à sobra`) + `
   <div class="ledger">
     <div class="hero"><div class="lab">Receita líquida</div><div class="num">${ex('receitaLiquida', money(cur.liq))}</div><div class="note">bruta ${money(cur.rec)} − deduções ${money(cur.ded + cur.custo)}</div></div>
-    <div><div class="lab">Sem sazonais (líquida)</div><div class="num">${ex('semSazonais', money(cur.liqRec / n))}<span style="font-size:14px">/mês</span></div><div class="note">sem 13º, férias, PLR e similares · total ${money(cur.liqRec)}</div></div>
-    <div><div class="lab">Sazonais (líquidas)</div><div class="num" style="color:var(--warn)">${ex('sazonais', money(cur.extra))}</div><div class="note">${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida<br>13º, férias, PLR, DIRPF, horas extras: acontecem todo ano</div></div>
+    <div><div class="lab">Sem sazonais (líquida)</div><div class="num">${ex('semSazonais', money(cur.liqRec / n))}<span style="font-size:14px">/mês</span></div><div class="note">sem 13º, 1/3 de férias, PLR e similares · total ${money(cur.liqRec)}</div></div>
+    <div><div class="lab">Sazonais (líquidas)</div><div class="num" style="color:var(--warn)">${ex('sazonais', money(cur.extra))}</div><div class="note">${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida<br>13º, 1/3 de férias, PLR, DIRPF, horas extras: acontecem todo ano</div></div>
     <div><div class="lab">Taxa de poupança</div><div class="num">${ex('taxaPoupanca', pct(cur.taxa))}</div><div class="note">sem sazonais: <b>${pct(cur.taxaRec)}</b></div></div>
     <div><div class="lab">Estabilidade do salário</div><div class="num">${ex('estabilidadeSalario', pct(mu ? sd / mu : NaN, 0))}</div><div class="note">variação mensal · média ${money(mu)}<br>mínimo ${money(Math.min(...trab))} · máximo ${money(Math.max(...trab))}</div></div></div>
   <div class="grid g2">
@@ -1437,7 +1575,7 @@ function viewInv(v) {
   // FGTS
   const fg = txAtivas().filter(t => { const m = mesCx(t); return m >= cfg.invInicioMes && m <= fimMesFechado() && ((t.t === 'R' && t.cat === 'FGTS') || (t.t === 'T' && (t.orig === 'FGTS' || t.dest === 'FGTS'))); });
   const fgS = { dep: 0, rd: 0, sq: 0 }; let fgSaldo = cfg.invInicial['FGTS'] || 0; const fgMed = []; 
-  meses.forEach(m => { fg.filter(t => mesCx(t) === m).forEach(t => { if (t.t === 'R') { if (t.sub === 'Rendimento') fgSaldo += t.valor; else fgSaldo += t.valor; } else if (t.orig === 'FGTS') fgSaldo -= t.valor; else fgSaldo += t.valor; }); fgMed.push(fgSaldo); });
+  meses.forEach(m => { fg.filter(t => mesCx(t) === m).forEach(t => { if (t.t === 'R') fgSaldo += t.valor; else if (t.orig === 'FGTS') fgSaldo -= t.valor; else fgSaldo += t.valor; }); fgMed.push(fgSaldo); });
   fg.filter(t => mesCx(t) >= de && mesCx(t) <= ate).forEach(t => { if (t.t === 'R' && t.sub === 'Rendimento') fgS.rd += t.valor; else if (t.t === 'R') fgS.dep += t.valor; else if (t.orig === 'FGTS') fgS.sq += t.valor; });
   const fgMedia = fgMed.length ? sum(fgMed, x => x) / fgMed.length : 0, nJ = Math.max(1, meses.filter(m => m >= de && m <= ate).length), fgAnual = fgMedia > 0 ? fgS.rd / fgMedia * 12 / nJ : NaN;
   const cdiAno = Object.entries(cfg.cdi);
@@ -1508,7 +1646,7 @@ function viewIns(v) {
   let acc = 1, accC = 1, esp = 0; win.forEach(x => { if (x.r != null) { acc *= 1 + x.r; accC *= 1 + cdiCmp(x.m); esp += x.base * cdiCmp(x.m) * cfg.pctCdi / 100; } });
   const real = sum(win, x => x.rd - x.ct), ins = [], add = (nivel, titulo, texto) => ins.push({ nivel, titulo, texto });
   const taxa = cur.taxa, meta = m.taxaPoupanca / 100;
-  { const tb = A.taxaBase, mb = A.baseMes; if (Number.isFinite(tb)) add(tb >= meta ? 'ok' : tb >= meta * 0.6 ? 'atencao' : 'alerta', `Taxa de poupança de ${pct(tb)} sobre a renda base (meta ${m.taxaPoupanca}%)`, `Renda mensal base de ${money(mb)} (${MODO_BASE[cfg.baseRenda || 'anual']}). Os 13º, férias e PLR são esperados todo ano e por isso entram na base. No período, a taxa efetiva foi ${pct(taxa)}` + (Number.isFinite(cur.taxaRec) ? ` e, olhando só o mês a mês sem sazonais, ${pct(cur.taxaRec)}` : '') + '. ' + (tb >= meta ? 'A meta está atingida.' : `Faltam ${money((meta - tb) * mb)} por mês para a meta. A maior alavanca está nas categorias acima da faixa.`)); }
+  { const tb = A.taxaBase, mb = A.baseMes; if (Number.isFinite(tb)) add(tb >= meta ? 'ok' : tb >= meta * 0.6 ? 'atencao' : 'alerta', `Taxa de poupança de ${pct(tb)} sobre a renda base (meta ${m.taxaPoupanca}%)`, `Renda mensal base de ${money(mb)} (${MODO_BASE[cfg.baseRenda || 'anual']}). O 13º, o 1/3 de férias e o PLR são esperados todo ano e por isso entram na base. No período, a taxa efetiva foi ${pct(taxa)}` + (Number.isFinite(cur.taxaRec) ? ` e, olhando só o mês a mês sem sazonais, ${pct(cur.taxaRec)}` : '') + '. ' + (tb >= meta ? 'A meta está atingida.' : `Faltam ${money((meta - tb) * mb)} por mês para a meta. A maior alavanca está nas categorias acima da faixa.`)); }
   { const tr = A.taxaBase, marcos = [...new Set([0, 10, 20, m.taxaPoupanca])].filter(x => x <= m.taxaPoupanca && (!Number.isFinite(tr) || x / 100 > tr + 0.005)).sort((a, b) => a - b);
     if (Number.isFinite(tr) && marcos.length) add('info', 'Caminho até a meta de poupança', marcos.map(x => `${x}% exige cortar ${money((x / 100 - tr) * A.baseMes)}/mês`).join(' · ') + `. Hoje a taxa sobre a renda base é ${pct(tr)}. Vá por etapas.`); }
   { const mr = A.rows.find(r => r.nome === 'Mercado'); if (mr) { const pp2 = mr.media / (state.db.config.perfil.moradores || 1); add(m.mercadoMensal && mr.media > m.mercadoMensal ? 'atencao' : 'info', `Mercado: ${money(mr.media)}/mês, ${money(pp2)} por pessoa`, `Você paga o mercado de ${state.db.config.perfil.moradores} pessoas e não paga as contas da casa. Equivale a ${pct(mr.pc, 0)} da renda base, ${mr.st === 'acima' ? 'acima da faixa ajustada' : 'dentro da faixa ajustada'} de ${mr.min}–${mr.max}%.` + (m.mercadoMensal ? ` Meta definida: ${money(m.mercadoMensal)}/mês (${mr.media > m.mercadoMensal ? 'acima em ' + money(mr.media - m.mercadoMensal) : 'dentro da meta'}).` : ' Defina uma meta de mercado nas suas metas para acompanhar.')); } }
@@ -1521,7 +1659,7 @@ function viewIns(v) {
   const D = A.D.filter(t => !t.virtual), tot = sum(D, t => t.valor), parc = sum(D.filter(t => t.rec === 'P'), t => t.valor);
   if (tot) add(parc / tot > 0.3 ? 'atencao' : 'ok', `Parcelado representa ${pct(parc / tot, 0)} do gasto`, parc / tot > 0.3 ? 'Acima de 30% reduz sua flexibilidade nos meses seguintes. Evite novos parcelamentos até reduzir.' : 'Nível saudável de parcelamento.');
   const lim = fimMesFechado(), prox = [1, 2, 3].map(i => addMonths(lim, i)), pm = sum(txAtivas().filter(t => t.t === 'D' && t.rec === 'P' && prox.includes(t.venc.slice(0, 7)) && tipoDesp(t, L) === 'desp'), t => t.valor) / 3;
-  if (A.baseMes > 0) add(pm / A.baseMes > 0.15 ? 'atencao' : 'info', `Parcelas já comprometidas: ${money(pm)}/mês nos próximos 3 meses`, `Equivale a ${pct(pm / A.baseMes, 0)} da renda mensal base, considerando só o que já está lançado (setembro fora).`);
+  if (A.baseMes > 0) add(pm / A.baseMes > 0.15 ? 'atencao' : 'info', `Parcelas já comprometidas: ${money(pm)}/mês nos próximos 3 meses`, `Equivale a ${pct(pm / A.baseMes, 0)} da renda mensal base, considerando só o que já está lançado (${fmtMes(addMonths(lim, 1))} em diante fora).`);
   if (cap.length) {
     if (!calib) add('info', 'Calibre o saldo dos investimentos', 'Informe o saldo real de cada instituição na aba Investimentos para liberar a rentabilidade e a reserva de emergência confiáveis.');
     else if (accC > 1) add(real >= esp ? 'ok' : 'atencao', `Carteira rendeu ${pct((acc - 1) / (accC - 1), 0)} do CDI`, `Rendimento líquido de ${money(real)} contra ${money(esp)} esperado a ${cfg.pctCdi}% do CDI (${real >= esp ? 'acima' : 'abaixo'} em ${money(Math.abs(real - esp))}).${real < esp ? ' Verifique se há dinheiro parado em conta ou aplicações que pagam menos que o CDI.' : ''}`);
@@ -1590,15 +1728,15 @@ const AJUDA = [
 <tr><td><b>Insights e metas</b></td><td>Pareceres automáticos, suas metas, simulador de cortes e projeção do patrimônio.</td></tr>
 <tr><td><b>Lançamentos</b></td><td>O livro completo, com busca e filtros. Serve para conferir qualquer número.</td></tr>
 <tr><td><b>Cadastros</b></td><td>Contas, cartões, categorias, saldos e perfil da casa.</td></tr>
-<tr><td><b>Importar e exportar</b></td><td>CSVs mensais, backup em JSON e configurações de importação.</td></tr></tbody></table>` },
+<tr><td><b>Importar e exportar</b></td><td>Relatórios mensais (CSV ou XLSX), backup em JSON e configurações de importação.</td></tr></tbody></table>` },
 
 { id: 'tipos', t: 'Tipos de lançamento e como cada um é tratado', h: `
-<p>Cada linha dos CSVs é classificada. A classificação decide onde ela aparece.</p>
+<p>Cada linha dos relatórios importados é classificada. A classificação decide onde ela aparece.</p>
 <table><thead><tr><th>Tipo</th><th>O que é</th><th>Entra em “Despesas”?</th><th>Entra na receita?</th></tr></thead><tbody>
 <tr><td><b>Despesa</b></td><td>Gasto real.</td><td>Sim</td><td>Não</td></tr>
 <tr><td><b>Dedução</b></td><td>Despesa da categoria de encargos da folha: INSS, IRRF, descontos obrigatórios do salário.</td><td>Não. É abatida da receita.</td><td>Reduz a receita líquida</td></tr>
 <tr><td><b>Custo invest.</b></td><td>IRRF sobre aplicações, IOF, prejuízos e variação negativa do dólar em contas de investimento.</td><td>Não. É abatido da receita.</td><td>Reduz a receita líquida</td></tr>
-<tr><td><b>Receita</b></td><td>Salário, rendimentos, benefícios, cashback, reembolsos, sazonais (13º, férias, PLR).</td><td>Não</td><td>Sim</td></tr>
+<tr><td><b>Receita</b></td><td>Salário, rendimentos, benefícios, cashback, reembolsos, sazonais (13º, 1/3 de férias, PLR).</td><td>Não</td><td>Sim</td></tr>
 <tr><td><b>Transferência</b></td><td>Movimento entre contas.</td><td>Não</td><td>Não</td></tr>
 <tr><td><b>Ajuste</b></td><td>Acertos de saldo (“Ajuste de saldo”, “Receita de ajuste”, “Zeramento”).</td><td>Não</td><td>Não</td></tr></tbody></table>
 <p>Pontos importantes:</p>
@@ -1626,7 +1764,7 @@ const AJUDA = [
 <h3>Recorte a partir de 2025</h3>
 <p>Só entram lançamentos que tenham <b>alguma</b> data (lançamento, vencimento ou efetivação) a partir de 01/01/2025. Assim ficam as parcelas de 2025 de compras feitas em 2024 e as contas fixas antigas que continuam valendo. Mudar a data em Importar e exportar apaga do painel o que ficar antes dela.</p>
 <h3>Último mês fechado e meses futuros</h3>
-<p>“Último mês fechado” (agosto/2026 hoje) é o limite do que já aconteceu. Meses seguintes só mostram parcelas já lançadas e contas fixas, por isso ficam fora por padrão. A opção “incluir meses futuros” os traz para os gráficos. <b>Setembro/2026 não foi importado</b>, então esse mês e os seguintes estão incompletos.</p>
+<p>“Último mês fechado” é o mês mais recente que você já fechou (ajustável em Importar e exportar) — o limite do que já aconteceu. Meses seguintes só mostram parcelas já lançadas e contas fixas, por isso ficam fora por padrão. A opção “incluir meses futuros” os traz para os gráficos. <b>O mês seguinte ao último fechado ainda não foi importado</b>, então ele e os seguintes ficam incompletos até a próxima atualização.</p>
 <h3>Situação de um lançamento</h3>
 <ul><li><b>Efetivada:</b> tem data de efetivação.</li><li><b>Pendente:</b> o vencimento já passou e não há efetivação. Vale conferir no app.</li><li><b>Futura:</b> vence depois do último mês fechado.</li></ul>` },
 
@@ -1663,14 +1801,14 @@ const AJUDA = [
 <li><b>Janelas diferentes:</b> as transferências só existem desde jun/2025. Se o período começa antes, a sobra inclui meses sem aporte registrado, e a comparação não é justa.</li>
 <li><b>Tempo:</b> a sobra de vários meses pode ficar parada e ser investida de uma vez. Compare períodos longos, não meses isolados.</li></ul>
 <p>Aqui você investiu mais do que a sobra do mês. A diferença veio de dinheiro guardado antes. Em <b>Receitas e poupança</b>, o gráfico “Sobra acumulada e o que foi investido” compara os dois.</p>
-<h3>Receitas sazonais (13º, férias, PLR)</h3>
-<p>13º (duas vezes), férias (duas vezes), PLR (uma vez) e similares são receitas <b>esperadas todo ano</b>, só que em meses específicos. Por isso o painel as trata como parte da sua renda. Elas ficam marcadas como <b>sazonais</b> (você pode mudar em Cadastros) apenas para você enxergar o efeito delas:</p>
-<ul><li><b>Sazonais (líquidas):</b> essas receitas menos os descontos ligados a férias, 13º e PLR.</li>
+<h3>Receitas sazonais (13º, 1/3 de férias, PLR)</h3>
+<p>13º salário, o 1/3 constitucional de férias, PLR e similares são receitas <b>esperadas todo ano</b>, só que em meses específicos — diferente do salário, que se repete todo mês. Por isso o painel as trata como parte da sua renda, mas separa o efeito delas. <b>Atenção com férias:</b> só o 1/3 constitucional (identificado pelo texto “1/3” ou “terço” no lançamento) conta como sazonal. Um lançamento de "Férias" ou "Adiantamento de Férias" sem o 1/3 é apenas a antecipação do salário do próprio mês, e por isso entra como receita normal recorrente, não sazonal. Categorias como Horas Extras, DIRPF e Fiscal de Provas podem ser marcadas manualmente como “sazonal (anual)” em Cadastros.</p>
+<ul><li><b>Sazonais (líquidas):</b> essas receitas menos os descontos ligados a 13º, 1/3 de férias e PLR.</li>
 <li><b>Sem sazonais:</b> receita líquida − sazonais. É a renda “de todo mês”, sem os bônus.</li>
 <li><b>Taxa “sem sazonais”:</b> mostra a poupança do mês a mês. Ela é informativa e fica negativa se o dia a dia gasta mais do que entra sem bônus.</li></ul>
 <h3>Renda mensal base</h3>
 <p>Faixas, metas, taxa de poupança de Despesas e Insights e o simulador usam uma <b>renda mensal base</b>, para que um mês com PLR não distorça os percentuais. Você escolhe em Insights e metas:</p>
-<ul><li><b>Média dos últimos 12 meses (padrão):</b> receita líquida dos últimos 12 meses fechados ÷ 12, incluindo 13º, férias e PLR. É a leitura mais justa, porque um ano completo tem todos os bônus.</li>
+<ul><li><b>Média dos últimos 12 meses (padrão):</b> receita líquida dos últimos 12 meses fechados ÷ 12, incluindo 13º, 1/3 de férias e PLR. É a leitura mais justa, porque um ano completo tem todos os bônus.</li>
 <li><b>Receita líquida do próprio período:</b> só serve para períodos de 12 meses ou mais.</li>
 <li><b>Sem sazonais:</b> a visão mais conservadora.</li></ul>
 <p><b>Atenção:</b> a renda inclui rendimentos, benefícios (Ticket), cashback e reembolsos. Nem todo esse dinheiro é salário.</p>` },
@@ -1690,7 +1828,7 @@ const AJUDA = [
 <h3>Grupos: necessidades e desejos</h3>
 <p>Cada categoria pertence a um grupo editável em Cadastros. <b>Necessidades:</b> mercado, moradia, carro, saúde, educação, transporte, animais, serviços. <b>Desejos:</b> alimentação fora de casa, lazer, vestuário, beleza, presentes, eletrônicos e similares.</p>
 <h3>Faixas “adequadas”</h3>
-<p>Cada categoria tem um intervalo de referência, em % da <b>renda mensal base</b> (média dos últimos 12 meses, incluindo 13º, férias e PLR; veja “Sobra, receita líquida e taxa de poupança”). Elas são pontos de partida, não regras. Ajuste em Cadastros conforme sua vida. No seu caso, Moradia tem faixa baixa (0–8%) porque a casa é paga por sua mãe e seu namorado, e Mercado tem faixa alta (15–25%) porque você compra para três pessoas.</p>
+<p>Cada categoria tem um intervalo de referência, em % da <b>renda mensal base</b> (média dos últimos 12 meses, incluindo 13º, 1/3 de férias e PLR; veja “Sobra, receita líquida e taxa de poupança”). Elas são pontos de partida, não regras. Ajuste em Cadastros conforme sua vida. No seu caso, Moradia tem faixa baixa (0–8%) porque a casa é paga por sua mãe e seu namorado, e Mercado tem faixa alta (15–25%) porque você compra para três pessoas.</p>
 <table><tbody><tr><td><span class="chip D">Acima da faixa</span></td><td>O gasto passou do teto. O “excesso por mês” mostra quanto reduzir para voltar ao teto.</td></tr>
 <tr><td><span class="chip R">Dentro</span></td><td>Entre o mínimo e o máximo.</td></tr>
 <tr><td><span class="chip">Abaixo da faixa</span></td><td>Menos que o mínimo. Não é um problema por si só.</td></tr>
@@ -1719,7 +1857,7 @@ const AJUDA = [
 <h3>Cartão e forma de pagamento</h3>
 <p>Quatro formas: <b>cartão à vista, cartão parcelado, sem cartão</b> (Pix, débito, dinheiro) e <b>parcelado sem cartão</b>. “% parcelado” compara as parcelas com o total gasto. O uso do limite = média mensal ÷ limite, se você informar o limite em Cadastros.</p>
 <h3>Parcelamentos em andamento</h3>
-<p>Agrupa as parcelas que vencem <b>depois do último mês fechado</b>, por compra. Mostra valor da parcela, quantas faltam, quanto resta pagar e o mês da última. O “próximos 3 meses” é a média mensal dessas parcelas, comparada à renda mensal base. Como setembro não foi importado, esse total está incompleto.</p>
+<p>Agrupa as parcelas que vencem <b>depois do último mês fechado</b>, por compra. Mostra valor da parcela, quantas faltam, quanto resta pagar e o mês da última. O “próximos 3 meses” é a média mensal dessas parcelas, comparada à renda mensal base. Como o mês seguinte ao último fechado ainda não foi importado, esse total pode estar incompleto.</p>
 <h3>Contas transitórias (Israel, Mãe e Outros)</h3>
 <p>Essas três contas não são receita nem despesa. Elas existem só porque as transferências para elas e delas movimentam o saldo das suas contas. Funcionam como um “acerto de contas”:</p>
 <ul><li>Tudo que você envia é <b>valor a receber</b>. Tudo que a pessoa envia de volta abate esse valor.</li>
@@ -1731,8 +1869,7 @@ const AJUDA = [
 { id: 'pontuais', t: 'Compras pontuais grandes', h: `
 <p>Algumas compras únicas e enormes (como o carro em fev/2025, com a entrada e as 5 parcelas) distorcem as médias e as comparações. O filtro <b>“excluir compras pontuais grandes”</b>, no topo das telas, tira essas compras das análises do período. A lista e os critérios ficam em <b>Despesas → Compras pontuais grandes</b>.</p>
 <h3>O que é uma “compra”</h3>
-<ul><li><b>Despesa:</b> todas as linhas com o mesmo nome e a mesma data de lançamento. A entrada e as parcelas de um mesmo carro ficam na mesma compra.</li>
-</ul>
+<p>Todas as linhas de despesa com o mesmo nome e a mesma data de lançamento. A entrada e as parcelas de um mesmo carro ficam na mesma compra.</p>
 <h3>Os três critérios (todos precisam valer)</h3>
 <ol><li><b>Concentração:</b> o maior valor que a compra pesa em <b>um único mês</b> (entrada mais parcelas daquele mês) deve ser de pelo menos 50% da renda mensal base, com piso de R$ 2.000. Com a base atual, o limiar é de cerca de R$ 4.400. Um celular de R$ 4.600 em 10x <b>não</b> conta, porque pesa R$ 460 por mês; a entrada de R$ 20 mil conta. Ou seja, o parcelamento em si não torna a compra pontual, o que importa é quanto ela concentra num mês.</li>
 <li><b>Sem hábito:</b> não é conta fixa e o mesmo nome aparece em, no máximo, 2 outros meses. Uma compra grande no mesmo mercado ou posto de sempre não conta.</li>
@@ -1744,15 +1881,17 @@ const AJUDA = [
 <li>As parcelas ainda não pagas continuam em “Parcelamentos em andamento”, porque são compromissos reais.</li>
 <li>Saldos, aportes, conciliação e a aba Lançamentos <b>não</b> mudam, pois o dinheiro realmente saiu.</li></ul>` },
 
-{ id: 'saldos', t: 'Saldos das contas e calibração', h: `
+{ id: 'saldos', t: 'Saldos das contas: abertura e conciliação', h: `
 <h3>Como o saldo é calculado</h3>
 <p><b>Saldo estimado = saldo inicial + entradas − saídas</b>, considerando só o que foi realmente movimentado:</p>
 <ul><li><b>Receitas e despesas:</b> apenas as que têm data de efetivação, entre 01/01/2025 e o último mês fechado.</li>
 <li><b>Transferências:</b> pela data de vencimento, no mesmo intervalo. O destino recebe e a origem perde.</li>
 <li><b>Ajustes de saldo</b> entram, porque alteram o saldo do banco.</li></ul>
-<h3>Saldo inicial e saldo real</h3>
-<p>O relatório não traz saldo, então ele é calibrado. Em Cadastros há dois campos: o <b>saldo em 31/12/2024</b> e o <b>saldo real</b> em 31/08/2026. Digitar um recalcula o outro, sempre pela regra saldo real = saldo inicial + movimento. Se algum lançamento estiver faltando, o saldo inicial calculado fica estranho (por exemplo, negativo).</p>
-<div class="callout">Hoje o relatório de Transferências só começa em 30/06/2025. Sem as transferências de jan a jun/2025, os saldos iniciais de Santander e Inter ficam distorcidos. Os saldos atuais continuam corretos porque foram informados por você.</div>
+<h3>Saldo de abertura</h3>
+<p>O relatório não traz saldo. Em Cadastros → Contas você informa a <b>data dos saldos de abertura</b> e o saldo de cada conta no app no fim desse dia. Só os movimentos posteriores entram no saldo.</p>
+<div class="callout">A data é 30/06/2025 porque o app só tem transferências a partir desse dia, e os relatórios não exportam os acertos manuais de saldo feitos no app. Antes disso, receitas e despesas existem (e continuam em todas as análises), mas não dá para reconstruir o saldo de cada conta. A partir de 30/06/2025 o painel bate com o app centavo por centavo.</div>
+<h3>Conciliação mensal</h3>
+<p>Em Cadastros → <b>Conciliação de saldos</b>, digite os saldos do app depois de importar o mês. Se tudo foi importado, aparece “bate”. “Gerar ajustes” serve só para acertos manuais que o app não exporta (como a conversão da Global Account de dólar para real). O ajuste mexe só no saldo da conta, nunca em receitas, despesas ou investimentos.</p>
 <h3>Por que um saldo pode não bater com o banco</h3>
 <ul><li>Lançamentos <b>pendentes</b> (sem efetivação) não entram.</li><li>Faltam transferências ou receitas.</li><li>O mês seguinte ao último fechado não foi importado.</li></ul>
 <p>Contas <b>inativas</b> saem das tabelas e dos gráficos, mas suas transferências com contas ativas continuam contando no saldo das ativas.</p>` },
@@ -1806,13 +1945,13 @@ const AJUDA = [
 <p>Parte do patrimônio investido atual e soma o aporte mensal (o que você definiu, ou a média líquida do período). O retorno é o CDI do último ano cadastrado × “% do CDI”, reduzido em 15% de IR. A linha verde inclui a economia do simulador. É uma estimativa, não uma garantia.</p>` },
 
 { id: 'importacao', t: 'Importar, exportar e manter os dados', h: `
-<h3>Importar CSV</h3>
-<p>Arraste os CSVs de Despesas, Receitas e Transferências. O tipo é detectado pelas colunas, e arquivos com acentos corrompidos são corrigidos. Uma prévia mostra o que vai acontecer <b>antes</b> de você confirmar:</p>
+<h3>Importar CSV ou XLSX</h3>
+<p>Arraste os relatórios de Despesas, Receitas e Transferências, em CSV ou em XLSX. O tipo é detectado pelas colunas (os dois formatos usam nomes de coluna um pouco diferentes, mas o painel reconhece ambos), e arquivos com acentos corrompidos são corrigidos. Uma prévia mostra o que vai acontecer <b>antes</b> de você confirmar:</p>
 <ul><li><b>Novas:</b> entram.</li><li><b>Atualizam:</b> já existiam, mas mudou a data de efetivação, categoria, subcategoria ou observação. O painel atualiza esses campos.</li><li><b>Já existem:</b> iguais, são ignoradas. Não há duplicidade.</li><li><b>Ignoradas:</b> caem em um mês listado em “Meses ignorados”.</li><li><b>Antes do início:</b> anteriores ao início da análise.</li><li><b>Erros:</b> linhas com data ou valor inválidos.</li></ul>
 <h3>Como evita duplicar</h3>
 <p>Cada lançamento recebe uma identidade calculada com tipo, descrição, valor, data e hora do lançamento, vencimento, parcela, conta, cartão, origem e destino. Efetivação, categoria e observações ficam de fora, para que uma mudança neles atualize a linha em vez de duplicar. Linhas realmente idênticas no mesmo arquivo são contadas separadamente.</p>
 <h3>Meses ignorados</h3>
-<p>Impedem que um mês incompleto seja importado agora e duplicado depois. Um lançamento é ignorado se o mês de lançamento ou o mês de competência estiver na lista. Quando o relatório completo de setembro chegar, esvazie o campo e ajuste o “Último mês fechado”.</p>
+<p>Impedem que um mês incompleto seja importado agora e duplicado depois. Um lançamento é ignorado se o mês de lançamento ou o mês de competência estiver na lista. Quando o relatório completo desses meses chegar, esvazie o campo e ajuste o “Último mês fechado”.</p>
 <h3>Rotina mensal sugerida</h3>
 <ol><li>No app, exporte os três CSVs.</li><li>Importe aqui e confira a prévia.</li><li>Ajuste “Último mês fechado” e os meses ignorados.</li><li>Confira pendências em Lançamentos.</li><li>Exporte o JSON como backup.</li></ol>
 <h3>JSON e onde os dados ficam</h3>
@@ -1836,19 +1975,19 @@ const AJUDA = [
 
 { id: 'limites', t: 'Limitações e cuidados', h: `
 <ul>
-<li>O painel só sabe o que está nos CSVs. Se um lançamento não foi registrado no app, ele não existe aqui.</li>
+<li>O painel só sabe o que está nos relatórios importados. Se um lançamento não foi registrado no app, ele não existe aqui.</li>
 <li>As faixas de referência são orientações gerais, não recomendações personalizadas. O painel não substitui um profissional de finanças.</li>
 <li>A rentabilidade é uma estimativa, feita com fluxos mensais. Ela depende de você informar saldos reais corretos e de os rendimentos estarem lançados.</li>
 <li>Rendimentos de renda variável não incluem valorização de cotas.</li>
 <li>Contas em dólar (Nomad, Global Account) usam o saldo em reais que você informou, e a variação cambial mistura ganho e efeito do câmbio.</li>
 <li>O CDI por ano é um parâmetro que você pode editar. Confira em fontes oficiais.</li>
-<li>Meses incompletos (setembro/2026 em diante) não devem ser interpretados como resultado final.</li>
+<li>Meses incompletos (o mês seguinte ao último fechado em diante) não devem ser interpretados como resultado final.</li>
 <li>Categorias sem subcategoria limitam a análise de onde cortar.</li></ul>` },
 
 { id: 'faq', t: 'Perguntas frequentes: “por que esse número?”', h: `
 <details open><summary><b>Como posso ter investido mais do que sobrou?</b></summary><p>Veja a seção “Sobra, receita líquida e taxa de poupança” e a tabela “De onde veio o dinheiro investido”. Em resumo: aportes podem vir de saldo guardado antes, de FGTS ou de reembolsos, e a sobra só mede o período.</p></details>
 <details><summary><b>A sobra do período desconta meus investimentos?</b></summary><p>Não. Investimentos são transferências. A sobra é o que você pode investir. O quanto você investiu está em “Investido no período”. Os rendimentos entram como receita, e o IR sobre eles é uma dedução.</p></details>
-<details><summary><b>Por que a sobra é positiva, mas a taxa “sem sazonais” é negativa?</b></summary><p>Porque 13º, férias e PLR cobriram o mês a mês. Eles são esperados todo ano e por isso contam na renda base, mas a taxa “sem sazonais” mostra a dependência deles.</p></details>
+<details><summary><b>Por que a sobra é positiva, mas a taxa “sem sazonais” é negativa?</b></summary><p>Porque 13º, 1/3 de férias e PLR cobriram o mês a mês. Eles são esperados todo ano e por isso contam na renda base, mas a taxa “sem sazonais” mostra a dependência deles.</p></details>
 <details><summary><b>Por que o INSS e o IRRF não estão nas despesas?</b></summary><p>São deduções obrigatórias do salário. Elas reduzem a receita líquida, mas não são gastos seus.</p></details>
 <details><summary><b>Paguei a fatura do cartão. Por que não vejo essa despesa?</b></summary><p>Porque o gasto já foi contado quando você comprou (ou na parcela). Contar o pagamento da fatura duplicaria o valor.</p></details>
 <details><summary><b>Por que uma compra parcelada aparece um mês depois de uma à vista?</b></summary><p>Na competência, a parcela vale no mês do vencimento. Use o regime “Lançamento” para ver o valor total no mês da compra.</p></details>
@@ -1869,7 +2008,7 @@ const AJUDA = [
 <tr><td><b>CDI</b></td><td>Taxa de referência da renda fixa, próxima da Selic.</td></tr>
 <tr><td><b>Dedução</b></td><td>Valor obrigatório retirado da receita (INSS, IRRF, IR sobre aplicações).</td></tr>
 <tr><td><b>Efetivação</b></td><td>Data em que o pagamento ou recebimento realmente ocorreu.</td></tr>
-<tr><td><b>Sazonal</b></td><td>Receita esperada todo ano, mas só em certos meses (13º, férias, PLR).</td></tr>
+<tr><td><b>Sazonal</b></td><td>Receita esperada todo ano, mas só em certos meses (13º, 1/3 de férias, PLR).</td></tr>
 <tr><td><b>Faixa adequada</b></td><td>Intervalo de referência de gasto por categoria, em % da renda mensal base.</td></tr>
 <tr><td><b>Receita líquida</b></td><td>Receita bruta menos deduções obrigatórias.</td></tr>
 <tr><td><b>Reserva de emergência</b></td><td>Patrimônio investido dividido pela despesa média mensal, em meses.</td></tr>
@@ -1958,7 +2097,7 @@ const EXPLICA = {
         <tr><td>(−) Despesas</td><td class="r neg">${ex('despesasPeriodo', money(-cur.desp))}</td></tr>
         <tr><td><b>= Sobra do período</b></td><td class="r ${cur.sobra >= 0 ? 'pos' : 'neg'}"><b>${money(cur.sobra)}</b></td></tr>
       </tbody></table>
-      <p class="sub" style="margin-top:10px">Inclui ${money(cur.extra)} de receitas sazonais (13º, férias, PLR) já dentro da receita líquida. Período anterior (${fmtMes(pa.de)} a ${fmtMes(pa.ate)}): sobra de ${money(ant.sobra)}${pa.n && Math.abs(pa.fac - 1) > 0.01 ? ` (ajustada para a mesma duração; valor real do período foi ${money(ant.sobra / pa.fac)})` : ''}.</p></div>
+      <p class="sub" style="margin-top:10px">Inclui ${money(cur.extra)} de receitas sazonais (13º, 1/3 de férias, PLR) já dentro da receita líquida. Período anterior (${fmtMes(pa.de)} a ${fmtMes(pa.ate)}): sobra de ${money(ant.sobra)}${pa.n && Math.abs(pa.fac - 1) > 0.01 ? ` (ajustada para a mesma duração; valor real do período foi ${money(ant.sobra / pa.fac)})` : ''}.</p></div>
       <div class="panel"><h2>O que entra e o que fica de fora</h2>
         <p>Entram como <b>receita</b>: salários, bônus, 13º, férias, PLR e demais receitas do relatório, exceto as marcadas como ajuste de saldo. ${state.ui.fgts ? 'O FGTS entra na receita porque a opção "incluir FGTS na receita" está marcada.' : 'O FGTS <b>não</b> entra na receita (opção desmarcada nos filtros).'}</p>
         <p>São descontados da receita bruta antes de virar "receita líquida": deduções obrigatórias da folha (INSS, IRRF e afins) e IR/perdas dentro de investimentos.</p>
@@ -1977,7 +2116,7 @@ const EXPLICA = {
         ${cur.custo ? `<tr><td class="mut">(−) IR e perdas em investimentos</td><td class="r neg">${money(-cur.custo)}</td></tr>` : ''}
         <tr><td><b>= Receita líquida</b></td><td class="r"><b>${money(cur.liq)}</b></td></tr>
       </tbody></table>
-      <p class="sub" style="margin-top:10px">Dos quais ${money(cur.extra)} são sazonais (13º, férias, PLR) — acontecem todo ano, mas em meses específicos. ${state.ui.fgts ? 'O FGTS está incluído na receita bruta acima (opção marcada nos filtros).' : 'O FGTS não está incluído (opção desmarcada).'}</p></div>`
+      <p class="sub" style="margin-top:10px">Dos quais ${money(cur.extra)} são sazonais (13º, 1/3 de férias, PLR) — acontecem todo ano, mas em meses específicos. ${state.ui.fgts ? 'O FGTS está incluído na receita bruta acima (opção marcada nos filtros).' : 'O FGTS não está incluído (opção desmarcada).'}</p></div>`
     };
   }),
   despesasPeriodo: ctx => comContexto(ctx, () => {
@@ -2001,7 +2140,7 @@ const EXPLICA = {
         <tr><td><b>= Taxa de poupança</b></td><td class="r"><b>${pct(cur.taxa)}</b></td></tr>
       </tbody></table>
       <p class="sub" style="margin-top:10px">Sem as receitas sazonais, a taxa seria <b>${pct(cur.taxaRec)}</b> (sobra sem sazonais ${money(cur.sobraRec)} ÷ receita líquida sem sazonais ${money(cur.liqRec)}). Meta atual: ${state.db.config.metas.taxaPoupanca}%.</p></div>
-      <div class="panel"><h2>Por que comparar as duas versões?</h2><p>13º, férias e PLR entram em meses específicos e podem esconder um padrão de gasto que não se sustenta no resto do ano. A versão "sem sazonais" mostra se você está poupando de forma consistente mês a mês.</p></div>`
+      <div class="panel"><h2>Por que comparar as duas versões?</h2><p>13º, 1/3 de férias e PLR entram em meses específicos e podem esconder um padrão de gasto que não se sustenta no resto do ano. A versão "sem sazonais" mostra se você está poupando de forma consistente mês a mês.</p></div>`
     };
   }),
   investidoPeriodo: ctx => comContexto(ctx, () => {
@@ -2021,17 +2160,18 @@ const EXPLICA = {
     const L = lookups(), s = saldos(L), c = state.db.contas.find(x => x.nome === ctx.conta);
     if (!c) return { titulo: ctx.conta || 'Conta', sub: '', html: '<div class="panel empty">Conta não encontrada.</div>' };
     const x = s[c.nome] || { ent: 0, sai: 0, n: 0 }, sal = (c.saldoInicial || 0) + x.ent - x.sai, lim = fimMesFechado();
-    const movs = state.db.transacoes.filter(t => { const dc = t.t === 'T' ? t.venc : t.efet; if (!dc || dc < state.db.config.dataInicio || dc.slice(0, 7) > lim) return false; return (t.t !== 'T' && t.conta === c.nome) || (t.t === 'T' && (t.orig === c.nome || t.dest === c.nome)); })
+    const movs = state.db.transacoes.filter(t => { const dc = t.t === 'T' ? t.venc : t.efet; if (!movNoSaldo(dc) || dc.slice(0, 7) > lim) return false; return (t.t !== 'T' && t.conta === c.nome) || (t.t === 'T' && (t.orig === c.nome || t.dest === c.nome)); })
+      .concat(ajustesConc().filter(a => a.conta === c.nome && movNoSaldo(a.data) && a.data.slice(0, 7) <= lim).map(a => ({ t: 'A', desc: 'Ajuste manual — ' + (a.obs || ''), efet: a.data, valor: a.valor })))
       .sort((a, b) => (b.efet || b.venc).localeCompare(a.efet || a.venc));
     return {
       titulo: `Conta: ${c.nome}`, sub: `Saldo estimado em ${fmtMes(lim)}`,
       html: `<div class="ledger" style="grid-template-columns:repeat(4,1fr)">
         <div class="hero"><div class="lab">Saldo estimado</div><div class="num ${sal < 0 ? 'neg' : ''}">${money(sal)}</div></div>
-        <div><div class="lab">Saldo inicial informado</div><div class="num">${money(c.saldoInicial || 0)}</div></div>
+        <div><div class="lab">Saldo em ${fmtData(saldoBase())}</div><div class="num">${money(c.saldoInicial || 0)}</div></div>
         <div><div class="lab">Entradas até ${fmtMes(lim)}</div><div class="num pos">${money(x.ent)}</div></div>
         <div><div class="lab">Saídas até ${fmtMes(lim)}</div><div class="num neg">${money(x.sai)}</div></div></div>
-      <div class="panel"><h2>Como é calculado</h2><p>Saldo estimado = saldo inicial informado em Cadastros + todas as entradas − todas as saídas efetivadas até ${fmtMes(lim)} (a partir de ${fmtData(state.db.config.dataInicio)}). Entradas e saídas contam receitas, despesas e as duas pontas das transferências.</p></div>
-      <div class="panel"><h2>Movimentações desta conta</h2><div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Descrição</th><th>Tipo</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${movs.slice(0, 300).map(t => { const tp = t.t === 'T' ? (t.orig === c.nome ? 'Saída (transf.)' : 'Entrada (transf.)') : (t.t === 'R' ? 'Receita' : 'Despesa'); const val = t.t === 'T' ? (t.orig === c.nome ? -t.valor : t.valor) : (t.t === 'R' ? t.valor : -t.valor); return `<tr><td>${esc(t.desc)}</td><td class="mut">${tp}</td><td>${fmtData(t.efet || t.venc)}</td><td class="r ${val < 0 ? 'neg' : 'pos'}">${money(val)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nenhuma movimentação.</td></tr>'}</tbody></table>${movs.length > 300 ? `<p class="sub">Mostrando as 300 mais recentes de ${movs.length}.</p>` : ''}</div></div>`
+      <div class="panel"><h2>Como é calculado</h2><p>Saldo estimado = saldo de abertura em ${fmtData(saldoBase())} (Cadastros) + todas as entradas − todas as saídas efetivadas depois dessa data, até ${fmtMes(lim)}. Entradas e saídas contam receitas, despesas, as duas pontas das transferências e os ajustes manuais${Math.abs(x.aj || 0) >= 0.005 ? ` (nesta conta: <b>${money(x.aj)}</b>, já incluídos acima)` : ''}.</p></div>
+      <div class="panel"><h2>Movimentações desta conta</h2><div class="tblwrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Descrição</th><th>Tipo</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${movs.slice(0, 300).map(t => { const tp = t.t === 'A' ? 'Conciliação' : t.t === 'T' ? (t.orig === c.nome ? 'Saída (transf.)' : 'Entrada (transf.)') : (t.t === 'R' ? 'Receita' : 'Despesa'); const val = t.t === 'A' ? t.valor : t.t === 'T' ? (t.orig === c.nome ? -t.valor : t.valor) : (t.t === 'R' ? t.valor : -t.valor); return `<tr><td>${esc(t.desc)}</td><td class="mut">${tp}</td><td>${fmtData(t.efet || t.venc)}</td><td class="r ${val < 0 ? 'neg' : 'pos'}">${money(val)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nenhuma movimentação.</td></tr>'}</tbody></table>${movs.length > 300 ? `<p class="sub">Mostrando as 300 mais recentes de ${movs.length}.</p>` : ''}</div></div>`
     };
   }),
   categoriaDesp: ctx => comContexto(ctx, () => {
@@ -2094,7 +2234,7 @@ const EXPLICA = {
       titulo: 'Receita líquida sem sazonais', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)}`,
       html: `<div class="panel"><h2>Fórmula</h2><table><tbody>
         <tr><td>Receita líquida</td><td class="r">${ex('receitaLiquida', money(cur.liq))}</td></tr>
-        <tr><td>(−) Sazonais (13º, férias, PLR)</td><td class="r neg">${ex('sazonais', money(-cur.extra))}</td></tr>
+        <tr><td>(−) Sazonais (13º, 1/3 de férias, PLR)</td><td class="r neg">${ex('sazonais', money(-cur.extra))}</td></tr>
         <tr><td><b>= Receita líquida sem sazonais</b></td><td class="r"><b>${money(cur.liqRec)}</b></td></tr>
         <tr><td>÷ ${n} meses</td><td class="r">${money(cur.liqRec / n)}/mês</td></tr>
       </tbody></table>
@@ -2103,17 +2243,17 @@ const EXPLICA = {
   }),
   sazonais: ctx => comContexto(ctx, () => {
     const L = lookups(), p = periodo(), txs = txNoPeriodo(p.de, p.ate), cur = resumo(txs, L);
-    const linhas = txs.filter(t => t.t === 'R' && dedExtra(t));
+    const linhas = txs.filter(t => t.t === 'R' && dedExtra(t, L));
     return {
-      titulo: 'Receitas sazonais no período', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · 13º, férias, PLR e similares`,
-      html: `<div class="panel"><h2>O que entra aqui</h2><p>Receitas cujo texto ou subcategoria indica 13º salário, férias ou PLR. Somam ${money(cur.extra)}, ${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida do período.</p></div>
+      titulo: 'Receitas sazonais no período', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · 13º, 1/3 de férias, PLR e similares`,
+      html: `<div class="panel"><h2>O que entra aqui</h2><p>Receitas cujo texto indica 13º salário, 1/3 constitucional de férias ou PLR, mais categorias marcadas manualmente como "sazonal (anual)" em Cadastros. Férias e adiantamento de férias "puros" (sem o 1/3) entram como receita normal recorrente, pois são apenas a antecipação do salário do próprio mês. Somam ${money(cur.extra)}, ${pct(cur.liq ? cur.extra / cur.liq : NaN, 0)} da receita líquida do período.</p></div>
       <div class="panel"><h2>Lançamentos</h2><table><thead><tr><th>Descrição</th><th>Data</th><th class="r">Valor</th></tr></thead><tbody>${linhas.sort((a, b) => b.valor - a.valor).map(t => `<tr><td>${esc(t.desc)}</td><td>${fmtData(dataReg(t))}</td><td class="r">${money(t.valor)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Nenhuma no período.</td></tr>'}</tbody></table></div>`
     };
   }),
   estabilidadeSalario: ctx => comContexto(ctx, () => {
     const L = lookups(), p = periodo(), n = p.meses.length, txs = txNoPeriodo(p.de, p.ate);
     const R = txs.filter(t => t.t === 'R' && !ehAjuste(t) && (state.ui.fgts || !ehFGTS(t, L)));
-    const trab = p.meses.map(m => sum(R.filter(t => mesReg(t) === m && L.catR.get(t.cat)?.grupo === 'ativa' && !L.catR.get(t.cat)?.extra), t => t.valor));
+    const trab = p.meses.map(m => sum(R.filter(t => mesReg(t) === m && L.catR.get(t.cat)?.grupo === 'ativa' && !dedExtra(t, L)), t => t.valor));
     const mu = sum(trab, x => x) / n, sd = Math.sqrt(sum(trab, x => (x - mu) ** 2) / n);
     return {
       titulo: 'Estabilidade do salário', sub: `${fmtMes(p.de)} a ${fmtMes(p.ate)} · desvio padrão ÷ média`,
@@ -2210,6 +2350,7 @@ const STOP_RE_Q = new RegExp('\\b(' + STOPWORDS_Q.join('|') + ')\\b', 'g');
 const ESPECIAIS_RECEITA = [
   { re: /\bhora(s)? extras?\b/i, label: 'Horas extras', test: t => /hora(s)? extras?/i.test(t.desc + ' ' + (t.sub || '')) },
   { re: /\b13[oº]?\b|d[eé]cimo\s*terceiro/i, label: '13º salário', test: t => /\b13[oº]?\b|d[eé]cimo\s*terceiro/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /1\s*\/?\s*3\s*(de\s*)?f[eé]rias|f[eé]rias.*1\s*\/?\s*3|ter[cç]o\s*(constitucional)?\s*(de\s*f[eé]rias)?/i, label: '1/3 constitucional de férias', test: t => /f[eé]rias/i.test(t.desc) && /1\s*\/?\s*3|ter[cç]o/i.test(t.desc) },
   { re: /f[eé]rias/i, label: 'Férias', test: t => /f[eé]rias/i.test(t.desc + ' ' + (t.sub || '')) },
   { re: /\bplr\b|participa[cç][aã]o nos lucros/i, label: 'PLR', test: t => /\bplr\b|participa[cç][aã]o nos lucros/i.test(t.desc + ' ' + (t.sub || '')) },
   { re: /\bb[oô]nus\b/i, label: 'Bônus', test: t => /\bb[oô]nus\b/i.test(t.desc + ' ' + (t.sub || '')) },
@@ -2217,7 +2358,7 @@ const ESPECIAIS_RECEITA = [
   { re: /cashback/i, label: 'Cashback', test: (t, L) => L.catR.get(t.cat)?.grupo === 'cashback' },
   { re: /reembolso/i, label: 'Reembolsos', test: (t, L) => L.catR.get(t.cat)?.grupo === 'reembolsos' },
   { re: /\brendiment\w*|\bjuros\b/i, label: 'Rendimentos de investimentos', test: (t, L) => L.catR.get(t.cat)?.grupo === 'rendimentos' },
-  { re: /\bsal[aá]rio\b/i, label: 'Salário (renda recorrente)', test: (t, L) => L.catR.get(t.cat)?.grupo === 'ativa' && !L.catR.get(t.cat)?.extra && !dedExtra(t) && !/hora(s)? extras?/i.test(t.desc + ' ' + (t.sub || '')) },
+  { re: /\bsal[aá]rio\b/i, label: 'Salário (renda recorrente)', test: (t, L) => L.catR.get(t.cat)?.grupo === 'ativa' && !dedExtra(t, L) && !/hora(s)? extras?/i.test(t.desc + ' ' + (t.sub || '')) },
 ];
 const DESCR_TIPO_Q = { despesa: 'gasto (despesa)', receita: 'recebimento (receita)', investimento: 'movimentação de investimentos', saldo: 'saldo de conta', contagem: 'contagem de ocorrências' };
 
@@ -2445,6 +2586,28 @@ function posCarga() {
   if (db.config.perfilVersao !== 1) { const cf = db.categorias.despesa; const M = cf.find(c => c.nome === 'Mercado'), H = cf.find(c => c.nome === 'Moradia'); if (M) { M.min = 15; M.max = 25; } if (H) { H.min = 0; H.max = 8; }
     Object.assign(db.config.metas, { taxaPoupanca: 30, necessidadesMax: 40, desejosMax: 30 }); db.config.perfilVersao = 1; save(); toast('Faixas ajustadas ao seu perfil (moradia paga por terceiros, mercado para 3).'); }
   if (spec && db.config.calibracaoVersao !== spec.versao) { aplicarCalibracao(db, spec); save(); toast('Saldos de ' + fmtData(spec.data) + ' aplicados como saldos iniciais.'); }
+  if (db.config.conciliacaoVersao !== 3) aplicarConciliacaoInicial(db);
+  if (db.config.feriasVersao !== 1) { const f = db.categorias.receita.find(c => c.nome === 'Férias'); if (f) f.extra = false; db.config.feriasVersao = 1; save(); toast('Ajustei a classificação de "Férias": agora só o 1/3 constitucional conta como sazonal — o resto é receita recorrente normal.'); }
+}
+/* Saldos de abertura (out/2026). O app só tem transferências a partir de 30/06/2025 e os relatórios não exportam
+   os acertos manuais de saldo feitos no app. Por isso o saldo das contas parte do saldo que o app mostra em 30/06/2025
+   (fim do dia); com isso, todas as contas batem com o app em 30/09/2026 sem nenhum ajuste.
+   Única exceção: a Global Account, cujo saldo foi acertado à mão no app ao passar de dólar para real (ago/2026). */
+const SALDOS_ABERTURA = {
+  versao: 3, data: '2025-06-30',
+  contas: { 'Santander': 0.01, 'Banco Inter': 5153.04, 'Inter Investimentos': 33210.09, 'Mãe': -3363.45, 'Israel': 2343.94, 'Ticket': 12.22, 'FGTS': 16420.73, 'Minha Carteira': 15.00, 'Global Account Inter': 166.09, 'Nu invest': 351.20, 'Nubank': 0, 'Outros': 0, 'Nomad': 0, 'Santander Investimentos': 0, 'Sodexo': 0 },
+  inst: { 'Inter': 40133.98, 'Santander': 30613.67, 'Nomad': 450.62, 'Nubank': 0, 'FGTS': 19054.87 },
+  ajustes: [{ id: 'aj-global-usd-brl', conta: 'Global Account Inter', data: '2026-08-01', valor: 709.28, obs: 'Acerto manual de saldo no app: conversão de dólar para real' }]
+};
+function aplicarConciliacaoInicial(db) {
+  const K = SALDOS_ABERTURA;
+  db.config.saldoData = K.data;
+  Object.entries(K.contas).forEach(([n, v]) => { const c = db.contas.find(x => x.nome === n); if (c) c.saldoInicial = v; });
+  db.config.ajustes = K.ajustes.map(a => ({ ...a }));
+  // Investimentos: recalibra o saldo de partida de cada instituição com os saldos reais do app em 30/09/2026.
+  aplicarCalibracao(db, { versao: db.config.calibracaoVersao, tipos: {}, contas: {}, inst: K.inst });
+  db.config.conciliacaoVersao = K.versao; save();
+  toast('Saldos das contas agora partem de 30/06/2025, conforme o app. Ajustes automáticos anteriores removidos.');
 }
 function telaErro(titulo, msg) {
   document.getElementById('login').hidden = true; document.querySelector('.app').style.display = '';
