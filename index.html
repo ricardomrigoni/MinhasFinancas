@@ -635,7 +635,32 @@ function resumoAtlas() {
     despesas: { media: r2(r.desp / n) }, sobra: r2(r.sobra / n), taxaPoupanca: Number.isFinite(r.taxa) ? r.taxa : null,
     contas, instituicoes, patrimonioInvestido: r2(sum(instituicoes, i => i.saldo)),
     rentabilidade12m: k ? { carteira: acc - 1, cdiLiquido: accC - 1, meses: k, todasCalibradas: cap.every(I => I.calibrada) } : null,
-    aportesLiquidosMes: r2(fl.liq / n)
+    aportesLiquidosMes: r2(fl.liq / n),
+    fgts: resumoFgts(de, ult, n, s)
+  };
+}
+/* FGTS para o Atlas: saldo (calibrado como na aba Investimentos), depósitos, rendimento e saques. */
+function resumoFgts(de, ult, n, s) {
+  const db = state.db, cfg = db.config, r2 = x => Math.round(x * 100) / 100;
+  const conta = db.contas.find(c => c.tipo === 'fgts' && c.ativa !== false); if (!conta) return null;
+  const nome = conta.nome, calibrado = cfg.invInicial[nome] !== undefined || cfg.invInicial.FGTS !== undefined;
+  const ehFg = t => (t.t === 'R' && (t.cat === 'FGTS' || t.conta === nome)) || (t.t === 'T' && (t.orig === nome || t.dest === nome));
+  const txs = txAtivas().filter(ehFg);
+  // saldo mês a mês a partir do início do rastreamento (mesma conta da aba Investimentos)
+  const meses = cfg.invInicioMes <= ult ? monthsRange(cfg.invInicioMes, ult) : [];
+  let saldo = calibrado ? (cfg.invInicial[nome] ?? cfg.invInicial.FGTS) : null; const serie = [];
+  if (calibrado) meses.forEach(m => { txs.filter(t => mesCx(t) === m).forEach(t => { if (t.t === 'R') saldo += t.valor; else if (t.orig === nome) saldo -= t.valor; else saldo += t.valor; }); serie.push({ m, saldo: r2(saldo) }); });
+  else { const x = s[nome] || { ent: 0, sai: 0 }; saldo = (conta.saldoInicial || 0) + x.ent - x.sai; }
+  const jan = txs.filter(t => { const m = mesCx(t); return m >= de && m <= ult; });
+  const dep = sum(jan.filter(t => t.t === 'R' && t.sub !== 'Rendimento'), t => t.valor);
+  const rend = sum(jan.filter(t => t.t === 'R' && t.sub === 'Rendimento'), t => t.valor);
+  const naJanela = serie.filter(x => x.m >= de && x.m <= ult), medio = naJanela.length ? sum(naJanela, x => x.saldo) / naJanela.length : 0;
+  const saques = txs.filter(t => t.t === 'T' && t.orig === nome).map(t => ({ data: t.efet || t.venc, valor: r2(t.valor), destino: t.dest, desc: t.desc })).sort((a, b) => a.data < b.data ? 1 : -1).slice(0, 12);
+  return {
+    conta: nome, saldo: r2(saldo), calibrado, mesSaldo: ult,
+    depositoMedio: r2(dep / n), rendimentoMedio: r2(rend / n),
+    rendimentoAnual: calibrado && medio > 50 ? rend / medio * 12 / Math.max(1, naJanela.length) : null,
+    saques, serie: serie.slice(-13)
   };
 }
 const Ponte = {
