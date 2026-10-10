@@ -365,14 +365,81 @@ details.explain[open] summary { margin-bottom: 8px; }
 .vinc-pct { width: 92px; flex: none; }
 .login-card { max-width: 520px; margin: 6vh auto 0; padding: 28px; }
 a.btn { text-decoration: none; }
-.fontes { display: grid; margin-top: 18px; }
-.fonte-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px minmax(180px, 220px); gap: 8px 16px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.fontes { display: grid; margin-top: 8px; }
+.fonte-row { display: grid; grid-template-columns: minmax(0, 1.1fr) 130px minmax(0, 1.4fr) auto; gap: 8px 18px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); }
 .fonte-row:last-child { border-bottom: 0; }
-.fonte-head { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding-top: 0; }
 .fonte-nome { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
 .fonte-nome small { flex-basis: 100%; color: var(--muted); font-size: .78rem; }
 .fonte-valor { font-weight: 600; }
-@media (max-width: 640px) { .fonte-head { display: none; } .fonte-row { grid-template-columns: minmax(0, 1fr) auto; } .fonte-row select { grid-column: 1 / -1; } }
+.fonte-split { min-width: 0; display: grid; gap: 6px; }
+@media (max-width: 760px) { .fonte-row { grid-template-columns: minmax(0, 1fr) auto; } .fonte-split { grid-column: 1 / -1; } .fonte-row > .btn { grid-column: 1 / -1; justify-self: start; } }
+.split-bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+.split-bar i { display: block; height: 100%; }
+.split-chips { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .76rem; color: var(--muted); }
+.split-chips i, .dot { display: inline-block; width: 8px; height: 8px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+
+/* ---------- Origem dos valores ---------- */
+.stat-btn { text-align: left; cursor: pointer; font: inherit; color: inherit; transition: border-color .15s, box-shadow .15s; }
+.stat-btn:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+.ori-ico { width: 13px; height: 13px; color: var(--faint); flex: none; opacity: .8; }
+.stat-btn:hover .ori-ico, .hero-num:hover .ori-ico { color: var(--accent); opacity: 1; }
+.hero-num { border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.hero-num .eyebrow { display: flex; align-items: center; gap: 6px; }
+.hero-figs button { display: grid; gap: 2px; border: 0; background: none; padding: 4px 6px; margin: -4px -6px; border-radius: 8px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.hero-figs button:hover { background: var(--surface-2); }
+.hero-figs button span { font-size: .76rem; color: var(--muted); }
+.hero-figs button b { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+.comp-bar { display: flex; height: 14px; border-radius: 99px; overflow: hidden; gap: 2px; background: var(--surface-2); }
+.comp-bar button { border: 0; padding: 0; cursor: pointer; min-width: 4px; transition: filter .15s; }
+.comp-bar button:hover { filter: brightness(1.12); }
+.comp-legend { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 10px; }
+.comp-legend button { display: inline-flex; align-items: baseline; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px 4px 9px; font-size: .8rem; cursor: pointer; color: var(--muted); }
+.comp-legend button:hover { border-color: var(--line-strong); color: var(--ink); }
+.comp-legend i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; align-self: center; }
+.comp-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.comp-legend small { color: var(--faint); }
+.row-link { cursor: pointer; }
+.row-link:hover td { background: var(--surface-2); }
+.kv-btn { display: grid; gap: 1px; min-width: 0; border: 0; background: none; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.kv-painel .kv-btn { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.kv-btn:hover b { color: var(--accent); }
+.kv-btn span { font-size: .72rem; color: var(--muted); }
+.kv-btn b { font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.kv-painel .kv-btn b { font-family: var(--font-display); font-size: 1.05rem; }
+.origem-valor { font-family: var(--font-display); font-size: 2rem; font-weight: 600; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.origem-tab td { padding: 9px 8px; }
+.origem-tab .origem-total td { font-weight: 700; border-top: 2px solid var(--line-strong); }
+.modal { width: min(620px, 100%); }
+
+/* ---------- Classificação ---------- */
+.cls-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 110px; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+.cls-row b { display: flex; align-items: center; font-size: .9rem; }
+.cls-row small { display: block; color: var(--muted); font-size: .76rem; margin-top: 2px; }
+.cls-val { text-align: right; font-size: .9rem; }
+.cls-total { font-size: .88rem; }
+@media (max-width: 520px) { .cls-row { grid-template-columns: minmax(0, 1fr) 90px; } .cls-val { grid-column: 1 / -1; text-align: left; } }
+
+/* ---------- Bens e FIPE ---------- */
+.bem { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.bem-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.bem-txt small { font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.bem-val { text-align: right; display: grid; gap: 4px; }
+.bem-val b { font-family: var(--font-display); font-size: 1.1rem; }
+.fipe-atual { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); flex-wrap: wrap; }
+.fipe-atual div { display: grid; min-width: 0; }
+.fipe-atual small { color: var(--muted); font-size: .78rem; }
+.fipe-final, .calc { display: grid; gap: 6px; margin-top: 10px; font-size: .9rem; }
+.fipe-final > div, .calc > div { display: flex; justify-content: space-between; gap: 12px; }
+.fipe-final span, .calc span { color: var(--muted); }
+.fipe-final b, .calc b { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.calc-sub { border-top: 1px dashed var(--line-strong); padding-top: 6px; }
+.calc-total { border-top: 2px solid var(--line-strong); padding-top: 8px; font-size: 1rem; }
+.calc-total span { color: var(--ink) !important; font-weight: 600; }
+.calc-total b { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent); }
+.faixas td { padding: 7px 10px; font-size: .86rem; }
+.faixas tr.faixa-on td { background: var(--gold-soft); font-weight: 700; }
+.vinc-off { opacity: .45; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
 </style>
 </head>
 <body>
@@ -574,6 +641,24 @@ a.btn { text-decoration: none; }
     return inteiro > MAX_MESES ? Infinity : inteiro;
   }
 
+  /** Meses até a meta quando, além do saldo próprio, existe um saldo extra ex(k) com dinâmica própria. */
+  function mesesComExtra(meta, vp, i, pmt, ex) {
+    let s = vp;
+    for (let k = 0; k <= MAX_MESES; k++) {
+      if (s + ex(k) >= meta - 1e-9) return k;
+      s = s * (1 + i) + pmt;
+    }
+    return Infinity;
+  }
+  /** Meses até a meta de um objetivo já analisado, com outro aporte. */
+  function mesesAte(a, pmt) {
+    return a._ex ? mesesComExtra(a.alvo, a.acumuladoProprio, a._i, pmt, a._ex) : mesesParaMeta(a.alvo, a.acumuladoProprio, a._i, pmt);
+  }
+  /** Valor que um objetivo já analisado alcança no prazo, com outro aporte. */
+  function valorNoPrazo(a, pmt) {
+    return valorFuturo(a.acumuladoProprio, a._i, a.meses, pmt) + (a._ex ? a._ex(a.meses) : 0);
+  }
+
   /** Maior meta alcançável em n meses com o aporte dado (inverso de aporteNecessario). */
   function metaAlcancavel(vp, i, n, pmt) {
     return valorFuturo(vp, i, n, pmt);
@@ -625,10 +710,15 @@ a.btn { text-decoration: none; }
 
     const totalAtivos = soma(ativos, 'valor');
     const totalPassivos = soma(passivos, 'saldo');
-    const financeiros = ativos.filter(a => ['conta', 'investimento', 'reserva'].includes(a.tipo));
-    const patrimonioFinanceiro = soma(financeiros, 'valor');
-    const patrimonioInvestido = soma(ativos.filter(a => a.tipo === 'investimento'), 'valor');
-    const reserva = soma(ativos.filter(a => a.tipo === 'reserva'), 'valor');
+    const porTipo = t => soma(ativos.filter(a => a.tipo === t), 'valor');
+    // Classes: dinheiro em conta, reserva de emergência, investimentos de prazo longo e renda variável
+    // formam o patrimônio financeiro. FGTS é restrito; imóveis, veículos e outros bens são imobilizado.
+    const disponivel = porTipo('conta'), reserva = porTipo('reserva');
+    const longoPrazo = porTipo('investimento'), rendaVariavel = porTipo('rv');
+    const patrimonioFinanceiro = disponivel + reserva + longoPrazo + rendaVariavel;
+    const patrimonioInvestido = reserva + longoPrazo + rendaVariavel;
+    const patrimonioRestrito = porTipo('fgts');
+    const patrimonioImobilizado = porTipo('imovel') + porTipo('veiculo') + porTipo('outro');
     const alocadoEmObjetivos = soma(objetivos, 'acumulado');
 
     // Capacidade: renda total menos TODAS as despesas (extraordinárias em média
@@ -663,6 +753,8 @@ a.btn { text-decoration: none; }
       despesasOrdinarias: despOrd, despesasExtraordinarias: despExtra, parcelas,
       totalAtivos, totalPassivos, patrimonioLiquido: totalAtivos - totalPassivos,
       patrimonioFinanceiro, patrimonioInvestido, patrimonioNaoFinanceiro: totalAtivos - patrimonioFinanceiro,
+      disponivel, longoPrazo, rendaVariavel, liquidezImediata: disponivel + reserva,
+      patrimonioRestrito, patrimonioImobilizado,
       reserva, mesesReserva, alocadoEmObjetivos,
       livreParaObjetivos: patrimonioFinanceiro - alocadoEmObjetivos,
       capacidadeCalculada, capacidadeRecorrente, capacidade, capacidadeManual: capacidade !== capacidadeCalculada,
@@ -704,18 +796,24 @@ a.btn { text-decoration: none; }
     const aporte = Math.max(0, aporteBase * (1 + p.ajusteAporte));
     const i = p.taxaMensal;
 
-    const cron = cronogramaAportes(n, aporte, aj.pausa);
-    const saldos = serie(acumulado, i, cron);
-    const projetado = saldos[saldos.length - 1];
-    const necessario = aporteNecessario(alvo, acumulado, i, n, aj.pausa);
-    const mesesAteMeta = mesesParaMeta(alvo, acumulado, i, aporte);
-    const dataEstimada = Number.isFinite(mesesAteMeta) ? somarMeses(hoje, mesesAteMeta) : null;
+    // Saldo extra com dinâmica própria (ex.: parte do FGTS vinculada a um imóvel).
+    // obj.extra(k, premissas) devolve o valor no mês k, já na mesma unidade do cálculo.
+    const ex = typeof obj.extra === 'function' ? (k => { const v = obj.extra(k, p); return Number.isFinite(v) && v > 0 ? v : 0; }) : null;
+    const exN = k => ex ? ex(k) : 0;
 
-    const progresso = alvo > 0 ? Math.min(1, acumulado / alvo) : 1;
+    const cron = cronogramaAportes(n, aporte, aj.pausa);
+    const saldos = serie(acumulado, i, cron).map((v, k) => v + exN(k));
+    const projetado = saldos[saldos.length - 1];
+    const necessario = aporteNecessario(Math.max(0, alvo - exN(n)), acumulado, i, n, aj.pausa);
+    const mesesAteMeta = ex ? mesesComExtra(alvo, acumulado, i, aporte, ex) : mesesParaMeta(alvo, acumulado, i, aporte);
+    const dataEstimada = Number.isFinite(mesesAteMeta) ? somarMeses(hoje, mesesAteMeta) : null;
+    const acumTotal = acumulado + exN(0);
+
+    const progresso = alvo > 0 ? Math.min(1, acumTotal / alvo) : 1;
     const cobertura = alvo > 0 ? projetado / alvo : 1;
     const limiar = o.limiar != null ? o.limiar : 0.9;
     let status;
-    if (acumulado >= alvo) status = 'concluido';
+    if (acumTotal >= alvo) status = 'concluido';
     else if (cobertura >= 1 - 1e-9) status = 'no_caminho';
     else if (cobertura >= limiar && n > 0) status = 'revisao';
     else status = 'abaixo';
@@ -723,8 +821,9 @@ a.btn { text-decoration: none; }
     const fatorNominal = considerarInflacao ? Math.pow(1 + p.inflacaoAnual, n / 12) : 1;
 
     return {
-      id: obj.id, nome: obj.nome, meses: n, prazoVencido: n0 <= 0 && acumulado < alvo,
-      alvo, acumulado, aporte, premissas: p,
+      id: obj.id, nome: obj.nome, meses: n, prazoVencido: n0 <= 0 && acumTotal < alvo,
+      alvo, acumulado: acumTotal, acumuladoProprio: acumulado, extraHoje: exN(0), extraNoPrazo: exN(n), aporte, premissas: p,
+      _i: i, _ex: ex,
       saldos, projetado, diferenca: projetado - alvo,
       aporteNecessario: necessario, mesesAteMeta, dataEstimada,
       progresso, cobertura, status,
@@ -757,13 +856,13 @@ a.btn { text-decoration: none; }
         const novoAporte = a.aporteNecessario - deficit;
         const suficiente = novoAporte >= 0;
         const aporteUsado = Math.max(0, novoAporte);
-        const meses = mesesParaMeta(a.alvo, a.acumulado, i, aporteUsado);
+        const meses = mesesAte(a, aporteUsado);
         alternativas.adiar.push({
           id: a.id, nome: a.nome, suficiente, aporte: aporteUsado,
           meses, adiamento: Number.isFinite(meses) ? meses - a.meses : Infinity,
           novaData: Number.isFinite(meses) ? somarMeses(hoje, meses) : null
         });
-        const novaMeta = metaAlcancavel(a.acumulado, i, a.meses, aporteUsado);
+        const novaMeta = valorNoPrazo(a, aporteUsado);
         alternativas.reduzir.push({
           id: a.id, nome: a.nome, suficiente, aporte: aporteUsado,
           novaMeta, reducao: a.alvo - novaMeta, reducaoPct: a.alvo > 0 ? (a.alvo - novaMeta) / a.alvo : 0
@@ -799,8 +898,8 @@ a.btn { text-decoration: none; }
     }
     return necess.map(a => {
       const ap = alocacao[a.id] || 0;
-      const meses = mesesParaMeta(a.alvo, a.acumulado, i, ap);
-      const projetado = valorFuturo(a.acumulado, i, a.meses, ap);
+      const meses = mesesAte(a, ap);
+      const projetado = valorNoPrazo(a, ap);
       return {
         id: a.id, nome: a.nome, aporte: ap, necessario: a.aporteNecessario,
         cobertura: a.alvo > 0 ? projetado / a.alvo : 1, projetado,
@@ -808,6 +907,78 @@ a.btn { text-decoration: none; }
         atraso: Number.isFinite(meses) ? Math.max(0, meses - a.meses) : Infinity
       };
     });
+  }
+
+  /* ---------- FGTS ---------- */
+
+  /* Saque-aniversário (Lei 8.036/90, art. 20-D): alíquota sobre o saldo total + parcela adicional. */
+  const FAIXAS_SAQUE = [
+    { ate: 500, aliquota: 0.50, parcela: 0 },
+    { ate: 1000, aliquota: 0.40, parcela: 50 },
+    { ate: 5000, aliquota: 0.30, parcela: 150 },
+    { ate: 10000, aliquota: 0.20, parcela: 650 },
+    { ate: 15000, aliquota: 0.15, parcela: 1150 },
+    { ate: 20000, aliquota: 0.10, parcela: 1900 },
+    { ate: Infinity, aliquota: 0.05, parcela: 2900 }
+  ];
+  function saqueAniversario(saldo) {
+    assertNum(saldo, 'Saldo do FGTS');
+    if (saldo <= 0) return { valor: 0, aliquota: 0, parcela: 0, faixa: -1 };
+    const k = FAIXAS_SAQUE.findIndex(f => saldo <= f.ate + 1e-9);
+    const f = FAIXAS_SAQUE[k];
+    return { valor: Math.min(saldo, saldo * f.aliquota + f.parcela), aliquota: f.aliquota, parcela: f.parcela, faixa: k };
+  }
+
+  /**
+   * Projeção mês a mês do saldo do FGTS, em valores nominais.
+   * saldo: saldo no fim do mês `inicio` (AAAA-MM). A cada mês: no mês de aniversário, se `sacar`,
+   * sai o saque-aniversário calculado sobre o saldo do fim do mês anterior; depois rende a taxa
+   * mensal equivalente e entra o depósito do empregador.
+   * Devolve { saldos: [0..meses], saques: [{ k, mes, base, valor }] }.
+   */
+  function projetarFgts(o) {
+    const saldo0 = Number(o.saldo) || 0, dep = Math.max(0, Number(o.deposito) || 0);
+    assertTaxa(o.taxaAnual || 0, 'Rendimento do FGTS');
+    const i = anualParaMensal(o.taxaAnual || 0), meses = Math.max(0, Math.floor(o.meses || 0));
+    const mesAniv = Number(o.mesAniversario) || 0;
+    lerMes(o.inicio);
+    const saldos = [saldo0], saques = [];
+    let s = saldo0;
+    for (let k = 1; k <= meses; k++) {
+      const mes = somarMeses(o.inicio, k);
+      if (o.sacar && mesAniv && lerMes(mes).mes === mesAniv && !(o.semSaqueAte && mes <= o.semSaqueAte)) {
+        const q = saqueAniversario(s);
+        if (q.valor > 0) { saques.push({ k, mes, base: s, valor: q.valor, aliquota: q.aliquota, parcela: q.parcela }); s -= q.valor; }
+      }
+      if (o.saquePendente && mes === o.saquePendente.mes) {
+        const v = Math.min(Math.max(0, s), Math.max(0, Number(o.saquePendente.valor) || 0));
+        if (v > 0) { saques.push({ k, mes, base: s, valor: v, pendente: true }); s -= v; }
+      }
+      s = s * (1 + i) + dep;
+      saldos.push(s);
+    }
+    return { saldos, saques };
+  }
+
+  /**
+   * Próxima janela do saque-aniversário. A janela abre no mês de aniversário e vai até o fim
+   * do segundo mês seguinte. `jaSacou` indica que o saque da janela atual já foi feito.
+   * Devolve { inicio: 'AAAA-MM', fim: 'AAAA-MM', aberta: boolean }.
+   */
+  function janelaSaque(hojeAAAAMM, mesAniversario, jaSacou) {
+    const h = lerMes(hojeAAAAMM);
+    if (!(mesAniversario >= 1 && mesAniversario <= 12)) throw new RangeError('Mês de aniversário inválido');
+    const ini = ano => ano + '-' + String(mesAniversario).padStart(2, '0');
+    let inicio = ini(h.ano);
+    const fim = s => somarMeses(s, 2);
+    // a janela de dezembro (ou novembro) do ano anterior pode estar aberta em jan/fev
+    const anterior = ini(h.ano - 1);
+    if (hojeAAAAMM <= fim(anterior) && !jaSacou) return { inicio: anterior, fim: fim(anterior), aberta: true };
+    if (hojeAAAAMM >= inicio && hojeAAAAMM <= fim(inicio)) {
+      if (!jaSacou) return { inicio, fim: fim(inicio), aberta: true };
+      inicio = ini(h.ano + 1);
+    } else if (hojeAAAAMM > fim(inicio)) inicio = ini(h.ano + 1);
+    return { inicio, fim: fim(inicio), aberta: false };
   }
 
   /* ---------- Vínculo com o painel ---------- */
@@ -828,6 +999,31 @@ a.btn { text-decoration: none; }
     return total;
   }
 
+  /**
+   * Expande vínculos de um objetivo em valores por fonte.
+   * fontes = [{ key, saldo, partes: { classe: fração 0..1 } }]
+   * vínculo { key: 'classe:<classe>' } usa a parte daquela classe em todas as fontes;
+   * vínculo { key: <fonte> } usa o saldo inteiro da fonte. pct em 0..100.
+   * Devolve { total, porFonte: { key: valor } }.
+   */
+  function expandirVinculos(vinculos, fontes) {
+    const porFonte = {};
+    let total = 0;
+    const add = (k, v) => { if (v > 0) { porFonte[k] = (porFonte[k] || 0) + v; total += v; } };
+    for (const v of vinculos || []) {
+      const p = Math.min(100, Number(v.pct)) / 100;
+      if (!Number.isFinite(p) || p <= 0) continue;
+      if (String(v.key).startsWith('classe:')) {
+        const c = v.key.slice(7);
+        for (const f of fontes || []) { const fr = (f.partes && f.partes[c]) || 0; if (f.saldo > 0 && fr > 0) add(f.key, f.saldo * fr * p); }
+      } else {
+        const f = (fontes || []).find(x => x.key === v.key);
+        if (f && f.saldo > 0) add(f.key, f.saldo * p);
+      }
+    }
+    return { total, porFonte };
+  }
+
   /** Soma dos percentuais vinculados por fonte; devolve as fontes acima de 100%. */
   function fontesSobrealocadas(objetivos) {
     const soma = {};
@@ -841,7 +1037,7 @@ a.btn { text-decoration: none; }
   /* ---------- Importação e exportação ---------- */
 
   const CATEGORIAS = ['reserva', 'carro', 'imovel', 'viagem', 'independencia', 'aposentadoria', 'estudos', 'outro'];
-  const TIPOS_ATIVO = ['conta', 'investimento', 'reserva', 'imovel', 'veiculo', 'outro'];
+  const TIPOS_ATIVO = ['conta', 'investimento', 'reserva', 'rv', 'fgts', 'imovel', 'veiculo', 'outro'];
 
   /** Valida um backup JSON. Retorna {ok, erros, dados}. Nunca aceita segredos. */
   function validarBackup(texto) {
@@ -886,7 +1082,9 @@ a.btn { text-decoration: none; }
     valorFuturo, serie, cronogramaAportes, aporteNecessario, mesesParaMeta, metaAlcancavel,
     lerMes, mesesEntre, somarMeses, mesAtual,
     diagnostico, premissas, analisarObjetivo, priorizar, distribuir,
-    acumuladoVinculado, fontesSobrealocadas,
+    acumuladoVinculado, fontesSobrealocadas, expandirVinculos,
+    mesesComExtra, mesesAte, valorNoPrazo,
+    FAIXAS_SAQUE, saqueAniversario, projetarFgts, janelaSaque,
     validarBackup, limparSegredos
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
@@ -957,6 +1155,9 @@ const I = {
   send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   play: '<path d="M7 5l12 7-12 7z"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  patrimonio: '<path d="M12 3l9 4.5-9 4.5-9-4.5z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 16.5l9 4.5 9-4.5"/>',
+  fgts: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
   // categorias
   reserva: '<path d="M12 3l8 3v6c0 4.8-3.4 8-8 9-4.6-1-8-4.2-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
   carro: '<path d="M3.5 16.5V13l2-5.5h13l2 5.5v3.5z"/><path d="M3.5 13h17M7 16.5V19M17 16.5V19"/><circle cx="7.5" cy="14.8" r=".6"/><circle cx="16.5" cy="14.8" r=".6"/>',
@@ -976,7 +1177,11 @@ const CATS = {
 const CAT_PERMANENTE = ['reserva', 'independencia', 'aposentadoria']; // dinheiro não é gasto na data-alvo
 const STATUS = { concluido: 'Concluído', no_caminho: 'No caminho', revisao: 'Exige revisão', abaixo: 'Abaixo do planejado' };
 const FLEX = { rigido: 'Prazo rígido', moderado: 'Prazo moderado', flexivel: 'Prazo flexível' };
-const TIPOS_ATIVO = { conta: 'Conta e poupança', investimento: 'Investimento', reserva: 'Reserva de emergência', imovel: 'Imóvel', veiculo: 'Veículo', outro: 'Outro bem' };
+const CLASSES = { reserva: 'Reserva de emergência', investimento: 'Investimentos de longo prazo', rv: 'Renda variável e FIIs', conta: 'Dinheiro em conta', ignorar: 'Não considerar' };
+const CLASSE_CURTA = { reserva: 'Reserva', investimento: 'Longo prazo', rv: 'Renda variável', conta: 'Em conta', ignorar: 'Fora' };
+const CLASSE_DESC = { reserva: 'Resgate imediato, sem perda. Ex.: CDB de liquidez diária, Tesouro Selic.', investimento: 'Resgate em data futura. Ex.: títulos com vencimento, previdência.', rv: 'Ações, ETFs e FIIs. O valor oscila.', conta: 'Saldo em conta corrente ou carteira.', ignorar: 'Fica fora do patrimônio no Atlas.' };
+const CLASSE_COR = { conta: 'var(--slate)', reserva: 'var(--accent)', investimento: 'var(--c5)', rv: 'var(--c4)', ignorar: 'var(--line-strong)', fgts: 'var(--gold)', imobilizado: 'var(--c6)' };
+const TIPOS_ATIVO = { conta: 'Dinheiro em conta', reserva: 'Reserva de emergência', investimento: 'Investimento de longo prazo', rv: 'Renda variável e FIIs', fgts: 'FGTS', imovel: 'Imóvel', veiculo: 'Veículo', outro: 'Outro bem' };
 const CEN = { conservador: 'Conservador', base: 'Base', otimista: 'Otimista' };
 const CEN_COR = { conservador: 'var(--slate)', base: 'var(--accent)', otimista: 'var(--gold)' };
 const SERIE_CORES = ['var(--accent)', 'var(--gold)', 'var(--slate)', 'var(--c4)', 'var(--c5)', 'var(--c6)'];
@@ -993,6 +1198,7 @@ function sbCfg() {
   if (!u || !k) { try { const o = JSON.parse(localStorage.getItem('mf_sb') || '{}'); u = o.url || ''; k = o.key || ''; } catch (e) { /* ok */ } }
   return { url: (u || '').trim().replace(/\/(rest|auth)\/v1.*$/, '').replace(/\/+$/, ''), key: (k || '').trim() };
 }
+function fgtsPadrao() { return { aderente: true, mesAniversario: 9, sacarNasProjecoes: true, taxaAnual: null, deposito: null, saldoManual: null, saldoManualMes: null, comprometido: 0, saqueFeito: '' }; }
 function configPadrao() {
   return {
     cenarios: {
@@ -1001,19 +1207,27 @@ function configPadrao() {
       otimista: { rentabilidade: 0.13, inflacao: 0.04, ajusteAporte: 0 }
     },
     considerarInflacao: true, limiarRevisao: 0.9, capacidadeManual: null, iaPermitida: false,
-    usarPainel: true, mapa: {}
+    usarPainel: true, mapa: {}, fgts: fgtsPadrao(), reservaMeta: 6
   };
 }
 function estadoVazio() {
-  return { app: 'atlas', versao: 2, exemplo: false, config: configPadrao(), rendas: [], despesas: [], ativos: [], passivos: [], objetivos: [] };
+  return { app: 'atlas', versao: 3, exemplo: false, config: configPadrao(), rendas: [], despesas: [], ativos: [], passivos: [], objetivos: [] };
+}
+/* Classificação de um saldo: { classe: % }. Aceita o formato antigo (texto). */
+function partesNorm(v) {
+  if (typeof v === 'string') return v === 'outro' ? { ignorar: 100 } : CLASSES[v] ? { [v]: 100 } : null;
+  if (v && typeof v === 'object') { const o = {}; let t = 0; Object.keys(CLASSES).forEach(c => { const x = Number(v[c]); if (x > 0) { o[c] = x; t += x; } }); return t > 0 ? o : null; }
+  return null;
 }
 function normalizar(d) {
   const base = estadoVazio();
   const s = Object.assign(base, d);
   s.config = Object.assign(configPadrao(), d.config || {});
   s.config.cenarios = Object.assign(configPadrao().cenarios, (d.config && d.config.cenarios) || {});
-  s.config.mapa = s.config.mapa || {};
+  s.config.fgts = Object.assign(fgtsPadrao(), (d.config && d.config.fgts) || {});
+  const mapa = {}; Object.entries(s.config.mapa || {}).forEach(([k, v]) => { const p = partesNorm(v); if (p) mapa[k] = p; }); s.config.mapa = mapa;
   ['rendas', 'despesas', 'ativos', 'passivos', 'objetivos'].forEach(k => { s[k] = (s[k] || []).map(x => Object.assign({ id: novoId() }, x)); });
+  s.ativos = s.ativos.filter(a => a.tipo !== 'fgts');
   s.objetivos.forEach(o => { o.acumulado = o.acumulado || 0; o.aporte = o.aporte || 0; o.prioridade = o.prioridade || 3; o.flex = o.flex || 'moderado'; o.categoria = o.categoria || 'outro'; o.vinculos = Array.isArray(o.vinculos) ? o.vinculos : []; delete o.vinculado; });
   s.app = 'atlas'; s.exemplo = false;
   return s;
@@ -1081,48 +1295,139 @@ function commit(fn, msg) { fn(S); salvar(); render(); if (msg) toast(msg); }
 
 /* ---------- Dados do painel ---------- */
 const ORIGEM_CONTA = { corrente: 'Conta corrente', dinheiro: 'Dinheiro/Carteira', beneficio: 'Benefício (vale)', investimento: 'Investimentos', fgts: 'FGTS', terceiros: 'Conta transitória' };
-const TIPO_PADRAO = { corrente: 'conta', dinheiro: 'conta', beneficio: 'ignorar', investimento: 'investimento', fgts: 'outro', terceiros: 'ignorar' };
-const TIPO_FONTE = { investimento: 'Investimento', reserva: 'Reserva de emergência', conta: 'Dinheiro disponível', outro: 'Bem não financeiro', ignorar: 'Não considerar' };
+const PARTES_PADRAO = { corrente: { conta: 100 }, dinheiro: { conta: 100 }, beneficio: { ignorar: 100 }, investimento: { investimento: 100 }, terceiros: { ignorar: 100 } };
 const usandoPainel = () => !!P && S.config.usarPainel !== false;
 /* Renda recorrente sem os rendimentos de investimentos: eles já estão na rentabilidade dos saldos. */
 const rendaTrabalho = () => Math.max(0, P.renda.recorrente - Math.max(0, P.renda.rendimentosLiquidos || 0));
+const fgtsContaNome = () => (P && P.fgts && P.fgts.conta) || 'FGTS';
+
+/* Saldos que o painel acompanha (instituições de investimento e contas), com a divisão por classe. */
 function fontesPainel() {
   if (!P) return [];
   const mapa = S.config.mapa || {}, cobertas = new Set(), out = [];
+  const add = (key, nome, origem, detalhe, saldo, padrao, calibrada) => out.push({ key, nome, origem, detalhe, saldo, partes: mapa[key] || padrao, padrao: !mapa[key], calibrada });
   (P.instituicoes || []).forEach(i => {
     (i.contas || []).forEach(c => cobertas.add(c));
-    const key = 'inst:' + i.nome;
-    out.push({ key, nome: i.nome, origem: 'Investimentos', detalhe: (i.contas || []).join(', '), saldo: i.saldo, tipoAtlas: mapa[key] || 'investimento', calibrada: i.calibrada !== false });
+    add('inst:' + i.nome, i.nome, 'Investimentos', (i.contas || []).join(', '), i.saldo, { investimento: 100 }, i.calibrada !== false);
   });
   (P.contas || []).forEach(c => {
-    if (cobertas.has(c.nome) || c.tipo === 'investimento') return;
-    const key = 'conta:' + c.nome;
-    out.push({ key, nome: c.nome, origem: ORIGEM_CONTA[c.tipo] || 'Conta', detalhe: '', saldo: c.saldo, tipoAtlas: mapa[key] || TIPO_PADRAO[c.tipo] || 'conta', calibrada: true });
+    if (cobertas.has(c.nome) || c.tipo === 'investimento' || c.tipo === 'fgts') return;
+    add('conta:' + c.nome, c.nome, ORIGEM_CONTA[c.tipo] || 'Conta', '', c.saldo, PARTES_PADRAO[c.tipo] || { conta: 100 }, true);
   });
   return out;
 }
-const fonteNome = key => { const f = fontesPainel().find(x => x.key === key); return f ? f.nome : key.replace(/^(inst|conta):/, ''); };
-/* Planejamento + painel, no formato que o motor espera. Itens do painel têm painel: true. */
+const fracoes = partes => { const t = Object.values(partes || {}).reduce((a, b) => a + (b > 0 ? b : 0), 0) || 1; const o = {}; Object.keys(partes || {}).forEach(k => { if (partes[k] > 0) o[k] = partes[k] / t; }); return o; };
+const fontesMotor = () => fontesPainel().map(f => ({ key: f.key, saldo: f.saldo, partes: fracoes(f.partes) }));
+function fonteNome(key) {
+  if (key === 'fgts') return 'FGTS';
+  if (String(key).startsWith('classe:')) return CLASSES[key.slice(7)] || key;
+  const f = fontesPainel().find(x => x.key === key);
+  return f ? f.nome : String(key).replace(/^(inst|conta):/, '');
+}
+const valorAtivo = a => a.fonte === 'fipe' && a.fipe && fin(a.fipe.preco) ? a.fipe.preco * (1 + (Number(a.ajustePct) || 0) / 100) : (Number(a.valor) || 0);
+
+/* ---------- FGTS ---------- */
+function fgtsInfo() {
+  const c = S.config.fgts, pf = usandoPainel() && P.fgts ? P.fgts : null;
+  let saldo = null, fonte = null, mesSaldo = hoje(), calibrado = true;
+  if (pf) { saldo = pf.saldo; fonte = 'painel'; mesSaldo = pf.mesSaldo || P.ultimoMesFechado; calibrado = pf.calibrado !== false; }
+  else if (usandoPainel()) { const ct = (P.contas || []).find(x => x.tipo === 'fgts'); if (ct) { saldo = ct.saldo; fonte = 'painel'; mesSaldo = P.ultimoMesFechado; calibrado = false; } }
+  if (saldo == null && fin(c.saldoManual)) { saldo = c.saldoManual; fonte = 'manual'; mesSaldo = c.saldoManualMes || hoje(); }
+  const saques = pf ? (pf.saques || []) : [];
+  const ajustes = [];
+  let saldoAtual = saldo;
+  if (saldo != null) {
+    // saques já registrados no painel depois do mês do saldo (o mês ainda não foi fechado)
+    saques.filter(q => q.data && q.data.slice(0, 7) > mesSaldo).forEach(q => { saldoAtual -= q.valor; ajustes.push({ nome: 'Saque em ' + fmtData(q.data), origem: 'Painel · transferência da conta ' + fgtsContaNome(), valor: -q.valor }); });
+  }
+  const dep = fin(c.deposito) ? c.deposito : pf && fin(pf.depositoMedio) ? pf.depositoMedio : 0;
+  const depOrigem = fin(c.deposito) ? 'manual' : pf && fin(pf.depositoMedio) ? 'painel' : 'nenhum';
+  const taxaPainel = pf && fin(pf.rendimentoAnual) && pf.rendimentoAnual > 0 && pf.rendimentoAnual < 0.3 ? pf.rendimentoAnual : null;
+  const taxa = fin(c.taxaAnual) ? c.taxaAnual : taxaPainel != null ? taxaPainel : 0.05;
+  const taxaOrigem = fin(c.taxaAnual) ? 'manual' : taxaPainel != null ? 'painel' : 'padrao';
+  const info = { saldo, saldoAtual, fonte, mesSaldo, calibrado, deposito: dep, depOrigem, taxa, taxaOrigem, taxaPainel, saques, serie: pf ? (pf.serie || []) : [], ajustes, cfg: c, pf };
+  info.janela = janelaFgts(info);
+  if (info.janela.sacouManual && !info.janela.sacouPainel && saldo != null) {
+    const est = E.saqueAniversario(saldo).valor; saldoAtual -= est;
+    ajustes.push({ nome: 'Saque-aniversário de ' + E.lerMes(info.janela.atual.inicio).ano + ' (estimado)', origem: 'Você marcou que já sacou', valor: -est });
+  }
+  info.saldoAtual = saldoAtual;
+  return info;
+}
+function janelaFgts(f) {
+  const mes = f.cfg.mesAniversario || 9;
+  const prov = E.janelaSaque(hoje(), mes, false);
+  const naJanela = d => d && d.slice(0, 7) >= prov.inicio && d.slice(0, 7) <= prov.fim;
+  const qPainel = prov.aberta ? f.saques.find(q => naJanela(q.data)) : null;
+  const sacouManual = prov.aberta && f.cfg.saqueFeito === prov.inicio;
+  const jaSacou = !!qPainel || sacouManual;
+  const j = jaSacou ? E.janelaSaque(hoje(), mes, true) : prov;
+  return Object.assign({}, j, { atual: prov, sacouPainel: qPainel, sacouManual, jaSacou });
+}
+const _fgSeries = new Map();
+function serieFgts(sacar, f) {
+  f = f || fgtsInfo(); if (f.saldo == null) return null;
+  // Janela aberta: o saque deste ano ainda não aconteceu; entra no mês que vem, não no passado.
+  const abertaSemSaque = f.janela.aberta && !f.janela.jaSacou;
+  const semSaqueAte = f.janela.jaSacou || abertaSemSaque ? f.janela.atual.inicio : null;
+  const saquePendente = abertaSemSaque && sacar && f.cfg.aderente ? { mes: E.somarMeses(hoje(), 1), valor: previsaoSaque(f).valor } : null;
+  const k = [f.saldoAtual, f.deposito, f.taxa, f.mesSaldo, f.cfg.mesAniversario, sacar, semSaqueAte, saquePendente && saquePendente.valor].join('|');
+  if (!_fgSeries.has(k)) {
+    if (_fgSeries.size > 8) _fgSeries.clear();
+    _fgSeries.set(k, E.projetarFgts({ saldo: f.saldoAtual, deposito: f.deposito, taxaAnual: f.taxa, meses: E.MAX_MESES + 36, inicio: f.mesSaldo, mesAniversario: f.cfg.mesAniversario, sacar: sacar && f.cfg.aderente, semSaqueAte, saquePendente }));
+  }
+  return _fgSeries.get(k);
+}
+/* Previsão do próximo saque-aniversário: saldo projetado no fim do mês anterior à janela. */
+function previsaoSaque(f) {
+  f = f || fgtsInfo(); if (f.saldo == null) return null;
+  const j = f.janela;
+  const kBase = E.mesesEntre(f.mesSaldo, E.somarMeses(j.inicio, -1));
+  const sem = E.projetarFgts({ saldo: f.saldoAtual, deposito: f.deposito, taxaAnual: f.taxa, meses: Math.max(0, kBase), inicio: f.mesSaldo, mesAniversario: f.cfg.mesAniversario, sacar: false });
+  const base = kBase <= 0 ? f.saldoAtual : sem.saldos[kBase];
+  const q = E.saqueAniversario(base);
+  const comprometido = Math.min(q.valor, Math.max(0, Number(f.cfg.comprometido) || 0));
+  return Object.assign({ janela: j, base, kBase: Math.max(0, kBase), depositos: f.deposito * Math.max(0, kBase), rendimento: base - f.saldoAtual - f.deposito * Math.max(0, kBase), comprometido, liquido: q.valor - comprometido }, q);
+}
+function fgtsExtra(frac) {
+  const f = fgtsInfo(), serie = serieFgts(f.cfg.sacarNasProjecoes !== false, f).saldos, off = Math.max(0, E.mesesEntre(f.mesSaldo, hoje()));
+  return (k, p) => { const v = serie[Math.min(serie.length - 1, k + off)] * frac; return p.considerarInflacao ? v / Math.pow(1 + p.inflacaoAnual, k / 12) : v; };
+}
+
+/* Planejamento + painel, no formato que o motor espera. */
 function efetivo() {
-  const usar = usandoPainel();
-  const fontes = usar ? fontesPainel() : [];
-  const sal = Object.fromEntries(fontes.map(f => [f.key, f.saldo]));
-  const objetivos = S.objetivos.map(o => (usar && o.vinculos && o.vinculos.length) ? Object.assign({}, o, { acumulado: E.acumuladoVinculado(o.vinculos, sal), vinculado: true }) : o);
-  if (!usar) return Object.assign({}, S, { objetivos });
+  const usar = usandoPainel(), fontes = usar ? fontesPainel() : [], fm = fontes.map(f => ({ key: f.key, saldo: f.saldo, partes: fracoes(f.partes) }));
+  const fg = fgtsInfo();
+  const objetivos = S.objetivos.map(o => {
+    const vs = o.vinculos || [];
+    if (!vs.length) return o;
+    const comuns = vs.filter(v => v.key !== 'fgts'), vf = vs.find(v => v.key === 'fgts');
+    const usaFgts = !!(vf && o.categoria === 'imovel' && fg.saldo != null);
+    if (!usar && !usaFgts) return o;
+    const r = E.expandirVinculos(comuns, fm);
+    const x = Object.assign({}, o, { acumulado: r.total, vinculado: true, porFonte: r.porFonte });
+    if (usaFgts) { x.extra = fgtsExtra(Math.min(100, vf.pct) / 100); x.fgtsPct = vf.pct; }
+    return x;
+  });
+  const ativos = [];
+  fontes.forEach(f => { const fr = fracoes(f.partes); Object.keys(fr).forEach(c => { if (c === 'ignorar' || !(fr[c] > 0)) return; ativos.push({ id: f.key + '|' + c, nome: f.nome, tipo: c, valor: Math.max(0, f.saldo) * fr[c], painel: true, fonteKey: f.key, fracao: fr[c] }); }); });
+  if (fg.saldo != null) ativos.push({ id: 'fgts', nome: 'FGTS', tipo: 'fgts', valor: Math.max(0, fg.saldoAtual), painel: fg.fonte === 'painel', fgts: true });
+  S.ativos.forEach(a => ativos.push(Object.assign({}, a, { valor: valorAtivo(a) })));
+  if (!usar) return Object.assign({}, S, { ativos, objetivos });
   const rendas = [{ id: 'p-rec', nome: 'Renda líquida recorrente', valor: rendaTrabalho(), tipo: 'fixa', painel: true }];
   if (P.renda.sazonal > 0.5) rendas.push({ id: 'p-saz', nome: '13º, 1/3 de férias e PLR (média mensal)', valor: P.renda.sazonal, tipo: 'variavel', painel: true });
   const despesas = [{ id: 'p-desp', nome: 'Despesas (média mensal)', valor: P.despesas.media, tipo: 'ordinaria', painel: true }];
-  const ativos = fontes.filter(f => f.tipoAtlas !== 'ignorar').map(f => ({ id: f.key, nome: f.nome, tipo: f.tipoAtlas, valor: Math.max(0, f.saldo), painel: true }));
   // As parcelas de dívidas já aparecem nas despesas do painel; aqui entra só o saldo devedor.
   const passivos = S.passivos.map(x => Object.assign({}, x, { parcela: 0 }));
-  return Object.assign({}, S, { rendas: rendas.concat(S.rendas), despesas: despesas.concat(S.despesas), ativos: ativos.concat(S.ativos), passivos, objetivos });
+  return Object.assign({}, S, { rendas: rendas.concat(S.rendas), despesas: despesas.concat(S.despesas), ativos, passivos, objetivos });
 }
 function V() { return _V || (_V = efetivo()); }
 const quando = iso => { try { return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return '—'; } };
+const fmtData = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '—';
 
 /* =================== Interface: estado efêmero =================== */
-const ui = { view: 'overview', goalId: null, arquivados: false, modo: 'real', sim: null, rendaDelta: 0, chat: [], aiBusy: false, modal: null, iaDisponivel: false };
-try { const v = sessionStorage.getItem('atlas.view'); if (v) ui.view = v; } catch (e) { /* ok */ }
+const ui = { fipe: null, view: 'overview', goalId: null, arquivados: false, modo: 'real', sim: null, rendaDelta: 0, chat: [], aiBusy: false, modal: null, iaDisponivel: false };
+try { const v = sessionStorage.getItem('atlas.view'); if (v) ui.view = v === 'diagnostico' ? 'fluxo' : v; } catch (e) { /* ok */ }
 
 /* Capacidades da página publicada (nulas quando aberta como arquivo local) */
 const caps = {};
@@ -1146,8 +1451,8 @@ const valoresLabel = () => S.config.considerarInflacao ? 'em valores de hoje' : 
 
 /* =================== Navegação =================== */
 const VIEWS = [
-  ['overview', 'Visão geral', 'overview', 'Início'], ['diagnostico', 'Diagnóstico', 'diag', 'Diagnóstico'], ['objetivos', 'Objetivos', 'goals', 'Objetivos'],
-  ['simulacoes', 'Simulações', 'sim', 'Simular'], ['priorizacao', 'Priorização', 'prio', 'Priorizar'], ['assistente', 'Assistente', 'ai', 'Assistente'], ['config', 'Ajustes e dados', 'config', 'Ajustes']
+  ['overview', 'Visão geral', 'overview', 'Início'], ['patrimonio', 'Patrimônio', 'patrimonio', 'Patrimônio'], ['fluxo', 'Fluxo mensal', 'diag', 'Fluxo'], ['fgts', 'FGTS', 'fgts', 'FGTS'],
+  ['objetivos', 'Objetivos', 'goals', 'Objetivos'], ['simulacoes', 'Simulações', 'sim', 'Simular'], ['priorizacao', 'Priorização', 'prio', 'Priorizar'], ['assistente', 'Assistente', 'ai', 'Assistente'], ['config', 'Ajustes e dados', 'config', 'Ajustes']
 ];
 function renderNav() {
   const cur = ui.view === 'objetivo' ? 'objetivos' : ui.view;
@@ -1157,6 +1462,7 @@ function renderNav() {
   $('#todayLabel').textContent = 'Referência: ' + mesLongo(hoje());
 }
 function go(view, goalId) {
+  if (ui.modal) fecharModal();
   ui.view = view; if (goalId !== undefined) ui.goalId = goalId;
   try { sessionStorage.setItem('atlas.view', view === 'objetivo' ? 'objetivos' : view); } catch (e) { /* ok */ }
   render(); window.scrollTo({ top: 0 });
@@ -1169,7 +1475,7 @@ function render() {
   if (telaAtual) { main.innerHTML = '<div class="page">' + telaAtual + '</div>'; return; }
   let html;
   try {
-    const fn = { overview: vOverview, diagnostico: vDiagnostico, objetivos: vObjetivos, objetivo: vObjetivo, simulacoes: vSimulacoes, priorizacao: vPriorizacao, assistente: vAssistente, config: vConfig }[ui.view] || vOverview;
+    const fn = { overview: vOverview, patrimonio: vPatrimonio, fluxo: vFluxo, diagnostico: vFluxo, fgts: vFgts, objetivos: vObjetivos, objetivo: vObjetivo, simulacoes: vSimulacoes, priorizacao: vPriorizacao, assistente: vAssistente, config: vConfig }[ui.view] || vOverview;
     html = fn();
   } catch (e) {
     console.error(e);
@@ -1190,47 +1496,22 @@ function demoBanner() {
 function head(eyebrow, title, lede, actions) {
   return '<div class="page-head"><div><div class="eyebrow">' + eyebrow + '</div><h1>' + title + '</h1>' + (lede ? '<p class="lede">' + lede + '</p>' : '') + '</div>' + (actions ? '<div class="btn-row">' + actions + '</div>' : '') + '</div>';
 }
-const stat = (label, value, note, missing) => '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + (missing ? '<span class="missing">' + missing + '</span>' : value) + '</div>' + (note ? '<div class="stat-note">' + note + '</div>' : '') + '</div>';
+const stat = (label, value, note, missing, oid) => (oid ? '<button type="button" class="stat stat-btn" data-act="origem" data-id="' + oid + '">' : '<div class="stat">') + '<div class="stat-label">' + label + (oid ? ico('info', ' class="ori-ico"') : '') + '</div><div class="stat-value">' + (missing ? '<span class="missing">' + missing + '</span>' : value) + '</div>' + (note ? '<div class="stat-note">' + note + '</div>' : '') + (oid ? '</button>' : '</div>');
 
-/* =================== Visão geral =================== */
-function vOverview() {
-  const c = ctx(), d = c.d;
-  const planejado = c.ativos.reduce((t, o) => t + (o.aporte || 0), 0);
-  const alerts = alertas(c);
-  const proximos = c.base.filter(x => x.a.status !== 'concluido').slice(0, 4);
-  return '<div class="page">' + demoBanner() +
-    '<section class="hero"><canvas id="contour" aria-hidden="true"></canvas>' +
-      '<div class="hero-top"><div><div class="eyebrow">Patrimônio líquido</div><div class="big">' + brl(d.patrimonioLiquido) + '</div></div>' +
-      '<div class="hero-figs">' +
-        '<div><span>Ativos</span><b>' + brl(d.totalAtivos) + '</b></div>' +
-        '<div><span>Dívidas</span><b>' + brl(d.totalPassivos) + '</b></div>' +
-        '<div><span>Patrimônio financeiro</span><b>' + brl(d.patrimonioFinanceiro) + '</b></div>' +
-        '<div><span>Investido</span><b>' + brl(d.patrimonioInvestido) + '</b></div>' +
-      '</div></div>' +
-      '<div class="small muted">' + (usandoPainel() ? '<span class="live-dot"></span> Saldos, renda e despesas do Painel financeiro, até ' + mesLabel(P.ultimoMesFechado) + ' · atualizado em ' + quando(P.geradoEm) + '. ' : '') + 'Patrimônio financeiro inclui contas, reserva e investimentos; imóveis, veículos e FGTS ficam fora do dinheiro disponível.</div>' +
-    '</section>' +
-    '<div class="grid g4">' +
-      stat('Capacidade de aporte', brl(d.capacidade) + '<small class="muted" style="font-size:.6em"> /mês</small>', d.capacidadeManual ? 'Valor definido manualmente' : 'Renda menos despesas e parcelas', d.capacidade == null ? 'Falta renda ou despesas' : null) +
-      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? 'Falta renda ou despesas' : null) +
-      stat('Reserva de emergência', fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '', brl(d.reserva) + ' em ativos de reserva', d.mesesReserva == null ? 'Falta cadastrar despesas' : null) +
-      stat('Aportes nos objetivos', brl(planejado) + '<small class="muted" style="font-size:.6em"> /mês</small>', 'Necessário no cenário base: ' + brl(c.prio.necessarioTotal), c.ativos.length ? null : 'Nenhum objetivo') +
-    '</div>' +
-    '<section class="card"><div class="card-head"><div><h2>Rota dos objetivos</h2><p>Cada parada é a data-alvo de um objetivo. A cor indica a situação no cenário base.</p></div><button class="btn btn-sm" data-act="go" data-view="objetivos">Ver objetivos</button></div>' + rota(c) + '</section>' +
-    '<div class="grid g-main">' +
-      '<section class="card"><div class="card-head"><div><h2>Dinheiro reservado aos objetivos</h2><p>Projeção no cenário base, ' + valoresLabel() + '. Metas de consumo (carro, viagem, imóvel) são usadas na data-alvo.</p></div></div>' + projecaoGeral(c) + '</section>' +
-      '<div class="stack" style="gap:16px">' +
-        '<section class="card"><div class="card-head"><h2>Atenção</h2></div><div class="stack">' + (alerts.length ? alerts.join('') : '<div class="notice notice-ok">' + ico('check') + '<div>Nenhum alerta. Todos os objetivos estão no caminho e os aportes cabem na sua capacidade.</div></div>') + '</div></section>' +
-        '<section class="card"><div class="card-head"><h2>Próximos marcos</h2></div>' + (proximos.length ? '<div class="stack">' + proximos.map(({ o, a }) =>
-          '<button class="goal-card" style="padding:12px 14px;gap:8px" data-act="openGoal" data-id="' + o.id + '"><div class="goal-top"><div class="goal-ico" style="width:34px;height:34px">' + ico(o.categoria) + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>' + mesLabel(o.dataAlvo) + ' · faltam ' + duracao(a.meses) + '</p></div>' + pill(a.status) + '</div></button>').join('') + '</div>' : '<div class="empty">Nenhum objetivo em andamento.<button class="btn btn-sm btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div>') + '</section>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
+/* =================== Alertas =================== */
 function alertas(c) {
   const out = [];
   const n = (cls, i, txt, act) => '<div class="notice notice-' + cls + '">' + ico(i) + '<div>' + txt + (act || '') + '</div></div>';
   c.d.alertas.forEach(t => out.push(n('bad', 'warn', t)));
-  if (usandoPainel()) E.fontesSobrealocadas(S.objetivos).forEach(f => out.push(n('bad', 'warn', '<b>' + esc(fonteNome(f.key)) + '</b> está vinculado a objetivos que somam ' + Math.round(f.pct) + '% do saldo. O mesmo dinheiro está sendo contado mais de uma vez.')));
+  if (usandoPainel()) {
+    const uso = {}, fs = fontesPainel();
+    V().objetivos.filter(o => !o.arquivado && o.porFonte).forEach(o => Object.entries(o.porFonte).forEach(([k, v]) => { uso[k] = (uso[k] || 0) + v; }));
+    Object.entries(uso).forEach(([k, v]) => { const f = fs.find(x => x.key === k); if (f && v > Math.max(0, f.saldo) + 0.5) out.push(n('bad', 'warn', 'Os objetivos usam ' + brl(v) + ' de <b>' + esc(f.nome) + '</b>, que tem ' + brl(f.saldo) + '. O mesmo dinheiro está sendo contado mais de uma vez.')); });
+    const fgPct = S.objetivos.filter(o => !o.arquivado && o.categoria === 'imovel').reduce((t, o) => t + ((o.vinculos || []).find(v => v.key === 'fgts') || { pct: 0 }).pct, 0);
+    if (fgPct > 100) out.push(n('bad', 'warn', 'Objetivos de imóvel usam ' + fgPct + '% do FGTS. Reduza para no máximo 100%.'));
+    if (c.d.reserva < 0.5 && fs.length) out.push(n('info', 'info', '<b>Nenhum saldo está classificado como reserva de emergência.</b> Diga quanto de cada investimento é reserva.', ' <button class="btn btn-sm" style="margin-top:8px" data-act="go" data-view="patrimonio">Classificar saldos</button>'));
+  }
+  if (S.config.fgts.aderente) { const f = fgtsInfo(); if (f.saldo != null && f.janela.aberta) { const q = previsaoSaque(f); out.push(n('ok', 'check', '<b>Saque-aniversário disponível</b> até o fim de ' + mesLongo(f.janela.fim) + ': cerca de ' + brl(q.liquido) + '.', ' <button class="btn btn-sm" style="margin-top:8px" data-act="go" data-view="fgts">Ver FGTS</button>')); } }
   if (!P) out.push(n('info', 'info', '<b>Painel ainda não conectado.</b> Abra o Painel financeiro uma vez para que renda, despesas e saldos cheguem aqui sozinhos.'));
   if (c.prio.deficit != null && c.prio.deficit > 0.5) out.push(n('warn', 'warn', 'Para cumprir todos os prazos você precisaria aportar <b>' + brl(c.prio.necessarioTotal) + '/mês</b>, mas sua capacidade é ' + brl(c.prio.capacidade) + '. Déficit de <b>' + brl(c.prio.deficit) + '</b>. ', ' <button class="btn btn-sm" style="margin-top:8px" data-act="go" data-view="priorizacao">Ver alternativas</button>'));
   else if (c.d.capacidade != null && c.prio.planejadoTotal > c.d.capacidade + 0.5) out.push(n('warn', 'warn', 'Os aportes planejados (' + brl(c.prio.planejadoTotal) + ') passam da sua capacidade mensal (' + brl(c.d.capacidade) + ').'));
@@ -1352,70 +1633,479 @@ function chartLeave(e) {
   el.querySelectorAll('[data-x],[data-dot]').forEach(n => n.style.visibility = 'hidden');
 }
 
-/* =================== Diagnóstico =================== */
-function vDiagnostico() {
-  const D = V(), d = E.diagnostico(D), usar = usandoPainel();
-  const falta = 'Falta cadastrar';
-  const tabela = (tipo, titulo, sub, lista, cols) => '<section class="card"><div class="card-head"><div><h2>' + titulo + '</h2><p>' + sub + '</p></div><button class="btn btn-sm" data-act="addItem" data-tipo="' + tipo + '">' + ico('plus') + 'Adicionar</button></div>' +
+/* =================== Visão geral =================== */
+function composicao(d, compacta) {
+  const partes = [['disponivel', 'Em conta', d.disponivel, CLASSE_COR.conta], ['reserva', 'Reserva', d.reserva, CLASSE_COR.reserva], ['longo', 'Longo prazo', d.longoPrazo, CLASSE_COR.investimento], ['rv', 'Renda variável', d.rendaVariavel, CLASSE_COR.rv], ['fgts', 'FGTS', d.patrimonioRestrito, CLASSE_COR.fgts], ['imobilizado', 'Imobilizado', d.patrimonioImobilizado, CLASSE_COR.imobilizado]].filter(x => x[2] > 0.5);
+  const tot = partes.reduce((t, x) => t + x[2], 0);
+  if (!tot) return '<div class="empty">Nenhum saldo ainda. Abra o painel ou cadastre seus bens em Patrimônio.</div>';
+  return '<div class="comp-bar" role="img" aria-label="Composição do patrimônio">' + partes.map(x => '<button type="button" data-act="origem" data-id="' + x[0] + '" style="flex:' + (x[2] / tot).toFixed(4) + ' 1 0;background:' + x[3] + '" title="' + x[1] + ': ' + brl(x[2]) + '"></button>').join('') + '</div>' +
+    '<div class="comp-legend">' + partes.map(x => '<button type="button" data-act="origem" data-id="' + x[0] + '"><i style="background:' + x[3] + '"></i><span>' + x[1] + '</span><b>' + (compacta ? brlC(x[2]) : brl(x[2])) + '</b><small>' + pct(x[2] / tot, 0) + '</small></button>').join('') + '</div>';
+}
+function vOverview() {
+  const c = ctx(), d = c.d;
+  const planejado = c.ativos.reduce((t, o) => t + (o.aporte || 0), 0);
+  const alerts = alertas(c);
+  const proximos = c.base.filter(x => x.a.status !== 'concluido').slice(0, 4);
+  const meta = S.config.reservaMeta || 6;
+  return '<div class="page">' +
+    '<section class="hero"><canvas id="contour" aria-hidden="true"></canvas>' +
+      '<div class="hero-top"><button type="button" class="hero-num" data-act="origem" data-id="pl"><div class="eyebrow">Patrimônio líquido ' + ico('info', ' class="ori-ico"') + '</div><div class="big">' + brl(d.patrimonioLiquido) + '</div></button>' +
+      '<div class="hero-figs">' +
+        '<button type="button" data-act="origem" data-id="liquidez"><span>Liquidez imediata</span><b>' + brl(d.liquidezImediata) + '</b></button>' +
+        '<button type="button" data-act="origem" data-id="investido"><span>Investido</span><b>' + brl(d.patrimonioInvestido) + '</b></button>' +
+        '<button type="button" data-act="origem" data-id="fgts"><span>FGTS (restrito)</span><b>' + brl(d.patrimonioRestrito) + '</b></button>' +
+        '<button type="button" data-act="origem" data-id="imobilizado"><span>Imobilizado</span><b>' + brl(d.patrimonioImobilizado) + '</b></button>' +
+        (d.totalPassivos ? '<button type="button" data-act="origem" data-id="dividas"><span>Dívidas</span><b>−' + brl(d.totalPassivos) + '</b></button>' : '') +
+      '</div></div>' +
+      composicao(d, true) +
+      '<div class="small muted">' + (usandoPainel() ? '<span class="live-dot"></span> Saldos, renda e despesas do Painel financeiro, até ' + mesLabel(P.ultimoMesFechado) + ' · atualizado em ' + quando(P.geradoEm) + '. ' : '') + 'Toque em qualquer valor para ver de onde ele vem.</div>' +
+    '</section>' +
+    '<div class="grid g4">' +
+      stat('Capacidade de aporte', brl(d.capacidade) + '<small class="muted" style="font-size:.6em"> /mês</small>', d.capacidadeManual ? 'Valor definido manualmente' : 'Renda menos despesas', d.capacidade == null ? 'Falta renda ou despesas' : null, 'capacidade') +
+      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? 'Falta renda ou despesas' : null, 'poupanca') +
+      stat('Reserva de emergência', fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '', brl(d.reserva) + ' · meta de ' + meta + ' meses', d.mesesReserva == null ? 'Falta cadastrar despesas' : null, 'mesesReserva') +
+      stat('Aportes nos objetivos', brl(planejado) + '<small class="muted" style="font-size:.6em"> /mês</small>', 'Necessário no cenário base: ' + brl(c.prio.necessarioTotal), c.ativos.length ? null : 'Nenhum objetivo') +
+    '</div>' +
+    '<section class="card"><div class="card-head"><div><h2>Rota dos objetivos</h2><p>Cada parada é a data-alvo de um objetivo. A cor indica a situação no cenário base.</p></div><button class="btn btn-sm" data-act="go" data-view="objetivos">Ver objetivos</button></div>' + rota(c) + '</section>' +
+    '<div class="grid g-main">' +
+      '<section class="card"><div class="card-head"><div><h2>Dinheiro reservado aos objetivos</h2><p>Projeção no cenário base, ' + valoresLabel() + '. Metas de consumo (carro, viagem, imóvel) são usadas na data-alvo.</p></div></div>' + projecaoGeral(c) + '</section>' +
+      '<div class="stack" style="gap:16px">' +
+        '<section class="card"><div class="card-head"><h2>Atenção</h2></div><div class="stack">' + (alerts.length ? alerts.join('') : '<div class="notice notice-ok">' + ico('check') + '<div>Nenhum alerta. Todos os objetivos estão no caminho e os aportes cabem na sua capacidade.</div></div>') + '</div></section>' +
+        '<section class="card"><div class="card-head"><h2>Próximos marcos</h2></div>' + (proximos.length ? '<div class="stack">' + proximos.map(({ o, a }) =>
+          '<button class="goal-card" style="padding:12px 14px;gap:8px" data-act="openGoal" data-id="' + o.id + '"><div class="goal-top"><div class="goal-ico" style="width:34px;height:34px">' + ico(o.categoria) + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>' + mesLabel(o.dataAlvo) + ' · faltam ' + duracao(a.meses) + '</p></div>' + pill(a.status) + '</div></button>').join('') + '</div>' : '<div class="empty">Nenhum objetivo em andamento.<button class="btn btn-sm btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div>') + '</section>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* =================== Patrimônio =================== */
+function chipsPartes(partes) {
+  const fr = fracoes(partes);
+  return '<div class="split-bar">' + Object.keys(CLASSES).filter(k => fr[k] > 0).map(k => '<i style="flex:' + fr[k].toFixed(4) + ' 1 0;background:' + CLASSE_COR[k] + '"></i>').join('') + '</div>' +
+    '<div class="split-chips">' + Object.keys(CLASSES).filter(k => fr[k] > 0).map(k => '<span><i style="background:' + CLASSE_COR[k] + '"></i>' + CLASSE_CURTA[k] + (fr[k] < 0.999 ? ' ' + pct(fr[k], 0) : '') + '</span>').join('') + '</div>';
+}
+function vPatrimonio() {
+  const D = V(), d = E.diagnostico(D), usar = usandoPainel(), fontes = usar ? fontesPainel() : [];
+  const f = fgtsInfo(), q = previsaoSaque(f);
+  const classes = [['disponivel', 'conta', 'Dinheiro em conta', d.disponivel], ['reserva', 'reserva', 'Reserva de emergência', d.reserva], ['longo', 'investimento', 'Investimentos de longo prazo', d.longoPrazo], ['rv', 'rv', 'Renda variável e FIIs', d.rendaVariavel], ['fgts', 'fgts', 'FGTS (restrito)', d.patrimonioRestrito], ['imobilizado', 'imobilizado', 'Imobilizado', d.patrimonioImobilizado]];
+  const usoTxt = { conta: 'Uso imediato', reserva: 'Emergências · resgate imediato', investimento: 'Objetivos de longo prazo', rv: 'Longo prazo · oscila', fgts: 'Imóvel e saque-aniversário', imobilizado: 'Bens de uso' };
+  const tot = classes.reduce((t, x) => t + x[3], 0) || 1;
+  const bens = S.ativos.filter(a => ['imovel', 'veiculo', 'outro'].includes(a.tipo));
+  const outros = S.ativos.filter(a => ['conta', 'reserva', 'investimento', 'rv'].includes(a.tipo));
+  const semReserva = usar && d.reserva < 0.5 && fontes.length;
+  return '<div class="page">' + head('Patrimônio', 'Patrimônio', 'Tudo o que você tem, separado pelo que dá para usar e quando. Toque em qualquer valor para ver de onde ele vem.') +
+    '<div class="grid g4">' +
+      stat('Patrimônio líquido', brl(d.patrimonioLiquido), 'Tudo − dívidas', null, 'pl') +
+      stat('Liquidez imediata', brl(d.liquidezImediata), 'Conta + reserva de emergência', null, 'liquidez') +
+      stat('Investido', brl(d.patrimonioInvestido), 'Reserva + longo prazo + renda variável', null, 'investido') +
+      stat('Dívidas', brl(d.totalPassivos), D.passivos.length ? D.passivos.length + (D.passivos.length === 1 ? ' dívida' : ' dívidas') : 'Nenhuma cadastrada', null, 'dividas') +
+    '</div>' +
+    (semReserva ? '<div class="notice notice-warn">' + ico('warn') + '<div><b>Nenhum saldo está marcado como reserva de emergência.</b> Seus investimentos chegam do painel como "longo prazo". Use <b>Classificar</b> em cada instituição para dizer quanto é reserva (resgate imediato), quanto tem vencimento futuro e quanto é renda variável ou FII.</div></div>' : '') +
+    '<section class="card"><div class="card-head"><div><h2>Composição</h2><p>Classes do seu patrimônio, da mais líquida para a menos líquida.</p></div></div>' + composicao(d) +
+      '<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Classe</th><th class="hide-sm">Para que serve</th><th class="r">Valor</th><th class="r">Parte</th></tr></thead><tbody>' +
+      classes.map(x => '<tr class="row-link" data-act="origem" data-id="' + x[0] + '" tabindex="0"><td><i class="dot" style="background:' + CLASSE_COR[x[1]] + '"></i><b>' + x[2] + '</b></td><td class="muted small hide-sm">' + usoTxt[x[1]] + '</td><td class="r num">' + brl(x[3]) + '</td><td class="r num muted">' + pct(x[3] / tot, 0) + '</td></tr>').join('') +
+      '</tbody></table></div></section>' +
+    cardSaldosPainel(fontes) +
+    '<div class="grid g2" style="align-items:start">' +
+      '<section class="card"><div class="card-head"><div><h2>Imobilizado</h2><p>Imóveis, veículos e outros bens. Entram no patrimônio, não no dinheiro disponível.</p></div></div>' +
+        (bens.length ? '<div class="stack">' + bens.map(cardBem).join('') + '</div>' : '<div class="empty">Nenhum bem cadastrado.</div>') +
+        '<div class="btn-row" style="margin-top:14px"><button class="btn btn-sm btn-primary" data-act="novoVeiculo">' + ico('carro') + 'Adicionar veículo (FIPE)</button><button class="btn btn-sm" data-act="addItem" data-tipo="bens">' + ico('imovel') + 'Adicionar imóvel ou outro bem</button>' + (bens.some(b => b.fonte === 'fipe') ? '<button class="btn btn-sm btn-ghost" data-act="fipeTodos">' + ico('refresh') + 'Atualizar FIPE</button>' : '') + '</div></section>' +
+      '<section class="card"><div class="card-head"><div><h2>FGTS</h2><p>Restrito: só imóvel, situações da lei e saque-aniversário.</p></div><button class="btn btn-sm" data-act="go" data-view="fgts">Abrir</button></div>' +
+        (f.saldo == null ? '<div class="empty">Sem saldo de FGTS.<button class="btn btn-sm" data-act="go" data-view="fgts">Informar saldo</button></div>' :
+        '<div class="kv"><button type="button" class="kv-btn" data-act="origem" data-id="fgts"><span>Saldo</span><b>' + brl(f.saldoAtual) + '</b></button>' +
+        (f.cfg.aderente && q ? '<button type="button" class="kv-btn" data-act="origem" data-id="saque"><span>Saque-aniversário ' + (q.janela.aberta ? 'disponível até ' + mesLabel(q.janela.fim) : 'em ' + mesLabel(q.janela.inicio)) + '</span><b>' + brl(q.liquido) + '</b></button>' : '<div><span>Saque-aniversário</span><b>Não aderente</b></div>') + '</div>') +
+      '</section>' +
+    '</div>' +
+    '<div class="grid g2" style="align-items:start">' +
+      tabelaItens('ativos', 'Outros saldos', usar ? 'Contas ou aplicações que o painel não acompanha.' : 'Contas e aplicações.', outros, [{ h: 'Saldo', f: x => esc(x.nome) }, { h: 'Classe', f: x => '<span class="tag">' + TIPOS_ATIVO[x.tipo] + '</span>' }, { h: 'Valor', r: 1, f: x => brl(x.valor) }]) +
+      tabelaItens('passivos', 'Dívidas', usar ? 'Saldo devedor. As parcelas já estão nas despesas do painel.' : 'Saldo devedor e parcela mensal.', S.passivos, [{ h: 'Dívida', f: x => esc(x.nome) + (x.taxaAnual ? '<div class="small muted">' + pct(x.taxaAnual) + ' a.a.</div>' : '') }, { h: 'Parcela', r: 1, f: x => brl(x.parcela || 0) }, { h: 'Saldo', r: 1, f: x => brl(x.saldo) }]) +
+    '</div>' +
+  '</div>';
+}
+function tabelaItens(tipo, titulo, sub, lista, cols) {
+  return '<section class="card"><div class="card-head"><div><h2>' + titulo + '</h2><p>' + sub + '</p></div><button class="btn btn-sm" data-act="addItem" data-tipo="' + tipo + '">' + ico('plus') + 'Adicionar</button></div>' +
     (lista.length ? '<div class="table-wrap"><table><thead><tr>' + cols.map(c => '<th' + (c.r ? ' class="r"' : '') + '>' + c.h + '</th>').join('') + '<th></th></tr></thead><tbody>' +
       lista.map(x => '<tr>' + cols.map(c => '<td' + (c.r ? ' class="r"' : '') + '>' + c.f(x) + '</td>').join('') + '<td class="row-actions"><button class="icon-btn" title="Editar" aria-label="Editar" data-act="editItem" data-tipo="' + tipo + '" data-id="' + x.id + '">' + ico('edit') + '</button><button class="icon-btn" title="Excluir" aria-label="Excluir" data-act="delItem" data-tipo="' + tipo + '" data-id="' + x.id + '">' + ico('trash') + '</button></td></tr>').join('') +
-      '</tbody></table></div>' : '<div class="empty">' + (usar ? 'Nada além do que vem do painel.' : 'Nada cadastrado ainda.') + '</div>') + '</section>';
+      '</tbody></table></div>' : '<div class="empty">Nada cadastrado.</div>') + '</section>';
+}
+function cardBem(a) {
+  const v = valorAtivo(a), fp = a.fonte === 'fipe' && a.fipe;
+  const sub = fp ? esc([a.fipe.marca && a.fipe.marca.name, a.fipe.modelo && a.fipe.modelo.name, a.fipe.ano && a.fipe.ano.name].filter(Boolean).join(' · ')) : esc(TIPOS_ATIVO[a.tipo] + (a.obs ? ' · ' + a.obs : ''));
+  const ref = fp ? 'FIPE ' + esc(a.fipe.referencia || '') + ' · ' + brl(a.fipe.preco) + (Number(a.ajustePct) ? ' ' + (a.ajustePct > 0 ? '+' : '−') + Math.abs(a.ajustePct) + '%' : '') + (a.fipe.codeFipe ? ' · código ' + esc(a.fipe.codeFipe) : '') : 'Valor informado' + (a.atualizadoEm ? ' em ' + fmtData(a.atualizadoEm.slice(0, 10)) : '');
+  return '<div class="bem"><div class="goal-ico">' + ico(a.tipo === 'veiculo' ? 'carro' : a.tipo === 'imovel' ? 'imovel' : 'outro') + '</div><div class="bem-txt"><b>' + esc(a.nome) + '</b><small>' + sub + '</small><small class="muted">' + ref + '</small></div>' +
+    '<div class="bem-val"><b class="num">' + brl(v) + '</b><div class="btn-row" style="gap:2px;justify-content:flex-end">' + (fp ? '<button class="icon-btn" title="Atualizar pela FIPE" aria-label="Atualizar pela FIPE" data-act="fipeAtualizar" data-id="' + a.id + '">' + ico('refresh') + '</button>' : '') +
+    '<button class="icon-btn" title="Editar" aria-label="Editar" data-act="editItem" data-tipo="bens" data-id="' + a.id + '">' + ico('edit') + '</button><button class="icon-btn" title="Excluir" aria-label="Excluir" data-act="delItem" data-tipo="ativos" data-id="' + a.id + '">' + ico('trash') + '</button></div></div></div>';
+}
+function cardSaldosPainel(fontes) {
+  if (!P) return '<div class="notice notice-warn">' + ico('info') + '<div style="flex:1"><b>Ainda não recebi dados do painel.</b> O painel envia renda, despesas e saldos ao Atlas sempre que abre ou salva. Abra o Painel financeiro uma vez e volte para esta aba.<div style="margin-top:8px"><a class="btn btn-sm" href="' + PAINEL_URL + '">Abrir o painel</a></div></div></div>';
+  const usar = usandoPainel(), descal = fontes.filter(f => !f.calibrada);
+  return '<section class="card"><div class="card-head"><div><div class="eyebrow" style="display:flex;gap:8px;align-items:center"><span class="live-dot"></span>Conectado ao Painel financeiro</div><h2 style="margin-top:4px">Saldos do painel</h2><p>Saldos do fim de ' + mesLabel(P.ultimoMesFechado) + ', atualizados em ' + quando(P.geradoEm) + '. Classifique cada saldo; o valor continua vindo do painel.</p></div>' +
+    '<label class="switch"><input type="checkbox" data-act="toggleUsarPainel"' + (usar ? ' checked' : '') + '>Usar no planejamento</label></div>' +
+    (usar ? '<div class="fontes">' + fontes.map(f => '<div class="fonte-row"><div class="fonte-nome"><b>' + esc(f.nome) + '</b><span class="tag">' + esc(f.origem) + '</span>' + (f.detalhe && f.detalhe !== f.nome ? '<small>' + esc(f.detalhe) + '</small>' : '') + '</div>' +
+        '<div class="r num fonte-valor' + (f.saldo < 0 ? ' delta-down' : '') + '">' + brl(f.saldo) + '</div>' +
+        '<div class="fonte-split">' + chipsPartes(f.partes) + '</div>' +
+        '<button class="btn btn-sm" data-act="classificar" data-key="' + esc(f.key) + '">Classificar</button></div>').join('') + '</div>' +
+      (descal.length ? '<div class="notice notice-warn" style="margin-top:10px">' + ico('warn') + '<div>Sem calibração no painel: ' + descal.map(f => esc(f.nome)).join(', ') + '. O saldo pode estar errado; informe o saldo real na aba Investimentos do painel.</div></div>' : '') +
+      '<p class="small muted" style="margin-top:10px">O painel registra cada instituição como um saldo só. Como a mesma corretora pode ter reserva, títulos com vencimento e FIIs, você informa a divisão aqui. Para mudar um valor, ajuste no painel.</p>'
+      : '<p class="small muted">Os dados do painel estão desligados. O Atlas usa só o que você cadastrar aqui.</p>') +
+  '</section>';
+}
+
+/* Classificar um saldo do painel em classes (porcentagens) */
+function formClassificar(key) {
+  const f = fontesPainel().find(x => x.key === key); if (!f) return;
+  const fr = fracoes(f.partes);
+  const linha = k => '<div class="cls-row"><div><b><i class="dot" style="background:' + CLASSE_COR[k] + '"></i>' + CLASSES[k] + '</b><small>' + CLASSE_DESC[k] + '</small></div>' +
+    '<div class="input-suf"><input class="input" type="number" min="0" max="100" step="1" id="cls-' + k + '" data-cls="' + k + '" value="' + Math.round((fr[k] || 0) * 100) + '" aria-label="' + CLASSES[k] + ' em %"><span>%</span></div><b class="num cls-val" id="clsv-' + k + '">' + brl(Math.max(0, f.saldo) * (fr[k] || 0)) + '</b></div>';
+  abrirModal('<div class="modal-head"><div><div class="eyebrow">Classificar saldo</div><h2 style="margin-top:4px">' + esc(f.nome) + ' · ' + brl(f.saldo) + '</h2></div><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
+    '<p class="small muted">Quanto deste saldo é de cada tipo? Use porcentagens: quando o saldo mudar no painel, a divisão acompanha.</p>' +
+    '<form data-form="modal" class="stack" style="gap:10px" novalidate data-saldo="' + f.saldo + '">' + Object.keys(CLASSES).map(linha).join('') +
+    '<div class="cls-total" id="clsTotal"></div><div id="formErr" class="err"></div><div class="modal-foot"><button type="button" class="btn btn-ghost" data-act="clsPadrao" data-key="' + esc(key) + '">Voltar ao padrão</button><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>', () => {
+      const partes = {}; let t = 0;
+      $$('[data-cls]').forEach(i => { const v = num(i.value); if (fin(v) && v > 0) { partes[i.dataset.cls] = v; t += v; } });
+      if (Math.abs(t - 100) > 0.5) return erroForm('A soma precisa dar 100%. Hoje está em ' + t.toLocaleString('pt-BR') + '%.');
+      commit(s => { s.config.mapa = Object.assign({}, s.config.mapa, { [key]: partes }); }, 'Classificação salva');
+      return true;
+    });
+  atualizarCls();
+}
+function atualizarCls() {
+  const form = $('[data-saldo]'); if (!form) return;
+  const saldo = Math.max(0, +form.dataset.saldo); let t = 0;
+  $$('[data-cls]').forEach(i => { const v = Math.max(0, num(i.value) || 0); t += v; const el = $('#clsv-' + i.dataset.cls); if (el) el.textContent = brl(saldo * v / 100); });
+  const el = $('#clsTotal'); if (el) el.innerHTML = 'Soma: <b class="' + (Math.abs(t - 100) > 0.5 ? 'delta-down' : 'delta-up') + '">' + t.toLocaleString('pt-BR') + '%</b>' + (Math.abs(t - 100) > 0.5 ? ' · precisa dar 100%' : '');
+}
+
+/* =================== Fluxo mensal =================== */
+function vFluxo() {
+  const D = V(), d = E.diagnostico(D), usar = usandoPainel();
+  const falta = 'Falta cadastrar';
   const capManual = typeof S.config.capacidadeManual === 'number';
-  return '<div class="page">' + head('Módulo 1', 'Diagnóstico financeiro', usar ? 'Renda, despesas e saldos chegam do Painel financeiro. Aqui você só complementa com o que o painel não acompanha, como imóvel, veículo e dívidas.' : 'Registre o que você ganha, gasta, tem e deve. Campos vazios ficam vazios: o Atlas nunca preenche valores por conta própria.') +
+  const kv = (l, v, n, oid) => (oid ? '<button type="button" class="kv-btn" data-act="origem" data-id="' + oid + '">' : '<div>') + '<span>' + l + '</span><b>' + v + '</b>' + (n ? '<span>' + n + '</span>' : '') + (oid ? '</button>' : '</div>');
+  return '<div class="page">' + head('Fluxo mensal', 'Fluxo mensal', usar ? 'Quanto entra, quanto sai e quanto sobra por mês. Os valores são médias do painel; aqui você só complementa o que o painel não registra.' : 'Quanto entra, quanto sai e quanto sobra por mês.') +
     (d.alertas.length ? '<div class="stack">' + d.alertas.map(a => '<div class="notice notice-bad">' + ico('warn') + '<div>' + a + '</div></div>').join('') + '</div>' : '') +
     '<div class="grid g4">' +
-      stat('Patrimônio líquido', brl(d.patrimonioLiquido), 'Ativos menos dívidas') +
-      stat('Patrimônio financeiro', brl(d.patrimonioFinanceiro), 'Contas, reserva e investimentos') +
-      stat('Renda mensal', brl(d.rendaTotal), d.rendaVariavel ? brl(d.rendaVariavel) + ' é sazonal ou variável' : 'Soma das fontes de renda', d.rendaTotal == null ? falta : null) +
-      stat('Despesas mensais', brl(d.despesasOrdinarias != null ? d.despesasOrdinarias + d.despesasExtraordinarias : null), d.despesasExtraordinarias ? brl(d.despesasExtraordinarias) + ' extraordinárias (média)' : 'Custo médio de vida', d.despesasOrdinarias == null ? falta : null) +
-      stat('Capacidade de aporte', brl(d.capacidade), capManual ? 'Definida manualmente' : 'Num mês típico garantido: ' + brl(d.capacidadeRecorrente), d.capacidade == null ? falta : null) +
-      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? falta : null) +
-      stat('Reserva de emergência', fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '', d.reserva > 0 ? brl(d.reserva) + ' cobre as despesas' : 'Marque abaixo qual saldo é a reserva', d.mesesReserva == null ? falta : null) +
-      stat('Livre para novos objetivos', brl(d.livreParaObjetivos), brl(d.alocadoEmObjetivos) + ' já reservados em objetivos') +
+      stat('Renda mensal', brl(d.rendaTotal), d.rendaVariavel ? brl(d.rendaVariavel) + ' é sazonal ou variável' : 'Soma das fontes de renda', d.rendaTotal == null ? falta : null, 'renda') +
+      stat('Despesas mensais', brl(d.despesasOrdinarias != null ? d.despesasOrdinarias + d.despesasExtraordinarias : null), 'Custo médio de vida', d.despesasOrdinarias == null ? falta : null, 'despesas') +
+      stat('Capacidade de aporte', brl(d.capacidade), capManual ? 'Definida manualmente' : 'Num mês típico garantido: ' + brl(d.capacidadeRecorrente), d.capacidade == null ? falta : null, 'capacidade') +
+      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? falta : null, 'poupanca') +
     '</div>' +
-    cardPainel() +
+    (usar ? '<section class="card"><div class="card-head"><div><div class="eyebrow" style="display:flex;gap:8px;align-items:center"><span class="live-dot"></span>Conectado ao Painel financeiro</div><h2 style="margin-top:4px">Médias do painel</h2><p>De ' + mesLabel(P.janela.de) + ' a ' + mesLabel(P.janela.ate) + ' (' + P.janela.meses + ' meses fechados). Atualizado em ' + quando(P.geradoEm) + '.</p></div></div>' +
+      '<div class="kv kv-painel">' +
+        kv('Renda líquida recorrente', brl(rendaTrabalho()) + '/mês', 'sem rendimentos de investimentos', 'renda') +
+        kv('13º, férias e PLR', brl(P.renda.sazonal) + '/mês', 'média mensal', 'renda') +
+        kv('Despesas', brl(P.despesas.media) + '/mês', '', 'despesas') +
+        kv('Rendimentos de investimentos', brl(P.renda.rendimentosLiquidos || 0) + '/mês', 'ficam na rentabilidade, não na renda') +
+        kv('Aportes líquidos em investimentos', brl(P.aportesLiquidosMes) + '/mês', 'o que de fato foi investido') +
+      '</div></section>' : cardSaldosPainel([])) +
     '<section class="card"><div class="card-head"><div><h2>Capacidade de aporte</h2><p>Quanto você consegue destinar aos objetivos por mês.</p></div></div>' +
       '<div class="grid g3" style="align-items:end">' +
-        '<div class="field"><span class="label">Calculada</span><b class="num" style="font-size:1.1rem">' + brl(d.capacidadeCalculada) + '</b><span class="hint">' + (usar ? 'Renda líquida − despesas, médias do painel' : 'Renda total − despesas − parcelas') + '</span></div>' +
+        '<div class="field"><span class="label">Calculada</span><b class="num" style="font-size:1.1rem">' + brl(d.capacidadeCalculada) + '</b><span class="hint">Renda − despesas' + (usar ? ', médias do painel' : ' − parcelas') + '</span></div>' +
         '<div class="field"><span class="label">Recorrente (conservadora)</span><b class="num" style="font-size:1.1rem">' + brl(d.capacidadeRecorrente) + '</b><span class="hint">Sem 13º, férias, PLR e outras rendas variáveis</span></div>' +
         '<div class="field"><label class="switch"><input type="checkbox" id="capManualOn" data-act="toggleCapManual"' + (capManual ? ' checked' : '') + '>Definir manualmente</label>' +
           (capManual ? '<div class="input-pre"><span>R$</span><input class="input" id="capManual" type="number" min="0" step="50" value="' + S.config.capacidadeManual + '" data-change="capManual"></div>' : '<span class="hint">Use se você prefere aportar menos do que sobra.</span>') + '</div>' +
       '</div></section>' +
     '<div class="grid g2">' +
-      tabela('rendas', usar ? 'Outras rendas' : 'Renda', usar ? 'Só o que não é lançado no app de finanças.' : 'Valores líquidos mensais.', S.rendas, [{ h: 'Fonte', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'variavel' ? 'Variável' : 'Fixa') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
-      tabela('despesas', usar ? 'Outras despesas' : 'Despesas', usar ? 'Só o que não é lançado no app, como parcelas pagas por fora.' : 'Não inclua parcelas de dívidas, elas ficam no quadro de dívidas.', S.despesas, [{ h: 'Despesa', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'extraordinaria' ? 'Extraordinária' : 'Mensal') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
-      tabela('ativos', usar ? 'Outros bens' : 'Ativos', usar ? 'Imóvel, veículo ou contas que o painel não acompanha.' : 'Cada valor entra uma única vez.', S.ativos, [{ h: 'Ativo', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (TIPOS_ATIVO[x.tipo] || 'Outro') + '</span>' }, { h: 'Valor', r: 1, f: x => brl(x.valor) }]) +
-      tabela('passivos', 'Dívidas', usar ? 'Saldo devedor. As parcelas já estão nas despesas do painel e não são descontadas de novo.' : 'Saldo devedor atual e parcela mensal.', S.passivos, [{ h: 'Dívida', f: x => esc(x.nome) + (x.taxaAnual ? '<div class="small muted">' + pct(x.taxaAnual) + ' a.a.</div>' : '') }, { h: 'Parcela', r: 1, f: x => brl(x.parcela || 0) }, { h: 'Saldo', r: 1, f: x => brl(x.saldo) }]) +
+      tabelaItens('rendas', usar ? 'Outras rendas' : 'Renda', usar ? 'Só o que não é lançado no app de finanças.' : 'Valores líquidos mensais.', S.rendas, [{ h: 'Fonte', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'variavel' ? 'Variável' : 'Fixa') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
+      tabelaItens('despesas', usar ? 'Outras despesas' : 'Despesas', usar ? 'Só o que não é lançado no app.' : 'Não inclua parcelas de dívidas.', S.despesas, [{ h: 'Despesa', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'extraordinaria' ? 'Extraordinária' : 'Mensal') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
     '</div>' +
-    '<section class="card"><details class="explain"><summary>' + ico('info', ' width="16" height="16"') + 'Como cada indicador é calculado</summary><div class="stack">' +
-      '<div class="formula">Patrimônio líquido      = soma dos ativos − soma dos saldos devedores\nPatrimônio financeiro   = contas + reserva + investimentos\nCapacidade de aporte    = renda líquida − despesas' + (usar ? '' : ' − parcelas') + '\nTaxa de poupança        = capacidade ÷ renda\nReserva (meses)         = saldo marcado como reserva ÷ despesas mensais\nLivre p/ objetivos      = patrimônio financeiro − valores reservados nos objetivos</div>' +
-      (usar ? '<p>Renda e despesas são as médias mensais dos últimos ' + P.janela.meses + ' meses fechados, com as mesmas regras do painel: deduções da folha saem da renda e transferências não contam como despesa. A diferença: os rendimentos de investimentos não entram como renda, porque o Atlas já os considera na rentabilidade dos saldos. Por isso a capacidade aqui pode ficar abaixo da sobra mostrada no painel.</p>' : '<p>Despesas extraordinárias (IPVA, matrícula, seguro anual) entram pela média mensal.</p>') +
-      '<p>O valor reservado em cada objetivo é parte do patrimônio financeiro, por isso não é somado de novo.</p></div></details></section>' +
   '</div>';
 }
-function cardPainel() {
-  if (!P) return '<div class="notice notice-warn">' + ico('info') + '<div style="flex:1"><b>Ainda não recebi dados do painel.</b> O painel envia renda, despesas e saldos ao Atlas sempre que abre ou salva. Abra o Painel financeiro uma vez e volte para esta aba.<div style="margin-top:8px"><a class="btn btn-sm" href="' + PAINEL_URL + '">Abrir o painel</a></div></div></div>';
-  const usar = usandoPainel(), fontes = fontesPainel(), descal = fontes.filter(f => !f.calibrada);
-  const opts = k => Object.entries(TIPO_FONTE).map(([v, l]) => '<option value="' + v + '"' + (k === v ? ' selected' : '') + '>' + l + '</option>').join('');
-  const kv = (l, v, n) => '<div><span>' + l + '</span><b>' + v + '</b>' + (n ? '<span>' + n + '</span>' : '') + '</div>';
-  return '<section class="card painel-card"><div class="card-head"><div><div class="eyebrow" style="display:flex;gap:8px;align-items:center"><span class="live-dot"></span>Conectado ao Painel financeiro</div><h2 style="margin-top:4px">Dados do painel</h2><p>Médias de ' + mesLabel(P.janela.de) + ' a ' + mesLabel(P.janela.ate) + ' e saldos do fim de ' + mesLabel(P.ultimoMesFechado) + '. Atualizado em ' + quando(P.geradoEm) + '.</p></div>' +
-      '<label class="switch"><input type="checkbox" data-act="toggleUsarPainel"' + (usar ? ' checked' : '') + '>Usar no planejamento</label></div>' +
-    (usar ? '<div class="kv kv-painel">' +
-      kv('Renda líquida recorrente', brl(rendaTrabalho()) + '/mês', 'sem rendimentos de investimentos') +
-      kv('13º, férias e PLR', brl(P.renda.sazonal) + '/mês', 'média mensal') +
-      kv('Despesas', brl(P.despesas.media) + '/mês') +
-      kv('Rendimentos de investimentos', brl(P.renda.rendimentosLiquidos || 0) + '/mês', 'ficam na rentabilidade, não na renda') +
-      kv('Aportes líquidos em investimentos', brl(P.aportesLiquidosMes) + '/mês', 'o que de fato foi investido') +
+
+/* =================== FGTS =================== */
+function vFgts() {
+  const f = fgtsInfo(), c = f.cfg;
+  const intro = 'O FGTS é seu, mas fica guardado: só pode ser sacado para comprar imóvel, em algumas situações previstas em lei e, para quem aderiu, no saque-aniversário.';
+  const params = '<section class="card"><div class="card-head"><div><h2>Parâmetros</h2><p>Deixe em branco para usar o que vem do painel.</p></div></div><div class="form-grid">' +
+    '<div class="field"><label for="fg-dep">Depósito mensal do empregador</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="10" id="fg-dep" data-change="fgts" data-f="deposito" value="' + (fin(c.deposito) ? c.deposito : '') + '" placeholder="' + (f.pf && fin(f.pf.depositoMedio) ? f.pf.depositoMedio.toLocaleString('pt-BR') + ' (painel)' : '') + '"></div><span class="hint">8% do salário bruto. Painel: ' + (f.pf && fin(f.pf.depositoMedio) ? brl(f.pf.depositoMedio) : 'sem dados') + '</span></div>' +
+    '<div class="field"><label for="fg-taxa">Rendimento ao ano</label><div class="input-suf"><input class="input" type="number" step="0.1" id="fg-taxa" data-change="fgts" data-f="taxaAnual" value="' + (fin(c.taxaAnual) ? pctIn(c.taxaAnual) : '') + '" placeholder="' + (f.taxaPainel != null ? pctIn(f.taxaPainel).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' (painel)' : '5 (padrão)') + '"><span>%</span></div><span class="hint">3% + TR + distribuição de lucros. ' + (f.taxaPainel != null ? 'Painel: ' + pct(f.taxaPainel, 2) : 'Sem histórico no painel') + '</span></div>' +
+    (f.fonte !== 'painel' ? '<div class="field"><label for="fg-saldo">Saldo atual</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="0.01" id="fg-saldo" data-change="fgts" data-f="saldoManual" value="' + (fin(c.saldoManual) ? c.saldoManual : '') + '"></div><span class="hint">Veja no app FGTS. Use quando o painel não acompanha o FGTS.</span></div>' : '') +
+    '<div class="field full"><label class="switch"><input type="checkbox" data-act="toggleFgts" data-f="sacarNasProjecoes"' + (c.sacarNasProjecoes !== false ? ' checked' : '') + (c.aderente ? '' : ' disabled') + '>Nas projeções de objetivos, considerar que vou sacar todo ano</label><span class="hint">Desligue se pretende deixar o FGTS acumulando para o imóvel.</span></div>' +
+    '</div></section>';
+  if (f.saldo == null) return '<div class="page">' + head('FGTS', 'FGTS', intro) + '<div class="empty">Ainda não há saldo de FGTS. Se o painel acompanha o FGTS, abra o painel uma vez. Se não, informe o saldo abaixo.</div>' + params + '</div>';
+  const q = previsaoSaque(f), j = q.janela;
+  const faixas = E.FAIXAS_SAQUE.map((x, k) => '<tr class="' + (k === q.faixa ? 'faixa-on' : '') + '"><td>' + (k === 0 ? 'Até R$ 500' : (x.ate === Infinity ? 'Acima de ' + brl(E.FAIXAS_SAQUE[k - 1].ate) : brl(E.FAIXAS_SAQUE[k - 1].ate + 0.01, true).replace(',01', ',01') + ' a ' + brl(x.ate))) + '</td><td class="r">' + pct(x.aliquota, 0) + '</td><td class="r">' + brl(x.parcela) + '</td></tr>').join('');
+  let status;
+  if (!c.aderente) status = '<div class="notice notice-info">' + ico('info') + '<div>Você está no <b>saque-rescisão</b>: pode sacar tudo em caso de demissão sem justa causa, mas não há saque anual.</div></div>';
+  else if (j.aberta) status = '<div class="notice notice-ok">' + ico('check') + '<div style="flex:1"><b>A janela de ' + E.lerMes(j.inicio).ano + ' está aberta até o fim de ' + mesLongo(j.fim) + '.</b> Valor estimado: <b>' + brl(q.liquido) + '</b>, calculado com o saldo do fim de ' + mesLabel(f.mesSaldo) + '. Se não sacar até lá, o valor volta para o FGTS.' +
+    '<div style="margin-top:8px"><label class="switch"><input type="checkbox" data-act="saqueFeito"' + (j.sacouManual ? ' checked' : '') + '>Já fiz o saque desta janela</label></div></div></div>';
+  else status = '<div class="notice notice-info">' + ico('info') + '<div>' + (j.atual.aberta && j.sacouPainel ? 'Saque de <b>' + brl(j.sacouPainel.valor) + '</b> em ' + fmtData(j.sacouPainel.data) + ' registrado no painel. ' : j.atual.aberta && j.sacouManual ? 'Você marcou o saque de ' + E.lerMes(j.atual.inicio).ano + ' como feito' + ' <button class="btn btn-sm btn-ghost" data-act="saqueFeito" data-desfazer="1">Desfazer</button>. ' : '') +
+    'Próxima janela: <b>' + mesLongo(j.inicio) + ' a ' + mesLongo(j.fim) + '</b>.</div></div>';
+  // projeção de 5 anos
+  const n = 60, off = Math.max(0, E.mesesEntre(f.mesSaldo, hoje()));
+  const com = serieFgts(true, f).saldos.slice(off, off + n + 1), sem = serieFgts(false, f).saldos.slice(off, off + n + 1);
+  const usos = S.objetivos.filter(o => !o.arquivado && (o.vinculos || []).some(v => v.key === 'fgts'));
+  const imoveis = S.objetivos.filter(o => !o.arquivado && o.categoria === 'imovel');
+  return '<div class="page">' + head('FGTS', 'FGTS', intro) +
+    '<div class="grid g4">' +
+      stat('Saldo', brl(f.saldoAtual), f.fonte === 'painel' ? 'Painel · fim de ' + mesLabel(f.mesSaldo) : 'Informado por você', null, 'fgts') +
+      stat('Depósito mensal', brl(f.deposito), f.depOrigem === 'painel' ? 'Média do painel' : f.depOrigem === 'manual' ? 'Informado por você' : 'Sem dados', null, 'fgtsDep') +
+      stat('Rendimento', pct(f.taxa, 2) + '<small class="muted" style="font-size:.6em"> ao ano</small>', f.taxaOrigem === 'painel' ? 'Medido no painel' : f.taxaOrigem === 'manual' ? 'Informado por você' : 'Estimativa padrão', null, 'fgtsTaxa') +
+      (c.aderente ? stat(j.aberta ? 'Saque disponível agora' : 'Próximo saque-aniversário', brl(q.liquido), j.aberta ? 'Até o fim de ' + mesLabel(j.fim) : mesLabel(j.inicio) + ' a ' + mesLabel(j.fim), null, 'saque') : stat('Saque-aniversário', 'Não aderente', 'Modalidade saque-rescisão')) +
     '</div>' +
-    '<div class="fontes"><div class="fonte-row fonte-head"><span>Saldo no painel</span><span class="r">Valor</span><span>No Atlas conta como</span></div>' +
-      fontes.map(f => '<div class="fonte-row"><div class="fonte-nome"><b>' + esc(f.nome) + '</b><span class="tag">' + esc(f.origem) + '</span>' + (f.detalhe && f.detalhe !== f.nome ? '<small>' + esc(f.detalhe) + '</small>' : '') + '</div>' +
-        '<div class="r num fonte-valor' + (f.saldo < 0 ? ' delta-down' : '') + '">' + brl(f.saldo) + '</div>' +
-        '<select class="input" data-change="mapa" data-key="' + esc(f.key) + '" aria-label="Como considerar ' + esc(f.nome) + '">' + opts(f.tipoAtlas) + '</select></div>').join('') +
-    '</div>' +
-    '<p class="small muted" style="margin-top:10px">Marque como <b>Reserva de emergência</b> o saldo que cumpre esse papel. FGTS e vales entram fora do dinheiro disponível; contas transitórias (a receber ou a pagar) ficam de fora. Para corrigir um valor, ajuste no painel.</p>' +
-    (descal.length ? '<div class="notice notice-warn" style="margin-top:10px">' + ico('warn') + '<div>Sem calibração no painel: ' + descal.map(f => esc(f.nome)).join(', ') + '. O saldo pode estar subestimado; informe o saldo real na aba Investimentos do painel.</div></div>' : '')
-    : '<p class="small muted">Os dados do painel estão desligados. O Atlas usa só o que você cadastrar aqui.</p>') +
-  '</section>';
+    '<section class="card"><div class="card-head"><div><h2>Saque-aniversário</h2><p>Todo ano, no mês do seu aniversário, uma parte do saldo fica disponível por três meses.</p></div>' +
+      '<div class="btn-row" style="align-items:center"><label class="switch"><input type="checkbox" data-act="toggleFgts" data-f="aderente"' + (c.aderente ? ' checked' : '') + '>Sou aderente</label>' +
+      '<select class="input" style="width:auto" id="fg-mes" data-change="fgts" data-f="mesAniversario" aria-label="Mês de aniversário">' + MESES_LONGOS.map((m, k) => '<option value="' + (k + 1) + '"' + (c.mesAniversario === k + 1 ? ' selected' : '') + '>' + m + '</option>').join('') + '</select></div></div>' +
+      status +
+      (c.aderente ? '<div class="grid g2" style="margin-top:16px;align-items:start">' +
+        '<div class="stack" style="gap:10px"><h3>Como chegamos a ' + brl(q.liquido) + '</h3>' +
+          '<div class="calc">' +
+            '<div><span>Saldo de hoje</span><b>' + brl(f.saldoAtual) + '</b></div>' +
+            (q.kBase > 0 ? '<div><span>+ Depósitos até ' + mesLabel(E.somarMeses(j.inicio, -1)) + ' (' + q.kBase + ' × ' + brl(f.deposito) + ')</span><b>' + brl(q.depositos) + '</b></div><div><span>+ Rendimento (' + pct(f.taxa, 2) + ' ao ano)</span><b>' + brl(q.rendimento) + '</b></div>' : '') +
+            '<div class="calc-sub"><span>Saldo-base ' + (q.kBase > 0 ? 'previsto' : '') + '</span><b>' + brl(q.base) + '</b></div>' +
+            '<div><span>× ' + pct(q.aliquota, 0) + ' (alíquota da faixa)</span><b>' + brl(q.base * q.aliquota) + '</b></div>' +
+            '<div><span>+ Parcela adicional</span><b>' + brl(q.parcela) + '</b></div>' +
+            (q.comprometido ? '<div><span>− Comprometido com antecipação</span><b class="delta-down">−' + brl(q.comprometido) + '</b></div>' : '') +
+            '<div class="calc-total"><span>Valor para sacar</span><b>' + brl(q.liquido) + '</b></div>' +
+          '</div>' +
+          '<div class="field"><label for="fg-comp">Valor já comprometido com antecipação (se houver)</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="10" id="fg-comp" data-change="fgts" data-f="comprometido" value="' + (c.comprometido || '') + '" placeholder="0"></div><span class="hint">Se você antecipou o saque com um banco, a parcela deste ano vai direto para ele.</span></div>' +
+          '<p class="small muted">Estimativa: considera que os depósitos continuam até o mês anterior à janela. O valor exato aparece no app FGTS quando a janela abre.</p></div>' +
+        '<div><h3 style="margin-bottom:8px">Tabela da lei</h3><div class="table-wrap"><table class="faixas"><thead><tr><th>Saldo</th><th class="r">Alíquota</th><th class="r">Parcela adicional</th></tr></thead><tbody>' + faixas + '</tbody></table></div></div>' +
+      '</div>' : '') +
+    '</section>' +
+    '<section class="card"><div class="card-head"><div><h2>Saldo nos próximos 5 anos</h2><p>Valores nominais, com depósitos de ' + brl(f.deposito) + '/mês e ' + pct(f.taxa, 2) + ' ao ano.</p></div></div>' +
+      lineChart('fgts', { n, series: [{ name: 'Sem sacar', color: 'var(--slate)', values: sem, dash: true }].concat(c.aderente ? [{ name: 'Sacando todo ano', color: 'var(--gold)', values: com, area: true }] : []) }) +
+      (c.aderente ? '<p class="small muted" style="margin-top:8px">Em 5 anos, sacando todo ano, você retiraria cerca de ' + brl(serieFgts(true, f).saques.filter(x => x.k > off && x.k <= off + n).reduce((t, x) => t + x.valor, 0)) + ' e o saldo ficaria ' + brl(sem[n] - com[n]) + ' menor do que sem sacar.</p>' : '') +
+    '</section>' +
+    '<section class="card"><div class="card-head"><div><h2>Uso para imóvel</h2><p>O FGTS pode entrar na compra, na entrada ou na amortização de um imóvel residencial.</p></div></div>' +
+      (usos.length ? '<div class="stack">' + usos.map(o => { const v = o.vinculos.find(x => x.key === 'fgts'); return '<button class="goal-card" style="padding:12px 14px;gap:6px" data-act="openGoal" data-id="' + o.id + '"><div class="goal-top"><div class="goal-ico" style="width:34px;height:34px">' + ico('imovel') + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>Usa ' + v.pct + '% do FGTS · ' + mesLabel(o.dataAlvo) + '</p></div></div></button>'; }).join('') + '</div>' :
+        '<div class="empty">Nenhum objetivo usa o FGTS. ' + (imoveis.length ? 'Edite seu objetivo de imóvel e marque o FGTS em “Valor já reservado”.' : 'Crie um objetivo de imóvel para incluir o FGTS no plano.') + (imoveis.length ? '<button class="btn btn-sm" data-act="editGoal" data-id="' + imoveis[0].id + '">Editar ' + esc(imoveis[0].nome) + '</button>' : '<button class="btn btn-sm btn-primary" data-act="newGoal" data-cat="imovel">' + ico('plus') + 'Criar objetivo de imóvel</button>') + '</div>') +
+      '<p class="small muted" style="margin-top:12px">Para usar o FGTS na compra, em geral é preciso ter 3 anos de trabalho com carteira assinada (somando todos os empregos), não ter outro imóvel na cidade onde mora ou trabalha e o imóvel se enquadrar no Sistema Financeiro da Habitação. Confirme as condições com o banco ou a Caixa.</p>' +
+    '</section>' +
+    params +
+    (f.saques.length ? '<section class="card"><div class="card-head"><div><h2>Saques registrados no painel</h2></div></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Destino</th><th class="r">Valor</th></tr></thead><tbody>' + f.saques.map(x => '<tr><td>' + fmtData(x.data) + '</td><td>' + esc(x.destino || '') + '</td><td class="r">' + brl(x.valor, true) + '</td></tr>').join('') + '</tbody></table></div></section>' : '') +
+  '</div>';
+}
+
+/* =================== FIPE =================== */
+const FIPE_API = 'https://fipe.parallelum.com.br/api/v2';
+const FIPE_TIPOS = { cars: 'Carro', motorcycles: 'Moto', trucks: 'Caminhão' };
+async function fipeGet(path, semCache) {
+  const ck = 'fipe:' + path;
+  if (!semCache) { try { const c = sessionStorage.getItem(ck); if (c) return JSON.parse(c); } catch (e) { /* ok */ } }
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(FIPE_API + path, { signal: ctl.signal, headers: { Accept: 'application/json' } });
+    if (r.status === 429) throw new Error('limite');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    try { sessionStorage.setItem(ck, JSON.stringify(j)); } catch (e) { /* ok */ }
+    return j;
+  } finally { clearTimeout(t); }
+}
+const fipeLista = j => (Array.isArray(j) ? j : (j && (j.models || j.modelos)) || []).map(x => ({ code: String(x.code != null ? x.code : x.codigo), name: x.name != null ? x.name : x.nome }));
+const fipePreco = s => { const x = parseFloat(String(s || '').replace(/[^\d,]/g, '').replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+function fipeResultado(j) {
+  return { preco: fipePreco(j.price != null ? j.price : j.Valor), referencia: String(j.referenceMonth || j.MesReferencia || '').trim(), codeFipe: j.codeFipe || j.CodigoFipe || '', modelo: j.model || j.Modelo || '', marca: j.brand || j.Marca || '', anoModelo: j.modelYear || j.AnoModelo || '', combustivel: j.fuel || j.Combustivel || '' };
+}
+const fipeErroTxt = e => (e && e.message === 'limite' ? 'A consulta gratuita da FIPE atingiu o limite de hoje.' : 'Não consegui consultar a FIPE agora.') + ' Você pode informar o valor manualmente ou conferir em <a href="https://veiculos.fipe.org.br/" target="_blank" rel="noopener">veiculos.fipe.org.br</a>.';
+
+function formVeiculo(id) {
+  const a = id ? S.ativos.find(x => x.id === id) : null;
+  const fp = a && a.fipe;
+  ui.fipe = { tipo: (fp && fp.tipo) || 'cars', marcas: [], modelos: [], anos: [], marca: fp && fp.marca ? fp.marca.code : '', modelo: fp && fp.modelo ? fp.modelo.code : '', ano: fp && fp.ano ? fp.ano.code : '',
+    nomes: { marca: fp && fp.marca, modelo: fp && fp.modelo, ano: fp && fp.ano }, res: fp && fin(fp.preco) ? { preco: fp.preco, referencia: fp.referencia, codeFipe: fp.codeFipe } : null,
+    manual: a ? a.fonte !== 'fipe' : false, carregando: '', erro: '', filtro: '', trocando: !fp };
+  abrirModal('<div class="modal-head"><div><div class="eyebrow">Veículo</div><h2 style="margin-top:4px">' + (a ? 'Editar ' + esc(a.nome) : 'Adicionar veículo') + '</h2></div><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
+    '<form data-form="modal" class="stack" style="gap:14px" novalidate>' +
+      campo('v-nome', 'Nome', '<input class="input" id="v-nome" maxlength="80" value="' + esc(a ? a.nome : '') + '" placeholder="Ex.: Meu carro">') +
+      '<div class="seg" id="v-modo" role="group" aria-label="Origem do valor"><button type="button" data-act="fipeModo" data-v="fipe" aria-pressed="' + !ui.fipe.manual + '">Tabela FIPE</button><button type="button" data-act="fipeModo" data-v="manual" aria-pressed="' + ui.fipe.manual + '">Informar valor</button></div>' +
+      '<div id="fipeBox"></div>' +
+      '<div id="manualBox"' + (ui.fipe.manual ? '' : ' hidden') + '>' + campo('v-valor', 'Valor do veículo', inpMoney('v-valor', a && a.fonte !== 'fipe' ? a.valor : ''), 'Quanto você conseguiria vender hoje.') + '</div>' +
+      '<div id="ajusteBox"' + (ui.fipe.manual ? ' hidden' : '') + '>' + campo('v-aj', 'Ajuste sobre a FIPE', '<div class="input-suf" style="max-width:160px"><input class="input" type="number" step="1" min="-80" max="80" id="v-aj" value="' + (a && a.ajustePct ? a.ajustePct : 0) + '" data-input="fipeAj"><span>%</span></div>', 'Use negativo para quilometragem alta ou desgaste. Ex.: −10%.') + '<div id="fipeFinal" class="fipe-final"></div></div>' +
+      '<div id="formErr" class="err"></div><div class="modal-foot"><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>', () => {
+      const F = ui.fipe, nome = $('#v-nome').value.trim();
+      if (!nome) return erroForm('Dê um nome ao veículo.');
+      const v = { nome, tipo: 'veiculo', atualizadoEm: new Date().toISOString() };
+      if (F.manual) {
+        v.valor = num($('#v-valor').value); v.fonte = 'manual';
+        if (!fin(v.valor) || v.valor < 0) return erroForm('Informe o valor do veículo.');
+        if (a && a.fipe) v.fipe = a.fipe;
+      } else {
+        if (!F.res || !fin(F.res.preco)) return erroForm('Escolha marca, modelo e ano para consultar a FIPE.');
+        v.fonte = 'fipe'; v.ajustePct = num($('#v-aj').value) || 0;
+        v.fipe = { tipo: F.tipo, marca: F.nomes.marca, modelo: F.nomes.modelo, ano: F.nomes.ano, preco: F.res.preco, referencia: F.res.referencia, codeFipe: F.res.codeFipe, consultadoEm: new Date().toISOString() };
+        v.valor = F.res.preco;
+      }
+      commit(s => { if (a) Object.assign(s.ativos.find(x => x.id === a.id), v); else s.ativos.push(Object.assign({ id: novoId() }, v)); }, a ? 'Veículo atualizado' : 'Veículo adicionado');
+      return true;
+    });
+  pintarFipe();
+  if (!ui.fipe.manual && ui.fipe.trocando) carregarFipe('marcas');
+}
+function pintarFipe() {
+  const F = ui.fipe, box = $('#fipeBox'); if (!box) return;
+  $('#manualBox').hidden = !F.manual; $('#ajusteBox').hidden = F.manual;
+  if (F.manual) { box.innerHTML = ''; return; }
+  const sel = (id, label, itens, valor, vazio, extra) => '<div class="field"><label for="' + id + '">' + label + '</label><select class="input" id="' + id + '" data-change="fipe" data-step="' + id.slice(2) + '"' + (itens.length ? '' : ' disabled') + '><option value="">' + (itens.length ? vazio : F.carregando === id.slice(2) ? 'Carregando…' : '—') + '</option>' + itens.map(x => '<option value="' + esc(x.code) + '"' + (x.code === valor ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('') + '</select>' + (extra || '') + '</div>';
+  let h = '';
+  if (!F.trocando && F.res) {
+    h = '<div class="fipe-atual"><div><b>' + esc([F.nomes.marca && F.nomes.marca.name, F.nomes.modelo && F.nomes.modelo.name].filter(Boolean).join(' · ')) + '</b><small>' + esc(F.nomes.ano ? F.nomes.ano.name : '') + (F.res.codeFipe ? ' · código ' + esc(F.res.codeFipe) : '') + '</small></div><button type="button" class="btn btn-sm" data-act="fipeTrocar">Trocar veículo</button></div>';
+  } else {
+    const filtro = F.filtro.trim().toLowerCase(), modelos = filtro ? F.modelos.filter(m => m.name.toLowerCase().includes(filtro)) : F.modelos;
+    h = '<div class="seg" role="group" aria-label="Tipo">' + Object.entries(FIPE_TIPOS).map(([k, l]) => '<button type="button" data-act="fipeTipo" data-v="' + k + '" aria-pressed="' + (F.tipo === k) + '">' + l + '</button>').join('') + '</div>' +
+      '<div class="form-grid" style="margin-top:12px">' + sel('f-marca', 'Marca', F.marcas, F.marca, 'Escolha a marca') +
+      (F.marca ? '<div class="field"><label for="f-busca">Buscar modelo</label><input class="input" id="f-busca" data-input="fipeFiltro" value="' + esc(F.filtro) + '" placeholder="Ex.: 1.0, automático"></div>' : '<div></div>') +
+      '<div class="full">' + sel('f-modelo', 'Modelo' + (filtro ? ' (' + modelos.length + ' de ' + F.modelos.length + ')' : ''), modelos, F.modelo, 'Escolha o modelo') + '</div>' +
+      sel('f-ano', 'Ano e combustível', F.anos, F.ano, 'Escolha o ano') + '</div>';
+  }
+  if (F.erro) h += '<div class="notice notice-warn" style="margin-top:12px">' + ico('warn') + '<div>' + F.erro + '</div></div>';
+  box.innerHTML = h;
+  pintarFipeFinal();
+}
+function pintarFipeFinal() {
+  const F = ui.fipe, el = $('#fipeFinal'); if (!el) return;
+  if (F.carregando === 'preco') { el.innerHTML = '<span class="muted">Consultando a FIPE…</span>'; return; }
+  if (!F.res || !fin(F.res.preco)) { el.innerHTML = ''; return; }
+  const aj = num(($('#v-aj') || {}).value) || 0;
+  el.innerHTML = '<div><span>FIPE ' + esc(F.res.referencia) + '</span><b>' + brl(F.res.preco) + '</b></div>' + (aj ? '<div><span>Ajuste ' + (aj > 0 ? '+' : '−') + Math.abs(aj) + '%</span><b>' + (aj > 0 ? '+' : '−') + brl(Math.abs(F.res.preco * aj / 100)) + '</b></div>' : '') + '<div class="calc-total"><span>Valor considerado</span><b>' + brl(F.res.preco * (1 + aj / 100)) + '</b></div>';
+}
+async function carregarFipe(passo) {
+  const F = ui.fipe; F.erro = ''; F.carregando = passo; pintarFipe();
+  try {
+    if (passo === 'marcas') F.marcas = fipeLista(await fipeGet('/' + F.tipo + '/brands'));
+    else if (passo === 'modelos') F.modelos = fipeLista(await fipeGet('/' + F.tipo + '/brands/' + F.marca + '/models'));
+    else if (passo === 'anos') F.anos = fipeLista(await fipeGet('/' + F.tipo + '/brands/' + F.marca + '/models/' + F.modelo + '/years'));
+    else if (passo === 'preco') { F.res = fipeResultado(await fipeGet('/' + F.tipo + '/brands/' + F.marca + '/models/' + F.modelo + '/years/' + F.ano, true)); if (!fin(F.res.preco)) throw new Error('sem preço'); }
+  } catch (e) { F.erro = fipeErroTxt(e); if (passo === 'preco') F.res = null; }
+  F.carregando = ''; if (ui.fipe === F) pintarFipe();
+}
+async function atualizarFipe(ids) {
+  let ok = 0, falhas = 0;
+  for (const id of ids) {
+    const a = S.ativos.find(x => x.id === id); if (!a || !a.fipe || !a.fipe.marca || !a.fipe.modelo || !a.fipe.ano) continue;
+    try {
+      const r = fipeResultado(await fipeGet('/' + (a.fipe.tipo || 'cars') + '/brands/' + a.fipe.marca.code + '/models/' + a.fipe.modelo.code + '/years/' + a.fipe.ano.code, true));
+      if (!fin(r.preco)) throw new Error('sem preço');
+      Object.assign(a.fipe, { preco: r.preco, referencia: r.referencia, codeFipe: r.codeFipe || a.fipe.codeFipe, consultadoEm: new Date().toISOString() });
+      if (a.fonte === 'fipe') a.valor = r.preco;
+      ok++;
+    } catch (e) { falhas++; }
+  }
+  if (ok) { salvar(); render(); }
+  toast(ok ? (ok === 1 ? 'Valor FIPE atualizado' : ok + ' veículos atualizados pela FIPE') + (falhas ? '; ' + falhas + ' não responderam' : '') : 'Não consegui consultar a FIPE agora. Tente mais tarde ou informe o valor.');
+}
+
+/* =================== Origem dos valores =================== */
+/* Cada número clicável abre "De onde vem este valor": a conta, as parcelas e a fonte de cada uma. */
+function origemAtivo(a) {
+  if (a.fgts) { const f = fgtsInfo(); return f.fonte === 'painel' ? 'Painel · conta ' + fgtsContaNome() + ', saldo de ' + mesLabel(f.mesSaldo) : 'Informado no Atlas'; }
+  if (a.painel) {
+    const f = fontesPainel().find(x => x.key === a.fonteKey) || {};
+    return 'Painel · ' + (f.origem || 'saldo') + (f.detalhe && f.detalhe !== f.nome ? ' (' + f.detalhe + ')' : '') + (a.fracao < 0.999 ? ' · ' + pct(a.fracao, 0) + ' do saldo de ' + brl(f.saldo) : '');
+  }
+  if (a.fonte === 'fipe' && a.fipe) return 'Tabela FIPE de ' + (a.fipe.referencia || '—') + ': ' + brl(a.fipe.preco) + (Number(a.ajustePct) ? ' ' + (a.ajustePct > 0 ? '+' : '−') + Math.abs(a.ajustePct) + '% de ajuste' : '');
+  return 'Informado no Atlas' + (a.atualizadoEm ? ' em ' + fmtData(a.atualizadoEm.slice(0, 10)) : '');
+}
+const linhasAtivos = tipos => V().ativos.filter(a => tipos.includes(a.tipo)).map(a => ({ nome: a.nome, sub: TIPOS_ATIVO[a.tipo], origem: origemAtivo(a), valor: a.valor }));
+const CLASSE_ORIGEM = { conta: 'disponivel', reserva: 'reserva', investimento: 'longo', rv: 'rv', fgts: 'fgts', imobilizado: 'imobilizado' };
+
+function origem(id) {
+  const D = V(), d = E.diagnostico(D), usar = usandoPainel(), janela = usar ? 'média de ' + mesLabel(P.janela.de) + ' a ' + mesLabel(P.janela.ate) : '';
+  const acaoClassificar = { label: 'Classificar saldos', act: 'go', view: 'patrimonio' };
+  const acaoPainel = { label: 'Abrir o painel', href: PAINEL_URL };
+  const simples = (titulo, valor, tipos, formula, notas, acoes) => ({ titulo, valor, formula, linhas: linhasAtivos(tipos), total: valor, notas: notas || [], acoes: acoes || [acaoClassificar] });
+  const [tipo, arg] = String(id).split(':');
+  switch (tipo) {
+    case 'pl': return { titulo: 'Patrimônio líquido', valor: d.patrimonioLiquido, formula: 'Patrimônio líquido = tudo o que você tem − o que você deve',
+      linhas: [['disponivel', 'Dinheiro em conta', d.disponivel], ['reserva', 'Reserva de emergência', d.reserva], ['longo', 'Investimentos de longo prazo', d.longoPrazo], ['rv', 'Renda variável e FIIs', d.rendaVariavel], ['fgts', 'FGTS', d.patrimonioRestrito], ['imobilizado', 'Imobilizado (imóveis e veículos)', d.patrimonioImobilizado], ['dividas', 'Dívidas', -d.totalPassivos]]
+        .filter(x => Math.abs(x[2]) > 0.005).map(x => ({ nome: x[1], origem: 'Toque para ver a composição', valor: x[2], abre: x[0] })),
+      total: d.patrimonioLiquido, notas: ['Inclui FGTS e bens. Para saber o que dá para usar já, veja Liquidez imediata.'], acoes: [acaoClassificar] };
+    case 'ativos': return simples('Total de ativos', d.totalAtivos, Object.keys(TIPOS_ATIVO), 'Soma de todos os saldos e bens, cada um contado uma única vez');
+    case 'financeiro': return simples('Patrimônio financeiro', d.patrimonioFinanceiro, ['conta', 'reserva', 'investimento', 'rv'], 'Dinheiro em conta + reserva + longo prazo + renda variável', ['Não inclui FGTS, que é restrito, nem imóveis e veículos.']);
+    case 'investido': return simples('Patrimônio investido', d.patrimonioInvestido, ['reserva', 'investimento', 'rv'], 'Reserva de emergência + investimentos de longo prazo + renda variável',
+      ['Inclui a reserva de emergência, porque ela também está aplicada. Não inclui dinheiro parado em conta nem FGTS.', usar ? 'Os saldos das instituições são os da aba Investimentos do painel, no fim de ' + mesLabel(P.ultimoMesFechado) + ': saldo calibrado + aportes − resgates + rendimentos − IR e perdas.' : ''].filter(Boolean));
+    case 'liquidez': return simples('Liquidez imediata', d.liquidezImediata, ['conta', 'reserva'], 'Dinheiro em conta + reserva de emergência', ['É o que você consegue usar em poucos dias sem perder rendimento.']);
+    case 'disponivel': return simples('Dinheiro em conta', d.disponivel, ['conta'], 'Saldos de contas correntes e carteira');
+    case 'reserva': return simples('Reserva de emergência', d.reserva, ['reserva'], 'Parte dos saldos que você classificou como reserva (resgate imediato)',
+      d.reserva > 0 ? [] : ['Nenhum saldo está classificado como reserva. Em Patrimônio, use "Classificar" para dizer quanto de cada saldo é reserva.']);
+    case 'longo': return simples('Investimentos de longo prazo', d.longoPrazo, ['investimento'], 'Parte dos saldos com resgate em data futura (títulos com vencimento, previdência)');
+    case 'rv': return simples('Renda variável e FIIs', d.rendaVariavel, ['rv'], 'Parte dos saldos aplicada em ações, ETFs e fundos imobiliários', ['O painel acompanha só os proventos de renda variável; o valor das cotas entra pelo saldo das instituições, na proporção que você classificou.']);
+    case 'imobilizado': return simples('Imobilizado', d.patrimonioImobilizado, ['imovel', 'veiculo', 'outro'], 'Imóveis, veículos e outros bens', ['Entra no patrimônio líquido, mas não é dinheiro disponível.'], [{ label: 'Ver bens', act: 'go', view: 'patrimonio' }]);
+    case 'dividas': return { titulo: 'Dívidas', valor: d.totalPassivos, formula: 'Saldo devedor das dívidas cadastradas no Atlas', linhas: D.passivos.map(x => ({ nome: x.nome, origem: 'Informado no Atlas', valor: x.saldo })), total: d.totalPassivos, notas: usar ? ['As parcelas já estão nas despesas do painel; aqui conta só o saldo devedor.'] : [], acoes: [{ label: 'Ver dívidas', act: 'go', view: 'patrimonio' }] };
+    case 'fgts': {
+      const f = fgtsInfo();
+      const linhas = f.saldo == null ? [] : [{ nome: f.fonte === 'painel' ? 'Saldo no fim de ' + mesLabel(f.mesSaldo) : 'Saldo informado', origem: f.fonte === 'painel' ? (f.calibrado ? 'Painel · saldo calibrado + depósitos + rendimentos − saques' : 'Painel · saldo da conta ' + fgtsContaNome() + ' (sem calibração)') : 'Informado no Atlas', valor: f.saldo }].concat(f.ajustes);
+      return { titulo: 'FGTS', valor: f.saldoAtual, formula: 'Saldo do FGTS − saques feitos depois do último mês fechado', linhas, total: f.saldoAtual,
+        notas: ['É seu, mas é restrito: só pode ser sacado em situações da lei, como compra de imóvel, ou no saque-aniversário. Por isso não entra no patrimônio financeiro.'].concat(f.fonte === 'painel' && !f.calibrado ? ['Informe o saldo real do FGTS na aba Investimentos do painel para calibrar.'] : []),
+        acoes: [{ label: 'Abrir FGTS', act: 'go', view: 'fgts' }, acaoPainel] };
+    }
+    case 'fgtsDep': { const f = fgtsInfo(); return { titulo: 'Depósito mensal do FGTS', valor: f.deposito, formula: f.depOrigem === 'painel' ? 'Média dos depósitos do empregador (' + janela + ')' : f.depOrigem === 'manual' ? 'Valor informado por você' : 'Sem dados de depósito',
+      linhas: f.depOrigem === 'painel' ? [{ nome: 'Depósitos do empregador', origem: 'Painel · receitas da categoria FGTS, sem o rendimento', valor: f.pf.depositoMedio }] : [], total: f.deposito, notas: ['O empregador deposita 8% do salário bruto por mês. Nas projeções, o Atlas mantém esse valor.'], acoes: [{ label: 'Ajustar', act: 'go', view: 'fgts' }] }; }
+    case 'fgtsTaxa': { const f = fgtsInfo(); return { titulo: 'Rendimento do FGTS', valor: null, valorTxt: pct(f.taxa, 2) + ' ao ano', formula: f.taxaOrigem === 'painel' ? 'Rendimento dos últimos meses ÷ saldo médio, anualizado' : f.taxaOrigem === 'manual' ? 'Valor informado por você' : 'Referência: 3% ao ano + TR + distribuição de lucros (estimativa de 5% ao ano)',
+      linhas: f.taxaOrigem === 'painel' ? [{ nome: 'Rendimento médio por mês', origem: 'Painel · receitas FGTS com subcategoria Rendimento', valor: f.pf.rendimentoMedio }] : [], total: null, notas: ['Rendimento passado não garante o futuro. A distribuição de lucros do FGTS varia a cada ano.'], acoes: [{ label: 'Ajustar', act: 'go', view: 'fgts' }] }; }
+    case 'saque': {
+      const f = fgtsInfo(), q = previsaoSaque(f); if (!q) return { titulo: 'Saque-aniversário', valor: 0, linhas: [], notas: ['Sem saldo de FGTS.'] };
+      const fx = E.FAIXAS_SAQUE[q.faixa];
+      return { titulo: 'Saque-aniversário de ' + mesLabel(q.janela.inicio), valor: q.liquido,
+        formula: 'Saque = saldo × ' + pct(q.aliquota, 0) + ' + ' + brl(q.parcela) + '  (faixa ' + (q.faixa === 0 ? 'até R$ 500' : 'de ' + brl(E.FAIXAS_SAQUE[q.faixa - 1].ate) + ' a ' + (fx.ate === Infinity ? 'acima' : brl(fx.ate))) + ')',
+        linhas: [{ nome: 'Saldo de hoje', origem: f.fonte === 'painel' ? 'Painel' : 'Informado', valor: f.saldoAtual },
+          { nome: 'Depósitos até ' + mesLabel(E.somarMeses(q.janela.inicio, -1)), origem: q.kBase + ' × ' + brl(f.deposito), valor: q.depositos },
+          { nome: 'Rendimento no período', origem: pct(f.taxa, 2) + ' ao ano', valor: q.rendimento },
+          { nome: 'Saldo-base previsto', origem: 'Fim de ' + mesLabel(E.somarMeses(q.janela.inicio, -1)), valor: q.base, forte: true },
+          { nome: pct(q.aliquota, 0) + ' do saldo-base', origem: 'Alíquota da faixa', valor: q.base * q.aliquota },
+          { nome: 'Parcela adicional', origem: 'Fixa da faixa', valor: q.parcela }]
+          .concat(q.comprometido ? [{ nome: 'Comprometido com antecipação', origem: 'Informado por você', valor: -q.comprometido }] : []),
+        total: q.liquido, notas: ['Estimativa. O valor exato aparece no app FGTS quando a janela abre.'], acoes: [{ label: 'Abrir FGTS', act: 'go', view: 'fgts' }] };
+    }
+    case 'renda': {
+      const linhas = usar ? [
+        { nome: 'Receita líquida recorrente', origem: 'Painel · ' + janela + ', depois de INSS, IR e outras deduções', valor: P.renda.recorrente },
+        { nome: 'Rendimentos de investimentos', origem: 'Painel · retirados aqui porque já estão na rentabilidade dos saldos', valor: -Math.max(0, P.renda.rendimentosLiquidos || 0) },
+        { nome: '13º, 1/3 de férias e PLR', origem: 'Painel · média mensal das receitas sazonais', valor: P.renda.sazonal }] : [];
+      S.rendas.forEach(r => linhas.push({ nome: r.nome, origem: 'Informado no Atlas', valor: r.valor }));
+      return { titulo: 'Renda mensal', valor: d.rendaTotal, formula: 'Renda líquida média por mês', linhas, total: d.rendaTotal, notas: [], acoes: [{ label: 'Ver fluxo mensal', act: 'go', view: 'fluxo' }, acaoPainel] };
+    }
+    case 'despesas': {
+      const linhas = usar ? [{ nome: 'Despesas', origem: 'Painel · ' + janela + ', sem transferências e sem investimentos', valor: P.despesas.media }] : [];
+      S.despesas.forEach(x => linhas.push({ nome: x.nome, origem: 'Informado no Atlas' + (x.tipo === 'extraordinaria' ? ' · média mensal' : ''), valor: x.valor }));
+      return { titulo: 'Despesas mensais', valor: (d.despesasOrdinarias || 0) + (d.despesasExtraordinarias || 0), formula: 'Média das despesas por mês', linhas, total: (d.despesasOrdinarias || 0) + (d.despesasExtraordinarias || 0), notas: [], acoes: [{ label: 'Ver fluxo mensal', act: 'go', view: 'fluxo' }, acaoPainel] };
+    }
+    case 'capacidade': {
+      if (d.capacidadeManual) return { titulo: 'Capacidade de aporte', valor: d.capacidade, formula: 'Valor definido manualmente por você', linhas: [{ nome: 'Calculada', origem: 'Renda − despesas − parcelas', valor: d.capacidadeCalculada }], total: d.capacidade, notas: [], acoes: [{ label: 'Ver fluxo mensal', act: 'go', view: 'fluxo' }] };
+      return { titulo: 'Capacidade de aporte', valor: d.capacidade, formula: 'Renda − despesas' + (d.parcelas ? ' − parcelas de dívidas' : ''),
+        linhas: [{ nome: 'Renda mensal', origem: 'Toque para ver', valor: d.rendaTotal, abre: 'renda' }, { nome: 'Despesas mensais', origem: 'Toque para ver', valor: -((d.despesasOrdinarias || 0) + (d.despesasExtraordinarias || 0)), abre: 'despesas' }].concat(d.parcelas ? [{ nome: 'Parcelas de dívidas', origem: 'Informado no Atlas', valor: -d.parcelas }] : []),
+        total: d.capacidade, notas: ['Num mês típico garantido, sem 13º, férias e PLR: ' + brl(d.capacidadeRecorrente) + '.'], acoes: [{ label: 'Ver fluxo mensal', act: 'go', view: 'fluxo' }] };
+    }
+    case 'poupanca': return { titulo: 'Taxa de poupança', valor: null, valorTxt: pct(d.taxaPoupanca), formula: 'Capacidade de aporte ÷ renda = ' + brl(d.capacidade) + ' ÷ ' + brl(d.rendaTotal), linhas: [], notas: ['É diferente da taxa do painel porque o Atlas tira os rendimentos de investimentos da renda.'], acoes: [] };
+    case 'mesesReserva': return { titulo: 'Reserva de emergência em meses', valor: null, valorTxt: fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '—',
+      formula: 'Reserva ÷ custo mensal = ' + brl(d.reserva) + ' ÷ ' + brl((d.despesasOrdinarias || 0) + d.parcelas),
+      linhas: [{ nome: 'Reserva de emergência', origem: 'Toque para ver', valor: d.reserva, abre: 'reserva' }, { nome: 'Custo mensal', origem: 'Despesas recorrentes e parcelas', valor: (d.despesasOrdinarias || 0) + d.parcelas }], notas: [], acoes: [acaoClassificar] };
+    case 'livre': return { titulo: 'Livre para novos objetivos', valor: d.livreParaObjetivos, formula: 'Patrimônio financeiro − valores já reservados em objetivos',
+      linhas: [{ nome: 'Patrimônio financeiro', origem: 'Toque para ver', valor: d.patrimonioFinanceiro, abre: 'financeiro' }].concat(D.objetivos.filter(o => !o.arquivado && o.acumulado > 0.005).map(o => ({ nome: o.nome, origem: o.vinculado ? 'Vinculado a saldos do painel' : 'Informado no objetivo', valor: -o.acumulado }))),
+      total: d.livreParaObjetivos, notas: ['O FGTS vinculado a um imóvel não entra aqui, porque ele não faz parte do patrimônio financeiro.'], acoes: [] };
+    case 'obj': {
+      const o = D.objetivos.find(x => x.id === arg); if (!o) return null;
+      const a = analisar(o, 'base');
+      let linhas;
+      if (o.vinculado) linhas = Object.entries(o.porFonte || {}).map(([k, v]) => ({ nome: fonteNome(k), origem: 'Painel · ' + o.vinculos.filter(x => x.key !== 'fgts').map(x => fonteNome(x.key) + ' ' + x.pct + '%').join(', '), valor: v }));
+      else linhas = [{ nome: 'Valor informado', origem: 'Informado no objetivo', valor: o.acumulado || 0 }];
+      if (a.extraHoje > 0) { const fi = fgtsInfo(); linhas.push({ nome: 'FGTS (' + o.fgtsPct + '%)', origem: 'Saldo de ' + mesLabel(fi.mesSaldo) + ' (' + brl(fi.saldoAtual) + ') + depósitos e rendimento estimados até hoje' + (fi.janela.aberta && fi.cfg.aderente && fi.cfg.sacarNasProjecoes !== false ? '; o saque-aniversário deste ano sai no mês que vem' : ''), valor: a.extraHoje }); }
+      return { titulo: 'Reservado para ' + o.nome, valor: a.acumulado, formula: o.vinculado ? 'Acompanha os saldos vinculados' : 'Valor informado por você', linhas, total: a.acumulado,
+        notas: a.extraHoje > 0 ? ['O FGTS segue o próprio ritmo: depósitos do empregador + ' + pct(fgtsInfo().taxa, 2) + ' ao ano' + (fgtsInfo().cfg.sacarNasProjecoes !== false && fgtsInfo().cfg.aderente ? ' − saques-aniversário' : '') + '. No prazo ele deve somar ' + brl(a.extraNoPrazo) + '.'] : [],
+        acoes: [{ label: 'Editar vínculos', act: 'editGoal', id: o.id }] };
+    }
+    case 'nec': {
+      const o = D.objetivos.find(x => x.id === arg); if (!o) return null;
+      const a = analisar(o, 'base'), p = a.premissas, f = Math.pow(1 + p.taxaMensal, a.meses);
+      return { titulo: 'Aporte necessário para ' + o.nome, valor: fin(a.aporteNecessario) ? a.aporteNecessario : null, valorTxt: fin(a.aporteNecessario) ? null : 'prazo vencido',
+        formula: 'PMT = [Meta − Saldo·(1+i)^n] · i ÷ [(1+i)^n − 1]\n\nMeta' + (a.extraNoPrazo > 0 ? ' sem FGTS' : '') + ' = ' + brl(a.alvo - a.extraNoPrazo, true) + '\nSaldo = ' + brl(a.acumuladoProprio, true) + '\ni = ' + (p.taxaMensal * 100).toLocaleString('pt-BR', { maximumFractionDigits: 4 }) + '% ao mês (' + pct(p.taxaAnualUsada, 2) + ' ao ano' + (p.considerarInflacao ? ', real' : '') + ')\nn = ' + a.meses + ' meses\n(1+i)^n = ' + f.toLocaleString('pt-BR', { maximumFractionDigits: 4 }),
+        linhas: [], notas: ['Cenário base: ' + pct(p.rentabilidadeAnual) + ' ao ano' + (p.considerarInflacao ? ' com inflação de ' + pct(p.inflacaoAnual) + '. Meta e aportes em valores de hoje.' : ', sem inflação.'), 'Aportes no fim de cada mês.'], acoes: [] };
+    }
+  }
+  return null;
+}
+function abrirOrigem(id) {
+  const o = origem(id); if (!o) return;
+  const v = o.valorTxt || (o.valor == null ? '—' : brl(o.valor, true));
+  const linha = l => '<tr' + (l.abre ? ' class="row-link" data-act="origem" data-id="' + l.abre + '" tabindex="0"' : '') + (l.forte ? ' style="font-weight:600"' : '') + '><td><b>' + esc(l.nome) + '</b>' + (l.sub ? ' <span class="tag">' + esc(l.sub) + '</span>' : '') + '<div class="small muted">' + esc(l.origem || '') + '</div></td><td class="r num' + (l.valor < 0 ? ' delta-down' : '') + '">' + (l.valor < 0 ? '−' + brl(-l.valor, true) : brl(l.valor, true)) + (l.abre ? ' ' + ico('back', ' style="transform:rotate(180deg);width:14px;height:14px;vertical-align:-2px"') : '') + '</td></tr>';
+  const acoes = (o.acoes || []).map(a => a.href ? '<a class="btn btn-sm" href="' + a.href + '">' + a.label + '</a>' : '<button type="button" class="btn btn-sm" data-act="' + a.act + '"' + (a.view ? ' data-view="' + a.view + '"' : '') + (a.id ? ' data-id="' + a.id + '"' : '') + '>' + a.label + '</button>').join('');
+  abrirModal('<div class="modal-head"><div><div class="eyebrow">De onde vem este valor</div><h2 style="margin-top:4px">' + esc(o.titulo) + '</h2></div><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
+    '<div class="origem-valor">' + v + '</div>' +
+    (o.formula ? '<div class="formula" style="white-space:pre-wrap">' + esc(o.formula) + '</div>' : '') +
+    (o.linhas && o.linhas.length ? '<div class="table-wrap"><table class="origem-tab"><tbody>' + o.linhas.map(linha).join('') + (o.total != null && o.linhas.length > 1 ? '<tr class="origem-total"><td>Total</td><td class="r num">' + brl(o.total, true) + '</td></tr>' : '') + '</tbody></table></div>' : '') +
+    ((o.notas || []).length ? '<div class="stack small muted">' + o.notas.map(n => '<p>' + esc(n) + '</p>').join('') + '</div>' : '') +
+    '<div class="modal-foot" style="justify-content:space-between"><div class="btn-row">' + acoes + '</div><button type="button" class="btn btn-primary" data-act="closeModal">Fechar</button></div>');
 }
 
 /* =================== Objetivos =================== */
@@ -1434,7 +2124,7 @@ function goalCard(o) {
   const nec = a.status === 'concluido' ? 'Meta atingida' : fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'Prazo vencido';
   return '<button class="goal-card" data-act="openGoal" data-id="' + o.id + '">' +
     '<div class="goal-top"><div class="goal-ico">' + ico(o.categoria) + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>' + mesLabel(o.dataAlvo) + ' · ' + (a.meses > 0 ? 'faltam ' + duracao(a.meses) : 'prazo atingido') + '</p></div></div>' +
-    '<div class="btn-row" style="gap:6px">' + pill(a.status) + (o.vinculado ? '<span class="tag">Saldo do painel</span>' : '') + '</div>' +
+    '<div class="btn-row" style="gap:6px">' + pill(a.status) + (o.vinculado ? '<span class="tag">Vinculado a saldos</span>' : '') + (o.extra ? '<span class="tag">Inclui FGTS</span>' : '') + '</div>' +
     '<div><div class="progress-line"><span>' + brl(a.acumulado) + ' de ' + brl(a.alvo) + '</span><b class="num">' + pct(a.progresso, 0) + '</b></div><div class="bar"><span style="width:' + (a.progresso * 100).toFixed(1) + '%"></span></div></div>' +
     '<div class="kv"><div><span>Aporte planejado</span><b>' + brl(o.aporte) + '</b></div><div><span>Aporte necessário</span><b>' + nec + '</b></div>' +
     '<div><span>Projeção no prazo</span><b>' + brl(a.projetado) + '</b></div><div><span>Da meta</span><b>' + pct(a.cobertura, 0) + '</b></div></div>' +
@@ -1457,12 +2147,12 @@ function vObjetivo() {
   if (a.status === 'concluido') {
     caminhos = '<div class="notice notice-ok">' + ico('check') + '<div>Meta atingida. Você pode marcar este objetivo como concluído arquivando-o.</div></div>';
   } else if (!fin(a.aporteNecessario)) {
-    const n2 = E.mesesParaMeta(a.alvo, a.acumulado, i, o.aporte || 0);
+    const n2 = E.mesesAte(a, o.aporte || 0);
     caminhos = '<div class="notice notice-bad">' + ico('warn') + '<div>A data-alvo já chegou e faltam ' + brl(a.alvo - a.acumulado) + '. ' + (fin(n2) ? 'Com o aporte atual, a meta seria atingida em <b>' + mesLongo(E.somarMeses(hoje(), n2)) + '</b>.' : 'Com o aporte atual a meta não é alcançada.') + '</div></div>' +
       (fin(n2) ? '<div class="btn-row"><button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="dataAlvo" data-valor="' + E.somarMeses(hoje(), n2) + '">Mudar data para ' + mesLabel(E.somarMeses(hoje(), n2)) + '</button></div>' : '');
   } else {
-    const nAdiar = E.mesesParaMeta(a.alvo, a.acumulado, i, o.aporte || 0);
-    const metaPossivel = E.valorFuturo(a.acumulado, i, a.meses, o.aporte || 0);
+    const nAdiar = E.mesesAte(a, o.aporte || 0);
+    const metaPossivel = E.valorNoPrazo(a, o.aporte || 0);
     const linha = (num, titulo, texto, botao) => '<div class="alt"><div class="alt-head"><div class="alt-num">' + num + '</div><div style="flex:1;min-width:0"><h3>' + titulo + '</h3><p class="small muted" style="margin-top:2px">' + texto + '</p></div></div>' + (botao ? '<div style="padding-left:40px">' + botao + '</div>' : '') + '</div>';
     if (a.status === 'no_caminho') {
       caminhos = '<div class="notice notice-ok">' + ico('check') + '<div>No cenário base, o aporte planejado leva a ' + brl(a.projetado) + ' no prazo, ' + brl(a.diferenca) + ' acima da meta.</div></div>' +
@@ -1488,9 +2178,9 @@ function vObjetivo() {
       '<div class="btn-row"><button class="btn" data-act="editGoal" data-id="' + o.id + '">' + ico('edit') + 'Editar</button><button class="btn" data-act="simGoal" data-id="' + o.id + '">' + ico('sim') + 'Simular</button><button class="btn btn-ghost" data-act="archiveGoal" data-id="' + o.id + '">' + ico('archive') + (o.arquivado ? 'Reativar' : 'Arquivar') + '</button><button class="btn btn-ghost btn-danger" data-act="delGoal" data-id="' + o.id + '">' + ico('trash') + 'Excluir</button></div></div>' +
     '<div class="grid g4">' +
       stat('Meta', brl(a.alvo), inf ? 'Em valores de hoje. Na data-alvo: ' + brl(a.alvoNominal) + ' (cenário base)' : 'Valor nominal') +
-      stat('Reservado', brl(a.acumulado), pct(a.progresso, 0) + ' da meta' + (o.vinculado ? '<br>Do painel: ' + o.vinculos.map(v => esc(fonteNome(v.key)) + (v.pct < 100 ? ' (' + v.pct + '%)' : '')).join(', ') : '')) +
+      stat('Reservado', brl(a.acumulado), pct(a.progresso, 0) + ' da meta' + ((o.vinculos || []).length && o.vinculado ? '<br>' + o.vinculos.map(v => esc(fonteNome(v.key)) + (v.pct < 100 ? ' (' + v.pct + '%)' : '')).join(', ') : ''), null, 'obj:' + o.id) +
       stat('Prazo', mesLabel(o.dataAlvo), a.meses > 0 ? 'Faltam ' + duracao(a.meses) : 'Data-alvo atingida') +
-      stat('Aporte planejado', brl(o.aporte), a.status === 'concluido' ? 'Meta atingida' : 'Necessário: ' + (fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'prazo vencido')) +
+      stat('Aporte planejado', brl(o.aporte), a.status === 'concluido' ? 'Meta atingida' : 'Necessário: ' + (fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'prazo vencido'), null, a.status === 'concluido' ? null : 'nec:' + o.id) +
     '</div>' +
     '<div class="grid g-main">' +
       '<section class="card"><div class="card-head"><div><h2>Projeção da evolução</h2><p>Aporte planejado em cada cenário. Linha tracejada: a meta.</p></div>' +
@@ -1910,11 +2600,13 @@ const inpMoney = (id, v, extra) => '<div class="input-pre"><span>R$</span><input
 const ITENS = {
   rendas: { titulo: 'renda', campos: x => campo('f-nome', 'Fonte', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Salário líquido">', '', true) + campo('f-valor', 'Valor líquido mensal', inpMoney('f-valor', x.valor, ' required')) + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo"><option value="fixa"' + (x.tipo !== 'variavel' ? ' selected' : '') + '>Fixa</option><option value="variavel"' + (x.tipo === 'variavel' ? ' selected' : '') + '>Variável (use a média)</option></select>'), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
   despesas: { titulo: 'despesa', campos: x => campo('f-nome', 'Despesa', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Alimentação">', '', true) + campo('f-valor', 'Valor mensal', inpMoney('f-valor', x.valor, ' required'), 'Extraordinárias: valor anual ÷ 12') + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo"><option value="ordinaria"' + (x.tipo !== 'extraordinaria' ? ' selected' : '') + '>Mensal recorrente</option><option value="extraordinaria"' + (x.tipo === 'extraordinaria' ? ' selected' : '') + '>Extraordinária (média)</option></select>'), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
-  ativos: { titulo: 'ativo', campos: x => campo('f-nome', 'Nome', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: CDB do banco X">', '', true) + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo">' + Object.entries(TIPOS_ATIVO).map(([k, l]) => '<option value="' + k + '"' + (x.tipo === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>', 'Reserva conta como financeiro e mede os meses cobertos') + campo('f-valor', 'Valor atual', inpMoney('f-valor', x.valor, ' required')), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
+  ativos: { titulo: 'saldo', campos: x => campo('f-nome', 'Nome', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Previdência privada">', '', true) + campo('f-tipo', 'Classe', '<select class="input" id="f-tipo">' + ['reserva', 'investimento', 'rv', 'conta'].map(k => '<option value="' + k + '"' + (x.tipo === k ? ' selected' : '') + '>' + TIPOS_ATIVO[k] + '</option>').join('') + '</select>') + campo('f-valor', 'Valor atual', inpMoney('f-valor', x.valor, ' required')), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value, atualizadoEm: new Date().toISOString() }) },
+  bens: { titulo: 'bem', lista: 'ativos', campos: x => campo('f-nome', 'Nome', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Apartamento">', '', true) + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo">' + ['imovel', 'outro', 'veiculo'].map(k => '<option value="' + k + '"' + (x.tipo === k ? ' selected' : '') + '>' + TIPOS_ATIVO[k] + '</option>').join('') + '</select>') + campo('f-valor', 'Valor de mercado', inpMoney('f-valor', x.valor, ' required'), 'Quanto você conseguiria vender hoje.') + campo('f-obs', 'Referência (opcional)', '<input class="input" id="f-obs" maxlength="80" value="' + esc(x.obs || '') + '" placeholder="Ex.: avaliação do corretor">', '', true), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value, obs: $('#f-obs').value.trim(), fonte: 'manual', atualizadoEm: new Date().toISOString() }) },
   passivos: { titulo: 'dívida', campos: x => campo('f-nome', 'Dívida', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Financiamento imobiliário">', '', true) + campo('f-saldo', 'Saldo devedor', inpMoney('f-saldo', x.saldo, ' required')) + campo('f-parcela', 'Parcela mensal', inpMoney('f-parcela', x.parcela)) + campo('f-taxa', 'Juros ao ano (opcional)', '<div class="input-suf"><input class="input" type="number" step="0.01" min="0" id="f-taxa" value="' + (x.taxaAnual ? pctIn(x.taxaAnual) : '') + '"><span>%</span></div>'), ler: () => ({ nome: $('#f-nome').value.trim(), saldo: num($('#f-saldo').value), parcela: num($('#f-parcela').value) || 0, taxaAnual: (num($('#f-taxa').value) || 0) / 100 }) }
 };
 function formItem(tipo, id) {
-  const cfg = ITENS[tipo], x = id ? S[tipo].find(i => i.id === id) : {};
+  const cfg = ITENS[tipo], lista = cfg.lista || tipo, x = id ? S[lista].find(i => i.id === id) : {};
+  if (tipo === 'bens' && x && x.tipo === 'veiculo') { formVeiculo(id); return; }
   abrirModal('<div class="modal-head"><h2>' + (id ? 'Editar ' : 'Adicionar ') + cfg.titulo + '</h2><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
     '<form data-form="modal" class="stack" style="gap:16px" novalidate><div class="form-grid">' + cfg.campos(x) + '</div><div id="formErr" class="err"></div><div class="modal-foot"><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>', () => {
       const v = cfg.ler();
@@ -1922,32 +2614,42 @@ function formItem(tipo, id) {
       if (!v.nome) return erroForm('Informe um nome.');
       if (!fin(valorCampo) || valorCampo < 0) return erroForm('Informe um valor maior ou igual a zero.');
       if (tipo === 'passivos' && (!fin(v.parcela) || v.parcela < 0)) return erroForm('A parcela precisa ser zero ou positiva.');
-      commit(s => { if (id) Object.assign(s[tipo].find(i => i.id === id), v); else s[tipo].push(Object.assign({ id: novoId() }, v)); }, id ? 'Alterações salvas' : 'Item adicionado');
+      commit(s => { if (id) Object.assign(s[lista].find(i => i.id === id), v); else s[lista].push(Object.assign({ id: novoId() }, v)); }, id ? 'Alterações salvas' : 'Item adicionado');
       return true;
     });
 }
 function erroForm(t) { const el = $('#formErr'); if (el) el.textContent = t; return false; }
-function formGoal(id) {
-  const o = id ? S.objetivos.find(x => x.id === id) : { categoria: 'outro', prioridade: 3, flex: 'moderado', acumulado: 0, aporte: 0, dataAlvo: E.somarMeses(hoje(), 24), vinculos: [] };
+function formGoal(id, catInicial) {
+  const o = id ? S.objetivos.find(x => x.id === id) : { categoria: catInicial || 'outro', prioridade: 3, flex: 'moderado', acumulado: 0, aporte: 0, dataAlvo: E.somarMeses(hoje(), 24), vinculos: [] };
   const segP = [1, 2, 3, 4, 5].map(v => '<button type="button" data-act="formPrio" data-v="' + v + '" aria-pressed="' + (o.prioridade === v) + '">' + v + '</button>').join('');
   const segF = Object.entries(FLEX).map(([k, l]) => '<button type="button" data-act="formFlex" data-v="' + k + '" aria-pressed="' + (o.flex === k) + '">' + l.replace('Prazo ', '') + '</button>').join('');
-  const d = E.diagnostico(V());
-  const fontes = usandoPainel() ? fontesPainel().filter(f => ['investimento', 'reserva', 'conta'].includes(f.tipoAtlas)) : [];
+  const D = V(), d = E.diagnostico(D);
+  const fontes = usandoPainel() ? fontesPainel() : [], fm = fontes.map(f => ({ key: f.key, saldo: f.saldo, partes: fracoes(f.partes) }));
+  const fg = fgtsInfo();
+  const totClasse = c => E.expandirVinculos([{ key: 'classe:' + c, pct: 100 }], fm).total;
+  const opcoesClasse = ['reserva', 'investimento', 'rv', 'conta'].map(c => ({ key: 'classe:' + c, nome: CLASSES[c], sub: 'Soma de todos os saldos classificados assim', saldo: totClasse(c) })).filter(x => x.saldo > 0.5);
+  const opcoesFonte = fontes.filter(f => f.saldo > 0.5 && !(fracoes(f.partes).ignorar > 0.999)).map(f => ({ key: f.key, nome: f.nome, sub: f.origem + ' · saldo inteiro', saldo: f.saldo }));
   const vinc = o.vinculos || [];
-  const modo = vinc.length && fontes.length ? 'painel' : 'manual';
-  const efetivoO = id ? V().objetivos.find(x => x.id === id) : null;
-  const livre = d.livreParaObjetivos + (efetivoO ? (efetivoO.acumulado || 0) : 0);
-  const blocoReserva = fontes.length ?
-    '<div class="field full"><span class="label">Valor já reservado</span><div class="seg" id="g-modo" data-v="' + modo + '"><button type="button" data-act="formModo" data-v="manual" aria-pressed="' + (modo === 'manual') + '">Informar valor</button><button type="button" data-act="formModo" data-v="painel" aria-pressed="' + (modo === 'painel') + '">Usar saldos do painel</button></div></div>' +
+  const temOpcoes = opcoesClasse.length || opcoesFonte.length || fg.saldo != null;
+  const modo = vinc.length && temOpcoes ? 'painel' : 'manual';
+  const efO = id ? D.objetivos.find(x => x.id === id) : null;
+  const livre = d.livreParaObjetivos + (efO && !efO.vinculado ? (efO.acumulado || 0) : 0);
+  const opcao = (x, k, extraAttr) => { const v = vinc.find(y => y.key === x.key); return '<div class="vinc"' + (extraAttr || '') + '><label class="vinc-chk"><input type="checkbox" data-vk="' + esc(x.key) + '"' + (v ? ' checked' : '') + '><span><b>' + esc(x.nome) + '</b><small>' + esc(x.sub) + ' · ' + brl(x.saldo) + '</small></span></label><div class="input-suf vinc-pct"><input class="input" type="number" min="1" max="100" step="1" id="g-vp-' + k + '" data-vpct="' + esc(x.key) + '" value="' + (v ? v.pct : 100) + '" aria-label="Porcentagem de ' + esc(x.nome) + '"><span>%</span></div></div>'; };
+  let k = 0;
+  const blocoReserva = temOpcoes ?
+    '<div class="field full"><span class="label">Valor já reservado</span><div class="seg" id="g-modo" data-v="' + modo + '"><button type="button" data-act="formModo" data-v="manual" aria-pressed="' + (modo === 'manual') + '">Informar valor</button><button type="button" data-act="formModo" data-v="painel" aria-pressed="' + (modo === 'painel') + '">Usar saldos</button></div></div>' +
     '<div class="full" id="g-manual"' + (modo === 'painel' ? ' hidden' : '') + '>' + campo('g-acum', 'Quanto já está separado', inpMoney('g-acum', o.acumulado), 'Livre no patrimônio financeiro: ' + brl(livre)) + '</div>' +
     '<div class="full stack" id="g-painel" style="gap:8px"' + (modo === 'manual' ? ' hidden' : '') + '>' +
-      fontes.map((f, k) => { const v = vinc.find(x => x.key === f.key); return '<div class="vinc"><label class="vinc-chk"><input type="checkbox" data-vk="' + esc(f.key) + '"' + (v ? ' checked' : '') + '><span><b>' + esc(f.nome) + '</b><small>' + TIPO_FONTE[f.tipoAtlas] + ' · ' + brl(f.saldo) + '</small></span></label><div class="input-suf vinc-pct"><input class="input" type="number" min="1" max="100" step="1" id="g-vp-' + k + '" data-vpct="' + esc(f.key) + '" value="' + (v ? v.pct : 100) + '" aria-label="Porcentagem de ' + esc(f.nome) + '"><span>%</span></div></div>'; }).join('') +
-      '<span class="hint">O valor reservado acompanha o saldo do painel sozinho. Use menos de 100% quando um saldo financia mais de um objetivo.</span></div>'
+      (opcoesClasse.length ? '<span class="label">Por classificação</span>' + opcoesClasse.map(x => opcao(x, k++)).join('') : '') +
+      (opcoesFonte.length ? '<span class="label" style="margin-top:6px">Por saldo do painel</span>' + opcoesFonte.map(x => opcao(x, k++)).join('') : '') +
+      (fg.saldo != null ? '<span class="label" style="margin-top:6px">FGTS</span>' + opcao({ key: 'fgts', nome: 'FGTS', sub: 'Só para imóvel · acompanha depósitos e rendimento', saldo: fg.saldoAtual }, k++, ' id="g-fgts"') +
+        '<span class="hint" id="g-fgts-aviso"' + (o.categoria === 'imovel' ? ' hidden' : '') + '>O FGTS só pode ser usado em objetivos da categoria Imóvel.</span>' : '') +
+      '<span class="hint">O valor acompanha os saldos sozinho. Use menos de 100% quando um saldo financia mais de um objetivo.</span></div>'
     : campo('g-acum', 'Já reservado para ela', inpMoney('g-acum', o.acumulado), 'Livre no patrimônio financeiro: ' + brl(livre));
   abrirModal('<div class="modal-head"><h2>' + (id ? 'Editar objetivo' : 'Novo objetivo') + '</h2><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
     '<form data-form="modal" class="stack" style="gap:16px" novalidate><div class="form-grid">' +
       campo('g-nome', 'Nome', '<input class="input" id="g-nome" maxlength="80" value="' + esc(o.nome || '') + '" placeholder="Ex.: Trocar de carro">', '', true) +
-      campo('g-cat', 'Categoria', '<select class="input" id="g-cat">' + Object.entries(CATS).map(([k, l]) => '<option value="' + k + '"' + (o.categoria === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>') +
+      campo('g-cat', 'Categoria', '<select class="input" id="g-cat" data-change="gcat">' + Object.entries(CATS).map(([kk, l]) => '<option value="' + kk + '"' + (o.categoria === kk ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>') +
       campo('g-data', 'Data-alvo', '<input class="input" type="month" id="g-data" value="' + esc(o.dataAlvo || '') + '" min="' + E.somarMeses(hoje(), 1) + '">') +
       campo('g-alvo', 'Valor da meta', inpMoney('g-alvo', o.alvo), S.config.considerarInflacao ? 'Em valores de hoje; o Atlas corrige pela inflação' : 'Valor nominal') +
       campo('g-aporte', 'Aporte mensal planejado', inpMoney('g-aporte', o.aporte)) +
@@ -1964,18 +2666,28 @@ function formGoal(id) {
       try { E.lerMes(v.dataAlvo); } catch (e) { return erroForm('Escolha a data-alvo (mês e ano).'); }
       if (!id && E.mesesEntre(hoje(), v.dataAlvo) <= 0) return erroForm('A data-alvo precisa estar no futuro.');
       if (modoEsc === 'painel') {
-        v.vinculos = $$('[data-vk]').filter(c => c.checked).map(c => ({ key: c.dataset.vk, pct: num($$('[data-vpct]').find(i => i.dataset.vpct === c.dataset.vk).value) }));
-        if (!v.vinculos.length) return erroForm('Escolha ao menos um saldo do painel.');
+        v.vinculos = $$('[data-vk]').filter(c => c.checked && !c.disabled).map(c => ({ key: c.dataset.vk, pct: num($$('[data-vpct]').find(i => i.dataset.vpct === c.dataset.vk).value) }));
+        if (v.categoria !== 'imovel') v.vinculos = v.vinculos.filter(x => x.key !== 'fgts');
+        if (!v.vinculos.length) return erroForm('Escolha ao menos um saldo.');
         if (v.vinculos.some(x => !fin(x.pct) || x.pct <= 0 || x.pct > 100)) return erroForm('Use porcentagens entre 1% e 100%.');
+        v.acumulado = 0;
       } else {
         v.vinculos = []; v.acumulado = num($('#g-acum').value) || 0;
         if (v.acumulado < 0) return erroForm('O valor reservado não pode ser negativo.');
       }
       let novoId_;
-      commit(s => { if (id) Object.assign(s.objetivos.find(x => x.id === id), v); else { novoId_ = novoId(); s.objetivos.push(Object.assign({ id: novoId_, arquivado: false, acumulado: 0 }, v)); } }, id ? 'Objetivo atualizado' : 'Objetivo criado');
+      commit(s => { if (id) Object.assign(s.objetivos.find(x => x.id === id), v); else { novoId_ = novoId(); s.objetivos.push(Object.assign({ id: novoId_, arquivado: false }, v)); } }, id ? 'Objetivo atualizado' : 'Objetivo criado');
       if (novoId_) go('objetivo', novoId_);
       return true;
     });
+  ajustarFgtsForm();
+}
+function ajustarFgtsForm() {
+  const cat = $('#g-cat'), box = $('#g-fgts'); if (!cat || !box) return;
+  const ok = cat.value === 'imovel';
+  box.classList.toggle('vinc-off', !ok);
+  $$('input', box).forEach(i => { i.disabled = !ok; });
+  const av = $('#g-fgts-aviso'); if (av) av.hidden = ok;
 }
 
 /* =================== Ações =================== */
@@ -1984,8 +2696,19 @@ const fmtCampo = (c, v) => c === 'dataAlvo' ? mesLongo(v) : brl(+v);
 const ACT = {
   go: el => go(el.dataset.view),
   openGoal: el => go('objetivo', el.dataset.id),
-  newGoal: () => formGoal(),
+  newGoal: el => formGoal(null, el.dataset.cat),
   editGoal: el => formGoal(el.dataset.id),
+  origem: el => abrirOrigem(el.dataset.id),
+  classificar: el => formClassificar(el.dataset.key),
+  clsPadrao: el => { const key = el.dataset.key; fecharModal(); commit(s => { const m = Object.assign({}, s.config.mapa); delete m[key]; s.config.mapa = m; }, 'Classificação padrão'); },
+  novoVeiculo: () => formVeiculo(),
+  fipeModo: el => { ui.fipe.manual = el.dataset.v === 'manual'; $$('#v-modo button').forEach(b => b.setAttribute('aria-pressed', b === el)); pintarFipe(); if (!ui.fipe.manual && ui.fipe.trocando && !ui.fipe.marcas.length) carregarFipe('marcas'); },
+  fipeTipo: el => { const F = ui.fipe; F.tipo = el.dataset.v; F.marcas = []; F.modelos = []; F.anos = []; F.marca = F.modelo = F.ano = ''; F.res = null; F.filtro = ''; carregarFipe('marcas'); },
+  fipeTrocar: () => { const F = ui.fipe; F.trocando = true; F.res = null; F.marca = F.modelo = F.ano = ''; F.modelos = []; F.anos = []; carregarFipe('marcas'); },
+  fipeAtualizar: el => { toast('Consultando a FIPE…'); atualizarFipe([el.dataset.id]); },
+  fipeTodos: () => { toast('Consultando a FIPE…'); atualizarFipe(S.ativos.filter(a => a.fipe).map(a => a.id)); },
+  toggleFgts: el => { const f = el.dataset.f; commit(s => { s.config.fgts[f] = el.checked; }, 'FGTS atualizado'); },
+  saqueFeito: el => { const j = fgtsInfo().janela; const marcar = el.type === 'checkbox' ? el.checked : false; commit(s => { s.config.fgts.saqueFeito = marcar ? j.atual.inicio : ''; }, marcar ? 'Saque marcado como feito' : 'Marcação desfeita'); },
   simGoal: el => { const o = V().objetivos.find(x => x.id === el.dataset.id); ui.sim = simDe(o); go('simulacoes'); },
   archiveGoal: el => { const o = S.objetivos.find(x => x.id === el.dataset.id); commit(() => { o.arquivado = !o.arquivado; }, o.arquivado ? 'Objetivo arquivado' : 'Objetivo reativado'); },
   delGoal: el => { const o = S.objetivos.find(x => x.id === el.dataset.id); confirmar({ titulo: 'Excluir “' + esc(o.nome) + '”?', corpo: '<p>O objetivo e seu histórico de premissas serão removidos. Se quiser só tirá-lo das contas, arquive.</p>', ok: 'Excluir', perigo: true, acao: () => { commit(s => { s.objetivos = s.objetivos.filter(x => x.id !== o.id); }, 'Objetivo excluído'); go('objetivos'); } }); },
@@ -2073,11 +2796,25 @@ document.addEventListener('submit', e => {
 document.addEventListener('input', e => {
   const el = e.target;
   if (el.dataset.sim) simInput(el);
+  if (el.dataset.cls) atualizarCls();
+  if (el.dataset.input === 'fipeAj') pintarFipeFinal();
+  if (el.dataset.input === 'fipeFiltro') { ui.fipe.filtro = el.value; const pos = el.selectionStart; pintarFipe(); const n = $('#f-busca'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ok */ } } }
   if (el.dataset.input === 'rendaDelta') { ui.rendaDelta = +el.value / 100; $('#rendaDeltaLbl').textContent = (ui.rendaDelta >= 0 ? '+' : '') + pct(ui.rendaDelta, 0); $('#rendaWhatIf').innerHTML = rendaWhatIf(ctx()); }
 });
 document.addEventListener('change', e => {
   const el = e.target, k = el.dataset.change; if (!k) return;
-  if (k === 'mapa') { const key = el.dataset.key, v = el.value; commit(s => { s.config.mapa = Object.assign({}, s.config.mapa, { [key]: v }); }, 'Classificação atualizada'); return; }
+  if (k === 'gcat') { ajustarFgtsForm(); return; }
+  if (k === 'fipe') { const F = ui.fipe, st = el.dataset.step, v = el.value;
+    if (st === 'marca') { F.marca = v; F.modelo = F.ano = ''; F.modelos = []; F.anos = []; F.res = null; F.filtro = ''; F.nomes.marca = F.marcas.find(x => x.code === v) || null; if (v) carregarFipe('modelos'); else pintarFipe(); }
+    else if (st === 'modelo') { F.modelo = v; F.ano = ''; F.anos = []; F.res = null; F.nomes.modelo = F.modelos.find(x => x.code === v) || null; if (v) carregarFipe('anos'); else pintarFipe(); }
+    else if (st === 'ano') { F.ano = v; F.res = null; F.nomes.ano = F.anos.find(x => x.code === v) || null; if (v) carregarFipe('preco'); else pintarFipe(); }
+    if (!$('#v-nome').value.trim() && F.nomes.modelo) $('#v-nome').value = F.nomes.modelo.name.split(' ').slice(0, 2).join(' ');
+    return; }
+  if (k === 'fgts') { const f = el.dataset.f; let v = el.value.trim() === '' ? null : num(el.value);
+    if (f === 'taxaAnual' && v != null) v = v / 100;
+    if (f === 'mesAniversario') v = Math.round(v);
+    if (v != null && (!fin(v) || (f !== 'taxaAnual' && v < 0) || (f === 'taxaAnual' && v <= -1))) { toast('Valor inválido'); render(); return; }
+    commit(s => { s.config.fgts[f] = f === 'comprometido' ? (v || 0) : v; if (f === 'saldoManual') s.config.fgts.saldoManualMes = hoje(); }, 'FGTS atualizado'); return; }
   if (k === 'capManual') { const v = num(el.value); if (fin(v) && v >= 0) commit(s => { s.config.capacidadeManual = v; }, 'Capacidade atualizada'); }
   if (k === 'simGoal') { ui.sim = simDe(V().objetivos.find(x => x.id === el.value)); render(); }
   if (k === 'cen') { const v = num(el.value) / 100; if (!fin(v) || v <= -1) { toast('Use um valor maior que −100%'); render(); return; } commit(s => { s.config.cenarios[el.dataset.cen][el.dataset.f] = v; }, 'Premissa atualizada'); }
