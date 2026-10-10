@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Ccircle cx='17' cy='17' r='15.5' fill='none' stroke='%230D6B57' stroke-width='2'/%3E%3Cpath d='M17 4 L20 17 L17 30 L14 17 Z' fill='%230D6B57'/%3E%3Cpath d='M17 17 L20 17 L17 30 Z' fill='%23A86A12'/%3E%3C/svg%3E">
+<title>Atlas · Planejamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: trilho de navegação fixo à esquerda (desktop) / barra inferior (celular);
+   conteúdo em coluna de até 1180px. Motivo: cartografia — rotas, marcos, curvas de nível. */
+:root {
+  --bg: #EEF2F0;
+  --surface: #FFFFFF;
+  --surface-2: #F6F8F7;
+  --ink: #13201C;
+  --muted: #5B6A64;
+  --faint: #8C9A94;
+  --line: #D9E1DD;
+  --line-strong: #C4CFCA;
+  --accent: #0D6B57;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCEDE7;
+  --gold: #A86A12;
+  --gold-soft: #F5E9D4;
+  --slate: #687C95;
+  --c4: #7D5BA6; --c5: #2F7FA8; --c6: #6E8B3D;
+  --ok: #1E7F52;   --ok-soft: #DFF1E7;
+  --warn: #A9690A; --warn-soft: #F8ECD5;
+  --bad: #B83A33;  --bad-soft: #F7E0DE;
+  --shadow: 0 1px 2px rgba(19,32,28,.06), 0 8px 24px -12px rgba(19,32,28,.18);
+  --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 14px;
+  --r-sm: 9px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C1311; --surface: #131C19; --surface-2: #18231F; --ink: #E4ECE8; --muted: #9AA9A3; --faint: #6E7D77;
+  --line: #24312C; --line-strong: #33433D; --accent: #45BF9B; --accent-ink: #06241C; --accent-soft: #163A30;
+  --gold: #E0A64A; --gold-soft: #3A2C14; --slate: #93A6BE; --c4: #B497D6; --c5: #6DB3D9; --c6: #A9C46F;
+  --ok: #4CC48A; --ok-soft: #12321F; --warn: #E3A23C; --warn-soft: #362812; --bad: #EF7B72; --bad-soft: #3A1714;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0C1311; --surface: #131C19; --surface-2: #18231F; --ink: #E4ECE8; --muted: #9AA9A3; --faint: #6E7D77;
+  --line: #24312C; --line-strong: #33433D; --accent: #45BF9B; --accent-ink: #06241C; --accent-soft: #163A30;
+  --gold: #E0A64A; --gold-soft: #3A2C14; --slate: #93A6BE; --c4: #B497D6; --c5: #6DB3D9; --c6: #A9C46F;
+  --ok: #4CC48A; --ok-soft: #12321F; --warn: #E3A23C; --warn-soft: #362812; --bad: #EF7B72; --bad-soft: #3A1714;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.num, td, .stat-value, .big { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem); line-height: 1.1; }
+h2 { font-size: 1.2rem; line-height: 1.25; }
+h3 { font-size: 1rem; line-height: 1.3; }
+p { margin: 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ---------- Shell ---------- */
+.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100%; }
+.rail {
+  position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; align-self: start;
+  display: flex; flex-direction: column; gap: 4px; padding: 22px 14px;
+  border-right: 1px solid var(--line); background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; }
+.brand-mark { width: 34px; height: 34px; flex: none; }
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; }
+.brand-sub { font-size: .72rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.nav-btn {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); font-weight: 500; cursor: pointer; text-align: left;
+  transition: background .15s, color .15s;
+}
+.nav-btn svg { width: 19px; height: 19px; flex: none; }
+.nav-btn:hover { background: var(--surface-2); color: var(--ink); }
+.nav-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.rail-foot { margin-top: auto; display: grid; gap: 8px; padding: 12px 8px 0; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+.save-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: 1px; }
+
+.main { min-width: 0; padding: 28px clamp(16px, 3vw, 40px) 64px; }
+.page { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.eyebrow { font-size: .72rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 62ch; margin-top: 6px; }
+
+.mobile-top, .tabbar { display: none; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { display: none; }
+  .mobile-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    padding: 10px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .main { padding: 18px 16px 110px; }
+  .tabbar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface); border-top: 1px solid var(--line); overflow-x: auto;
+  }
+  .tabbar .nav-btn { flex: 1 1 0; min-width: 50px; flex-direction: column; gap: 3px; padding: 6px 2px; font-size: .66rem; text-align: center; justify-content: center; }
+}
+
+/* ---------- Componentes ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.card-head p { color: var(--muted); font-size: .88rem; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g-main { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
+@media (max-width: 1080px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .g2, .g3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) { .g4 { grid-template-columns: minmax(0, 1fr); } }
+
+.stat { display: grid; gap: 4px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
+.stat-label { font-size: .78rem; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.stat-value { font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; overflow-wrap: anywhere; }
+.stat-note { font-size: .78rem; color: var(--faint); }
+.missing { color: var(--faint); font-family: var(--font-body); font-size: .95rem; font-weight: 500; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 15px;
+  border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  font-weight: 600; font-size: .9rem; cursor: pointer; transition: background .15s, border-color .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--ink); background: var(--surface-2); }
+.btn-danger { color: var(--bad); }
+.btn-sm { padding: 6px 10px; font-size: .82rem; border-radius: 8px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-btn { border: 0; background: transparent; color: var(--faint); padding: 6px; border-radius: 8px; cursor: pointer; display: inline-grid; place-items: center; }
+.icon-btn:hover { color: var(--ink); background: var(--surface-2); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-concluido { background: var(--accent-soft); color: var(--accent); }
+.st-no_caminho { background: var(--ok-soft); color: var(--ok); }
+.st-revisao { background: var(--warn-soft); color: var(--warn); }
+.st-abaixo { background: var(--bad-soft); color: var(--bad); }
+
+.bar { height: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+
+.notice { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-sm); font-size: .9rem; border: 1px solid; }
+.notice svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.notice-info { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
+.notice-warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 30%, transparent); color: var(--ink); }
+.notice-bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 30%, transparent); color: var(--ink); }
+.notice-ok { background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 30%, transparent); color: var(--ink); }
+.notice b { font-weight: 600; }
+.stack { display: grid; gap: 10px; }
+
+.demo-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  padding: 12px 16px; border-radius: var(--r); background: var(--gold-soft); border: 1px dashed color-mix(in srgb, var(--gold) 55%, transparent);
+  font-size: .9rem;
+}
+.demo-banner b { color: var(--gold); }
+
+/* Tabelas */
+.table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { text-align: left; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; }
+.row-actions { white-space: nowrap; text-align: right; width: 1%; }
+.tag { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.empty { padding: 22px; text-align: center; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); font-size: .9rem; display: grid; gap: 10px; justify-items: center; }
+
+/* Formulários */
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .field .label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+.field .hint, .hint { font-size: .76rem; color: var(--faint); }
+.input, select.input, textarea.input {
+  width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); transition: border-color .15s, box-shadow .15s;
+}
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input-pre { position: relative; }
+.input-pre > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: .85rem; pointer-events: none; }
+.input-pre > .input { padding-left: 38px; }
+.input-suf { position: relative; }
+.input-suf > span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: .85rem; pointer-events: none; }
+.input-suf > .input { padding-right: 34px; }
+.form-grid { display: grid; align-items: start; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grid .full { grid-column: 1 / -1; }
+@media (max-width: 520px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: .84rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: .9rem; }
+.switch input { appearance: none; width: 38px; height: 22px; border-radius: 99px; background: var(--line-strong); position: relative; cursor: pointer; transition: background .15s; flex: none; margin: 0; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { transform: translateX(16px); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.prio { display: inline-flex; gap: 3px; }
+.prio button { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line-strong); background: var(--surface); font-size: .8rem; font-weight: 700; color: var(--muted); cursor: pointer; }
+.prio button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Modal */
+.scrim { position: fixed; inset: 0; z-index: 60; background: rgba(8,14,12,.45); display: grid; place-items: center; padding: 16px; animation: fade .15s ease-out; }
+.modal { width: min(560px, 100%); max-height: calc(100% - 32px); overflow: auto; background: var(--surface); border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 30px 80px -20px rgba(0,0,0,.45); padding: 22px; display: grid; gap: 16px; animation: rise .2s cubic-bezier(.2,.8,.2,1); }
+.modal-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+.err { color: var(--bad); font-size: .85rem; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 80; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .88rem; font-weight: 500; box-shadow: var(--shadow); animation: rise .2s; max-width: calc(100% - 32px); }
+@media (max-width: 860px) { .toast { bottom: 92px; } }
+
+/* ---------- Hero da visão geral ---------- */
+.hero { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 26px 26px 22px; display: grid; gap: 18px; }
+.hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .55; }
+.hero > *:not(canvas) { position: relative; }
+.hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 28px; align-items: flex-end; }
+.big { font-family: var(--font-display); font-size: clamp(2.2rem, 1.6rem + 2.8vw, 3.6rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1; overflow-wrap: anywhere; }
+.big small { font-size: .45em; color: var(--muted); font-weight: 500; letter-spacing: -0.01em; }
+.hero-figs { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.hero-figs div { display: grid; gap: 2px; }
+.hero-figs span { font-size: .76rem; color: var(--muted); }
+.hero-figs b { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+
+/* Rota dos objetivos */
+.route { position: relative; padding: 8px 0 4px; overflow-x: auto; }
+.route svg { display: block; min-width: 600px; width: 100%; height: auto; }
+.route text { fill: var(--muted); font: 500 11px var(--font-body); }
+.route .stop-name { fill: var(--ink); font-weight: 600; font-size: 12px; }
+
+/* Objetivos */
+.goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+.goal-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; text-align: left; cursor: pointer; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); transition: border-color .15s, box-shadow .15s, transform .15s; color: var(--ink); width: 100%; }
+.goal-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
+.goal-top { display: flex; align-items: center; gap: 12px; }
+.goal-ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.goal-ico svg { width: 21px; height: 21px; }
+.goal-title { min-width: 0; flex: 1; }
+.goal-title h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goal-title p { font-size: .8rem; color: var(--muted); }
+.kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.kv div { display: grid; gap: 1px; min-width: 0; }
+.kv span { font-size: .72rem; color: var(--muted); }
+.kv b { font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.progress-line { display: flex; justify-content: space-between; font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+
+/* Gráficos */
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis text { fill: var(--faint); font: 500 11px var(--font-body); font-variant-numeric: tabular-nums; }
+.chart .grid-line { stroke: var(--line); stroke-width: 1; }
+.chart .x-line { stroke: var(--ink); stroke-opacity: .25; stroke-dasharray: 3 3; }
+.chart-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow); padding: 9px 11px; font-size: .78rem; min-width: 170px; display: grid; gap: 3px; }
+.chart-tip .t { font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.chart-tip .row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chart-tip .row b { color: var(--ink); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.legend i.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; height: 2px; }
+
+/* Explicação de indicadores */
+details.explain { font-size: .85rem; color: var(--muted); }
+details.explain summary { cursor: pointer; font-weight: 600; color: var(--accent); list-style: none; display: inline-flex; gap: 6px; align-items: center; }
+details.explain summary::-webkit-details-marker { display: none; }
+details.explain[open] summary { margin-bottom: 8px; }
+.formula { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .84rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; color: var(--ink); }
+
+.assume { display: flex; flex-wrap: wrap; gap: 6px; }
+.assume .tag { font-size: .74rem; }
+
+/* Comparação */
+.delta-up { color: var(--ok); font-weight: 600; }
+.delta-down { color: var(--bad); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: .82rem; font-weight: 500; cursor: pointer; color: var(--ink); transition: background .15s, border-color .15s; }
+.chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Capacidade x necessidade */
+.cap-bar { position: relative; height: 34px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); display: flex; overflow: hidden; }
+.cap-bar > span { height: 100%; display: block; border-right: 2px solid var(--surface); }
+.cap-mark { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--ink); }
+.cap-mark::after { content: attr(data-label); position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: .72rem; font-weight: 700; white-space: nowrap; color: var(--ink); }
+.cap-wrap { padding-top: 22px; }
+.cap-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: .8rem; color: var(--muted); }
+.cap-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.alt { display: grid; gap: 12px; }
+.alt-head { display: flex; gap: 12px; align-items: flex-start; }
+.alt-num { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: .82rem; color: var(--muted); flex: none; }
+
+/* Assistente */
+.chat { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 520px; max-height: calc(100vh - 220px); padding: 0; overflow: hidden; }
+.chat-log { overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.msg { max-width: min(680px, 92%); padding: 12px 15px; border-radius: 14px; font-size: .93rem; line-height: 1.55; overflow-wrap: anywhere; }
+.msg p + p { margin-top: 8px; }
+.msg ul { margin: 6px 0; padding-left: 20px; }
+.msg-user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+.msg-ai { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.msg-meta { font-size: .72rem; color: var(--faint); margin-top: 6px; }
+.chat { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 640px) { .chat .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .chat .chip { white-space: nowrap; flex: none; } }
+#simResults ~ .card .input-suf .input, .card td .input-suf .input { min-width: 78px; }
+.chat-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: var(--surface); }
+.chat-input textarea { resize: none; min-height: 44px; max-height: 140px; }
+.typing { display: inline-flex; gap: 4px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); animation: blink 1s infinite; }
+.typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes blink { 50% { opacity: .25; } }
+
+.section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.small { font-size: .84rem; }
+.right { text-align: right; }
+.sep { height: 1px; background: var(--line); }
+.back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; font-size: .88rem; border: 0; background: none; cursor: pointer; padding: 4px 0; }
+.back:hover { color: var(--ink); }
+.back svg { width: 16px; height: 16px; }
+
+/* ---------- Integração com o painel ---------- */
+.save-btn { border: 0; background: none; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.save-btn:hover { color: var(--ink); }
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); vertical-align: 1px; }
+.rail-link { display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: .82rem; padding: 6px 0; }
+.rail-link:hover { color: var(--accent); }
+.rail-link svg { width: 15px; height: 15px; }
+.rail-foot .save-btn, .rail-foot .btn-ghost { font-size: .78rem; }
+.kv-painel { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px 18px; }
+.kv-painel div { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.kv-painel b { font-family: var(--font-display); font-size: 1.05rem; }
+.kv-painel span + b + span { font-size: .72rem; color: var(--faint); }
+.vinc { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+.vinc-chk { display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 0; }
+.vinc-chk input { width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
+.vinc-chk span { display: grid; min-width: 0; }
+.vinc-chk small { color: var(--muted); font-size: .76rem; }
+.vinc-pct { width: 92px; flex: none; }
+.login-card { max-width: 520px; margin: 6vh auto 0; padding: 28px; }
+a.btn { text-decoration: none; }
+.fontes { display: grid; margin-top: 18px; }
+.fonte-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px minmax(180px, 220px); gap: 8px 16px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.fonte-row:last-child { border-bottom: 0; }
+.fonte-head { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding-top: 0; }
+.fonte-nome { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.fonte-nome small { flex-basis: 100%; color: var(--muted); font-size: .78rem; }
+.fonte-valor { font-weight: 600; }
+@media (max-width: 640px) { .fonte-head { display: none; } .fonte-row { grid-template-columns: minmax(0, 1fr) auto; } .fonte-row select { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+
+
+<div class="shell">
+  <aside class="rail" aria-label="Navegação principal">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15.5" fill="none" style="stroke:var(--accent)" stroke-width="1.5"/><circle cx="17" cy="17" r="10" fill="none" style="stroke:var(--accent)" stroke-opacity=".45" stroke-width="1"/><path d="M17 4 L20 17 L17 30 L14 17 Z" style="fill:var(--accent)"/><path d="M17 17 L20 17 L17 30 Z" style="fill:var(--gold)"/></svg>
+      <div><div class="brand-name">Atlas</div><div class="brand-sub">Planejador financeiro</div></div>
+    </div>
+    <nav id="nav" class="stack" style="gap:2px"></nav>
+    <div class="rail-foot">
+      <div id="saveState"></div>
+      <div id="todayLabel"></div>
+      <a class="rail-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Painel financeiro</a>
+      <div class="btn-row" style="gap:4px"><button class="btn btn-ghost btn-sm" data-act="tema" style="padding-left:0">Alternar tema</button><button class="btn btn-ghost btn-sm" data-act="sair">Sair</button></div>
+    </div>
+  </aside>
+  <div class="main-wrap" style="min-width:0">
+    <header class="mobile-top">
+      <div class="brand" style="padding:0">
+        <svg class="brand-mark" style="width:28px;height:28px" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15.5" fill="none" style="stroke:var(--accent)" stroke-width="1.5"/><path d="M17 4 L20 17 L17 30 L14 17 Z" style="fill:var(--accent)"/><path d="M17 17 L20 17 L17 30 Z" style="fill:var(--gold)"/></svg>
+        <div class="brand-name" style="font-size:1.1rem">Atlas</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px"><div id="saveStateM" class="small muted"></div><a class="rail-link" href="index.html" title="Voltar ao painel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Painel</a></div>
+    </header>
+    <main class="main" id="main"></main>
+  </div>
+</div>
+<nav class="tabbar" id="tabbar" aria-label="Navegação"></nav>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/*
+ * Atlas — motor financeiro
+ * ------------------------------------------------------------------
+ * Funções puras, sem interface, sem armazenamento e sem IA.
+ *
+ * Convenções:
+ *  - Taxas entram como fração decimal (10% = 0.10).
+ *  - Taxas anuais viram mensais por equivalência: (1+a)^(1/12) - 1.
+ *  - Aportes acontecem no FIM de cada mês (série postecipada).
+ *  - Com "considerar inflação" ligado, tudo é calculado em valores de
+ *    hoje (termos reais): meta em poder de compra atual, taxa real,
+ *    aporte corrigido pela inflação a cada mês.
+ *  - Nada é arredondado aqui; arredondar é tarefa da exibição.
+ */
+(function (root) {
+  'use strict';
+
+  const MAX_MESES = 1200; // 100 anos: além disso, tratamos como inalcançável
+
+  function assertNum(v, nome) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      throw new TypeError(nome + ' precisa ser um número finito');
+    }
+  }
+  function assertTaxa(i, nome) {
+    assertNum(i, nome);
+    if (i <= -1) throw new RangeError(nome + ' precisa ser maior que -100%');
+  }
+
+  /* ---------- Taxas ---------- */
+
+  function anualParaMensal(a) {
+    assertTaxa(a, 'Taxa anual');
+    return Math.pow(1 + a, 1 / 12) - 1;
+  }
+
+  function mensalParaAnual(m) {
+    assertTaxa(m, 'Taxa mensal');
+    return Math.pow(1 + m, 12) - 1;
+  }
+
+  /** Taxa real exata (equação de Fisher): (1+nominal)/(1+inflação) - 1 */
+  function taxaReal(nominal, inflacao) {
+    assertTaxa(nominal, 'Rentabilidade nominal');
+    assertTaxa(inflacao, 'Inflação');
+    return (1 + nominal) / (1 + inflacao) - 1;
+  }
+
+  /** Converte um valor de hoje para o valor nominal equivalente daqui a n meses. */
+  function corrigirPelaInflacao(valorHoje, inflacaoAnual, meses) {
+    assertNum(valorHoje, 'Valor');
+    assertTaxa(inflacaoAnual, 'Inflação');
+    return valorHoje * Math.pow(1 + inflacaoAnual, meses / 12);
+  }
+
+  /** Converte um valor nominal futuro para poder de compra de hoje. */
+  function deflacionar(valorFuturo, inflacaoAnual, meses) {
+    assertNum(valorFuturo, 'Valor');
+    assertTaxa(inflacaoAnual, 'Inflação');
+    return valorFuturo / Math.pow(1 + inflacaoAnual, meses / 12);
+  }
+
+  /* ---------- Valor futuro e séries ---------- */
+
+  /**
+   * Valor futuro com aporte constante no fim do mês.
+   * VF = VP(1+i)^n + PMT[(1+i)^n - 1]/i ;  com i = 0: VF = VP + PMT·n
+   */
+  function valorFuturo(vp, i, n, pmt) {
+    assertNum(vp, 'Saldo inicial');
+    assertTaxa(i, 'Rentabilidade');
+    assertNum(n, 'Prazo');
+    assertNum(pmt, 'Aporte');
+    if (n < 0 || !Number.isInteger(n)) throw new RangeError('Prazo precisa ser um número inteiro de meses ≥ 0');
+    if (i === 0) return vp + pmt * n;
+    const f = Math.pow(1 + i, n);
+    return vp * f + pmt * (f - 1) / i;
+  }
+
+  /**
+   * Evolução mês a mês com aportes variáveis (aportes[k] = aporte do mês k+1).
+   * Valores negativos representam retiradas. Retorna saldos de 0..n.
+   */
+  function serie(vp, i, aportes) {
+    assertNum(vp, 'Saldo inicial');
+    assertTaxa(i, 'Rentabilidade');
+    if (!Array.isArray(aportes)) throw new TypeError('Aportes precisam ser uma lista');
+    const s = [vp];
+    let saldo = vp;
+    for (const a of aportes) {
+      assertNum(a, 'Aporte');
+      saldo = saldo * (1 + i) + a;
+      s.push(saldo);
+    }
+    return s;
+  }
+
+  /** Lista de aportes de n meses, com pausa opcional (meses 1-index, inclusive). */
+  function cronogramaAportes(n, pmt, pausa) {
+    const lista = new Array(n).fill(pmt);
+    if (pausa && pausa.meses > 0) {
+      const ini = Math.max(1, pausa.inicio || 1);
+      for (let m = ini; m < ini + pausa.meses && m <= n; m++) lista[m - 1] = 0;
+    }
+    return lista;
+  }
+
+  /* ---------- Aporte necessário ---------- */
+
+  /**
+   * Aporte mensal constante necessário para atingir `meta` em n meses.
+   * Retorna 0 se o saldo (com rendimento) já basta.
+   * Retorna Infinity se n = 0 e a meta ainda não foi atingida.
+   * `pausa` (opcional) zera os aportes de alguns meses.
+   */
+  function aporteNecessario(meta, vp, i, n, pausa) {
+    assertNum(meta, 'Meta');
+    assertNum(vp, 'Saldo inicial');
+    assertTaxa(i, 'Rentabilidade');
+    assertNum(n, 'Prazo');
+    if (meta < 0) throw new RangeError('Meta não pode ser negativa');
+    if (n < 0 || !Number.isInteger(n)) throw new RangeError('Prazo precisa ser um número inteiro de meses ≥ 0');
+    const fatorVP = Math.pow(1 + i, n);
+    const falta = meta - vp * fatorVP;
+    if (falta <= 0) return 0;
+    if (n === 0) return Infinity;
+    // Soma dos fatores de capitalização dos meses com aporte ativo
+    const ativos = cronogramaAportes(n, 1, pausa);
+    let soma = 0;
+    for (let k = 1; k <= n; k++) if (ativos[k - 1]) soma += Math.pow(1 + i, n - k);
+    if (soma <= 0) return Infinity;
+    return falta / soma;
+  }
+
+  /* ---------- Prazo estimado ---------- */
+
+  /**
+   * Meses (inteiros) até o saldo atingir a meta.
+   * n = ln[(VF·i + PMT)/(VP·i + PMT)] / ln(1+i) ; com i = 0: (VF-VP)/PMT
+   * Retorna Infinity se a meta for inalcançável ou exigir mais de 100 anos.
+   */
+  function mesesParaMeta(meta, vp, i, pmt) {
+    assertNum(meta, 'Meta');
+    assertNum(vp, 'Saldo inicial');
+    assertTaxa(i, 'Rentabilidade');
+    assertNum(pmt, 'Aporte');
+    if (vp >= meta) return 0;
+    let n;
+    if (i === 0) {
+      if (pmt <= 0) return Infinity;
+      n = (meta - vp) / pmt;
+    } else {
+      const num = meta * i + pmt;
+      const den = vp * i + pmt;
+      if (num <= 0 || den <= 0) return Infinity;
+      const r = num / den;
+      if (r <= 0) return Infinity;
+      n = Math.log(r) / Math.log(1 + i);
+      if (!Number.isFinite(n) || n < 0) return Infinity;
+    }
+    // Tolerância para erros de ponto flutuante antes do arredondamento para cima
+    const inteiro = Math.ceil(n - 1e-9);
+    return inteiro > MAX_MESES ? Infinity : inteiro;
+  }
+
+  /** Maior meta alcançável em n meses com o aporte dado (inverso de aporteNecessario). */
+  function metaAlcancavel(vp, i, n, pmt) {
+    return valorFuturo(vp, i, n, pmt);
+  }
+
+  /* ---------- Datas ---------- */
+
+  /** 'AAAA-MM' -> {ano, mes} */
+  function lerMes(s) {
+    const m = /^(\d{4})-(\d{2})$/.exec(String(s || ''));
+    if (!m) throw new TypeError('Data precisa estar no formato AAAA-MM');
+    const ano = +m[1], mes = +m[2];
+    if (mes < 1 || mes > 12) throw new RangeError('Mês inválido');
+    return { ano, mes };
+  }
+  function mesesEntre(deAAAAMM, ateAAAAMM) {
+    const a = lerMes(deAAAAMM), b = lerMes(ateAAAAMM);
+    return (b.ano - a.ano) * 12 + (b.mes - a.mes);
+  }
+  function somarMeses(aaaamm, n) {
+    const a = lerMes(aaaamm);
+    const total = a.ano * 12 + (a.mes - 1) + n;
+    const ano = Math.floor(total / 12), mes = (total % 12) + 1;
+    return ano + '-' + String(mes).padStart(2, '0');
+  }
+  function mesAtual(data) {
+    const d = data || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  /* ---------- Diagnóstico ---------- */
+
+  const soma = (lista, campo) => (lista || []).reduce((t, x) => t + (Number(x[campo]) || 0), 0);
+
+  /**
+   * Indicadores da situação financeira. Campos ausentes viram `null`,
+   * nunca valores inventados.
+   */
+  function diagnostico(d) {
+    const rendas = d.rendas || [], despesas = d.despesas || [];
+    const ativos = d.ativos || [], passivos = d.passivos || [];
+    const objetivos = (d.objetivos || []).filter(o => !o.arquivado);
+
+    const rendaTotal = rendas.length ? soma(rendas, 'valor') : null;
+    const rendaFixa = rendas.length ? soma(rendas.filter(r => r.tipo !== 'variavel'), 'valor') : null;
+    const despOrd = despesas.length ? soma(despesas.filter(x => x.tipo !== 'extraordinaria'), 'valor') : null;
+    const despExtra = despesas.length ? soma(despesas.filter(x => x.tipo === 'extraordinaria'), 'valor') : null;
+    const parcelas = soma(passivos, 'parcela');
+
+    const totalAtivos = soma(ativos, 'valor');
+    const totalPassivos = soma(passivos, 'saldo');
+    const financeiros = ativos.filter(a => ['conta', 'investimento', 'reserva'].includes(a.tipo));
+    const patrimonioFinanceiro = soma(financeiros, 'valor');
+    const patrimonioInvestido = soma(ativos.filter(a => a.tipo === 'investimento'), 'valor');
+    const reserva = soma(ativos.filter(a => a.tipo === 'reserva'), 'valor');
+    const alocadoEmObjetivos = soma(objetivos, 'acumulado');
+
+    // Capacidade: renda total menos TODAS as despesas (extraordinárias em média
+    // mensal) e as parcelas de dívidas. A "recorrente" ignora renda variável e
+    // despesas extraordinárias, para mostrar o que sobra num mês típico garantido.
+    let capacidadeCalculada = null, capacidadeRecorrente = null, taxaPoupanca = null;
+    if (rendaTotal !== null && despOrd !== null) {
+      capacidadeCalculada = rendaTotal - despOrd - despExtra - parcelas;
+      capacidadeRecorrente = rendaFixa - despOrd - parcelas;
+      taxaPoupanca = rendaTotal > 0 ? capacidadeCalculada / rendaTotal : null;
+    }
+    const manual = d.config && d.config.capacidadeManual;
+    const capacidade = (typeof manual === 'number' && manual >= 0) ? manual : capacidadeCalculada;
+
+    const custoMensal = despOrd !== null ? despOrd + parcelas : null;
+    const mesesReserva = custoMensal ? reserva / custoMensal : null;
+
+    const pendencias = [];
+    if (!rendas.length) pendencias.push('Cadastre suas fontes de renda');
+    if (!despesas.length) pendencias.push('Cadastre suas despesas mensais');
+    if (!ativos.length) pendencias.push('Cadastre seus ativos (contas, investimentos, bens)');
+    if (!objetivos.length) pendencias.push('Crie seu primeiro objetivo');
+
+    const alertas = [];
+    if (alocadoEmObjetivos > patrimonioFinanceiro + 0.005) {
+      alertas.push('Os valores reservados nos objetivos somam mais do que seus ativos financeiros. Revise para não contar o mesmo dinheiro duas vezes.');
+    }
+    if (capacidade !== null && capacidade < 0) alertas.push('Suas despesas superam sua renda.');
+
+    return {
+      rendaTotal, rendaFixa, rendaVariavel: rendaTotal !== null ? rendaTotal - rendaFixa : null,
+      despesasOrdinarias: despOrd, despesasExtraordinarias: despExtra, parcelas,
+      totalAtivos, totalPassivos, patrimonioLiquido: totalAtivos - totalPassivos,
+      patrimonioFinanceiro, patrimonioInvestido, patrimonioNaoFinanceiro: totalAtivos - patrimonioFinanceiro,
+      reserva, mesesReserva, alocadoEmObjetivos,
+      livreParaObjetivos: patrimonioFinanceiro - alocadoEmObjetivos,
+      capacidadeCalculada, capacidadeRecorrente, capacidade, capacidadeManual: capacidade !== capacidadeCalculada,
+      taxaPoupanca, pendencias, alertas
+    };
+  }
+
+  /* ---------- Objetivos ---------- */
+
+  /**
+   * Premissas de um cenário convertidas para o cálculo.
+   * cenario = { rentabilidade: 0.10, inflacao: 0.045, ajusteAporte: 0 }
+   */
+  function premissas(cenario, considerarInflacao) {
+    const rent = cenario.rentabilidade, infl = cenario.inflacao;
+    assertTaxa(rent, 'Rentabilidade'); assertTaxa(infl, 'Inflação');
+    const anualUsada = considerarInflacao ? taxaReal(rent, infl) : rent;
+    return {
+      rentabilidadeAnual: rent, inflacaoAnual: infl,
+      taxaAnualUsada: anualUsada, taxaMensal: anualParaMensal(anualUsada),
+      ajusteAporte: cenario.ajusteAporte || 0, considerarInflacao: !!considerarInflacao
+    };
+  }
+
+  /**
+   * Análise completa de um objetivo num cenário.
+   * opts: { hoje:'AAAA-MM', ajustes:{aporteDelta, prazoDelta, saldo, pausa, alvo} }
+   */
+  function analisarObjetivo(obj, cenario, considerarInflacao, opts) {
+    const o = opts || {};
+    const hoje = o.hoje || mesAtual();
+    const aj = o.ajustes || {};
+    const p = premissas(cenario, considerarInflacao);
+    const alvo = aj.alvo != null ? aj.alvo : obj.alvo;
+    const acumulado = aj.saldo != null ? aj.saldo : (obj.acumulado || 0);
+    const n0 = mesesEntre(hoje, obj.dataAlvo);
+    const n = Math.max(0, n0 + (aj.prazoDelta || 0));
+    const aporteBase = (obj.aporte || 0) + (aj.aporteDelta || 0);
+    const aporte = Math.max(0, aporteBase * (1 + p.ajusteAporte));
+    const i = p.taxaMensal;
+
+    const cron = cronogramaAportes(n, aporte, aj.pausa);
+    const saldos = serie(acumulado, i, cron);
+    const projetado = saldos[saldos.length - 1];
+    const necessario = aporteNecessario(alvo, acumulado, i, n, aj.pausa);
+    const mesesAteMeta = mesesParaMeta(alvo, acumulado, i, aporte);
+    const dataEstimada = Number.isFinite(mesesAteMeta) ? somarMeses(hoje, mesesAteMeta) : null;
+
+    const progresso = alvo > 0 ? Math.min(1, acumulado / alvo) : 1;
+    const cobertura = alvo > 0 ? projetado / alvo : 1;
+    const limiar = o.limiar != null ? o.limiar : 0.9;
+    let status;
+    if (acumulado >= alvo) status = 'concluido';
+    else if (cobertura >= 1 - 1e-9) status = 'no_caminho';
+    else if (cobertura >= limiar && n > 0) status = 'revisao';
+    else status = 'abaixo';
+
+    const fatorNominal = considerarInflacao ? Math.pow(1 + p.inflacaoAnual, n / 12) : 1;
+
+    return {
+      id: obj.id, nome: obj.nome, meses: n, prazoVencido: n0 <= 0 && acumulado < alvo,
+      alvo, acumulado, aporte, premissas: p,
+      saldos, projetado, diferenca: projetado - alvo,
+      aporteNecessario: necessario, mesesAteMeta, dataEstimada,
+      progresso, cobertura, status,
+      alvoNominal: alvo * fatorNominal, projetadoNominal: projetado * fatorNominal
+    };
+  }
+
+  /* ---------- Priorização ---------- */
+
+  /**
+   * Compara a soma dos aportes necessários com a capacidade mensal e
+   * calcula as consequências de cada alternativa. Não escolhe nada.
+   */
+  function priorizar(objetivos, capacidade, cenario, considerarInflacao, hoje) {
+    const ativos = objetivos.filter(o => !o.arquivado);
+    const analises = ativos.map(o => analisarObjetivo(o, cenario, considerarInflacao, { hoje }));
+    const abertos = analises.filter(a => a.status !== 'concluido');
+    const necessarioTotal = abertos.reduce((t, a) => t + (Number.isFinite(a.aporteNecessario) ? a.aporteNecessario : 0), 0);
+    const planejadoTotal = analises.reduce((t, a) => t + (ativos.find(o => o.id === a.id).aporte || 0), 0);
+    const vencidos = abertos.filter(a => !Number.isFinite(a.aporteNecessario));
+    const cap = capacidade == null ? null : capacidade;
+    const deficit = cap == null ? null : necessarioTotal - cap;
+    const i = premissas(cenario, considerarInflacao).taxaMensal;
+
+    const alternativas = { aumentar: null, adiar: [], reduzir: [], porPrioridade: null, proporcional: null };
+    if (cap != null && deficit > 0.005) {
+      alternativas.aumentar = { valor: deficit, novoTotal: necessarioTotal };
+      for (const a of abertos) {
+        if (!Number.isFinite(a.aporteNecessario)) continue;
+        const novoAporte = a.aporteNecessario - deficit;
+        const suficiente = novoAporte >= 0;
+        const aporteUsado = Math.max(0, novoAporte);
+        const meses = mesesParaMeta(a.alvo, a.acumulado, i, aporteUsado);
+        alternativas.adiar.push({
+          id: a.id, nome: a.nome, suficiente, aporte: aporteUsado,
+          meses, adiamento: Number.isFinite(meses) ? meses - a.meses : Infinity,
+          novaData: Number.isFinite(meses) ? somarMeses(hoje, meses) : null
+        });
+        const novaMeta = metaAlcancavel(a.acumulado, i, a.meses, aporteUsado);
+        alternativas.reduzir.push({
+          id: a.id, nome: a.nome, suficiente, aporte: aporteUsado,
+          novaMeta, reducao: a.alvo - novaMeta, reducaoPct: a.alvo > 0 ? (a.alvo - novaMeta) / a.alvo : 0
+        });
+      }
+      alternativas.porPrioridade = distribuir(abertos, ativos, cap, 'prioridade', i, hoje);
+      alternativas.proporcional = distribuir(abertos, ativos, cap, 'proporcional', i, hoje);
+    }
+    return { analises, necessarioTotal, planejadoTotal, capacidade: cap, deficit, folga: cap == null ? null : cap - necessarioTotal, vencidos, alternativas };
+  }
+
+  /**
+   * Distribui a capacidade entre objetivos.
+   * 'prioridade': em ordem de prioridade definida PELO USUÁRIO (1 = mais alta),
+   *               desempate pelo prazo mais curto.
+   * 'proporcional': cada um recebe a mesma fração do que precisa.
+   */
+  function distribuir(abertos, objetivos, capacidade, modo, i, hoje) {
+    const necess = abertos.filter(a => Number.isFinite(a.aporteNecessario));
+    const total = necess.reduce((t, a) => t + a.aporteNecessario, 0);
+    const alocacao = {};
+    if (modo === 'proporcional') {
+      const f = total > 0 ? Math.min(1, Math.max(0, capacidade) / total) : 0;
+      for (const a of necess) alocacao[a.id] = a.aporteNecessario * f;
+    } else {
+      const prio = id => (objetivos.find(o => o.id === id) || {}).prioridade || 3;
+      const ordem = [...necess].sort((x, y) => prio(x.id) - prio(y.id) || x.meses - y.meses);
+      let resto = Math.max(0, capacidade);
+      for (const a of ordem) {
+        const v = Math.min(resto, a.aporteNecessario);
+        alocacao[a.id] = v; resto -= v;
+      }
+    }
+    return necess.map(a => {
+      const ap = alocacao[a.id] || 0;
+      const meses = mesesParaMeta(a.alvo, a.acumulado, i, ap);
+      const projetado = valorFuturo(a.acumulado, i, a.meses, ap);
+      return {
+        id: a.id, nome: a.nome, aporte: ap, necessario: a.aporteNecessario,
+        cobertura: a.alvo > 0 ? projetado / a.alvo : 1, projetado,
+        meses, novaData: Number.isFinite(meses) ? somarMeses(hoje, meses) : null,
+        atraso: Number.isFinite(meses) ? Math.max(0, meses - a.meses) : Infinity
+      };
+    });
+  }
+
+  /* ---------- Vínculo com o painel ---------- */
+
+  /**
+   * Valor reservado de um objetivo a partir de saldos externos.
+   * vinculos = [{ key, pct }] ; saldos = { key: valor } ; pct em 0..100.
+   * Saldos negativos ou ausentes contam como zero.
+   */
+  function acumuladoVinculado(vinculos, saldos) {
+    let total = 0;
+    for (const v of vinculos || []) {
+      const s = Number(saldos && saldos[v.key]);
+      const p = Number(v.pct);
+      if (!Number.isFinite(s) || s <= 0 || !Number.isFinite(p) || p <= 0) continue;
+      total += s * Math.min(100, p) / 100;
+    }
+    return total;
+  }
+
+  /** Soma dos percentuais vinculados por fonte; devolve as fontes acima de 100%. */
+  function fontesSobrealocadas(objetivos) {
+    const soma = {};
+    for (const o of objetivos || []) {
+      if (o.arquivado) continue;
+      for (const v of o.vinculos || []) soma[v.key] = (soma[v.key] || 0) + (Number(v.pct) || 0);
+    }
+    return Object.keys(soma).filter(k => soma[k] > 100 + 1e-9).map(k => ({ key: k, pct: soma[k] }));
+  }
+
+  /* ---------- Importação e exportação ---------- */
+
+  const CATEGORIAS = ['reserva', 'carro', 'imovel', 'viagem', 'independencia', 'aposentadoria', 'estudos', 'outro'];
+  const TIPOS_ATIVO = ['conta', 'investimento', 'reserva', 'imovel', 'veiculo', 'outro'];
+
+  /** Valida um backup JSON. Retorna {ok, erros, dados}. Nunca aceita segredos. */
+  function validarBackup(texto) {
+    let d;
+    const erros = [];
+    try { d = typeof texto === 'string' ? JSON.parse(texto) : texto; }
+    catch (e) { return { ok: false, erros: ['O arquivo não é um JSON válido.'] }; }
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return { ok: false, erros: ['O conteúdo precisa ser um objeto JSON.'] };
+    if (d.app !== 'atlas') erros.push('Este arquivo não parece ser um backup do Atlas.');
+    const listas = ['rendas', 'despesas', 'ativos', 'passivos', 'objetivos'];
+    for (const l of listas) {
+      if (d[l] === undefined) continue;
+      if (!Array.isArray(d[l])) { erros.push('"' + l + '" precisa ser uma lista.'); continue; }
+      d[l].forEach((x, k) => {
+        if (!x || typeof x !== 'object') { erros.push(l + '[' + k + '] inválido.'); return; }
+        if (typeof x.nome !== 'string' || !x.nome.trim()) erros.push(l + '[' + k + ']: nome ausente.');
+        const campo = l === 'passivos' ? 'saldo' : l === 'objetivos' ? 'alvo' : 'valor';
+        if (typeof x[campo] !== 'number' || !Number.isFinite(x[campo]) || x[campo] < 0) erros.push(l + '[' + k + ']: "' + campo + '" precisa ser um número ≥ 0.');
+      });
+    }
+    (d.objetivos || []).forEach((o, k) => {
+      if (!o || typeof o !== 'object') return;
+      try { lerMes(o.dataAlvo); } catch (e) { erros.push('objetivos[' + k + ']: data-alvo inválida (use AAAA-MM).'); }
+      if (o.categoria && !CATEGORIAS.includes(o.categoria)) erros.push('objetivos[' + k + ']: categoria desconhecida.');
+    });
+    (d.ativos || []).forEach((a, k) => {
+      if (a && a.tipo && !TIPOS_ATIVO.includes(a.tipo)) erros.push('ativos[' + k + ']: tipo desconhecido.');
+    });
+    if (erros.length) return { ok: false, erros };
+    return { ok: true, erros: [], dados: limparSegredos(d) };
+  }
+
+  function limparSegredos(d) {
+    const copia = JSON.parse(JSON.stringify(d));
+    if (copia.config) { delete copia.config.chaveApi; delete copia.config.apiKey; delete copia.config.senha; }
+    return copia;
+  }
+
+  const API = {
+    MAX_MESES, CATEGORIAS, TIPOS_ATIVO,
+    anualParaMensal, mensalParaAnual, taxaReal, corrigirPelaInflacao, deflacionar,
+    valorFuturo, serie, cronogramaAportes, aporteNecessario, mesesParaMeta, metaAlcancavel,
+    lerMes, mesesEntre, somarMeses, mesAtual,
+    diagnostico, premissas, analisarObjetivo, priorizar, distribuir,
+    acumuladoVinculado, fontesSobrealocadas,
+    validarBackup, limparSegredos
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  root.AtlasEngine = API;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* Atlas — interface. Toda conta financeira vem de AtlasEngine. */
+(function () {
+'use strict';
+const E = window.AtlasEngine;
+
+/* =================== Utilidades =================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fin = v => typeof v === 'number' && Number.isFinite(v);
+const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0, minimumFractionDigits: 0 });
+const BRL2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl = (v, dec) => fin(v) ? (dec ? BRL2 : BRL0).format(Math.abs(v) < 0.5 && !dec ? 0 : v) : '—';
+const brlC = v => {
+  if (!fin(v)) return '—';
+  const a = Math.abs(v), s = v < 0 ? '−' : '';
+  const n = (x, d) => x.toLocaleString('pt-BR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  if (a >= 1e6) return s + 'R$ ' + n(a / 1e6, a >= 1e7 ? 1 : 2) + ' mi';
+  if (a >= 1e3) return s + 'R$ ' + n(a / 1e3, a >= 1e5 ? 0 : 1) + ' mil';
+  return s + 'R$ ' + n(a, 0);
+};
+const pct = (v, d = 1) => fin(v) ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%' : '—';
+const pctIn = v => +(v * 100).toFixed(4); // decimal -> número para input
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const mesLabel = s => { if (!s) return '—'; try { const d = E.lerMes(s); return MESES[d.mes - 1] + '/' + d.ano; } catch (e) { return '—'; } };
+const mesLongo = s => { try { const d = E.lerMes(s); return MESES_LONGOS[d.mes - 1] + ' de ' + d.ano; } catch (e) { return '—'; } };
+function duracao(n) {
+  if (!fin(n)) return 'inalcançável';
+  if (n <= 0) return 'agora';
+  const a = Math.floor(n / 12), m = n % 12;
+  const pa = a ? a + (a === 1 ? ' ano' : ' anos') : '';
+  const pm = m ? m + (m === 1 ? ' mês' : ' meses') : '';
+  return pa && pm ? pa + ' e ' + pm : pa || pm;
+}
+const novoId = () => Math.random().toString(36).slice(2, 10);
+const hoje = () => E.mesAtual();
+const num = v => { const x = parseFloat(String(v).replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+
+/* =================== Ícones =================== */
+const I = {
+  overview: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
+  diag: '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  goals: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
+  sim: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  prio: '<path d="M12 4v16M7 20h10"/><path d="M5 8h14"/><path d="M5 8l-2.5 5a2.5 2.5 0 0 0 5 0z"/><path d="M19 8l-2.5 5a2.5 2.5 0 0 0 5 0z"/>',
+  ai: '<path d="M4 5.5h16v10.5H10l-5 4v-4H4z"/><path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01"/>',
+  config: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  warn: '<path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4M12 17h.01"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.5L16 9.5"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
+  play: '<path d="M7 5l12 7-12 7z"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // categorias
+  reserva: '<path d="M12 3l8 3v6c0 4.8-3.4 8-8 9-4.6-1-8-4.2-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  carro: '<path d="M3.5 16.5V13l2-5.5h13l2 5.5v3.5z"/><path d="M3.5 13h17M7 16.5V19M17 16.5V19"/><circle cx="7.5" cy="14.8" r=".6"/><circle cx="16.5" cy="14.8" r=".6"/>',
+  imovel: '<path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5M10 20v-5.5h4V20"/>',
+  viagem: '<path d="M2.5 16.5l19-7-3.5-2-6 2.2L6 6 4.5 7l4 4.2-4 1.5L3 11.5 2 12.3l2 2.7z"/><path d="M3 20h18"/>',
+  independencia: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  aposentadoria: '<path d="M7 3.5h10M7 20.5h10M8 3.5c0 4.5 8 4.5 8 8.5s-8 4-8 8.5M16 3.5c0 4.5-8 4.5-8 8.5s8 4 8 8.5"/>',
+  estudos: '<path d="M2.5 9L12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v5c3 2.5 8 2.5 11 0v-5M21.5 9v5.5"/>',
+  outro: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9-4.3-4.1 5.9-.8z"/>'
+};
+const ico = (k, extra) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + (I[k] || '') + '</svg>';
+
+const CATS = {
+  reserva: 'Reserva de emergência', carro: 'Compra ou troca de carro', imovel: 'Imóvel', viagem: 'Viagem',
+  independencia: 'Independência financeira', aposentadoria: 'Aposentadoria', estudos: 'Estudos e qualificação', outro: 'Outro objetivo'
+};
+const CAT_PERMANENTE = ['reserva', 'independencia', 'aposentadoria']; // dinheiro não é gasto na data-alvo
+const STATUS = { concluido: 'Concluído', no_caminho: 'No caminho', revisao: 'Exige revisão', abaixo: 'Abaixo do planejado' };
+const FLEX = { rigido: 'Prazo rígido', moderado: 'Prazo moderado', flexivel: 'Prazo flexível' };
+const TIPOS_ATIVO = { conta: 'Conta e poupança', investimento: 'Investimento', reserva: 'Reserva de emergência', imovel: 'Imóvel', veiculo: 'Veículo', outro: 'Outro bem' };
+const CEN = { conservador: 'Conservador', base: 'Base', otimista: 'Otimista' };
+const CEN_COR = { conservador: 'var(--slate)', base: 'var(--accent)', otimista: 'var(--gold)' };
+const SERIE_CORES = ['var(--accent)', 'var(--gold)', 'var(--slate)', 'var(--c4)', 'var(--c5)', 'var(--c6)'];
+const pill = st => '<span class="pill st-' + st + '">' + STATUS[st] + '</span>';
+
+/* =================== Estado e nuvem =================== */
+/* Mesmo projeto Supabase do painel. A chave "anon public" pode ficar no código:
+   quem protege os dados é o login + RLS. A sessão é compartilhada com o painel (mesmo site). */
+const SUPABASE_URL = 'https://vgrsfeqbgroplxnumhvg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncnNmZXFiZ3JvcGx4bnVtaHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0Mzg1MDMsImV4cCI6MjEwNjAxNDUwM30.hgEBW58AeNPxMDO7JrpxQzC8PzBkm8c4RwatlUfopXA';
+const PAINEL_URL = 'index.html';
+function sbCfg() {
+  let u = SUPABASE_URL, k = SUPABASE_ANON_KEY;
+  if (!u || !k) { try { const o = JSON.parse(localStorage.getItem('mf_sb') || '{}'); u = o.url || ''; k = o.key || ''; } catch (e) { /* ok */ } }
+  return { url: (u || '').trim().replace(/\/(rest|auth)\/v1.*$/, '').replace(/\/+$/, ''), key: (k || '').trim() };
+}
+function configPadrao() {
+  return {
+    cenarios: {
+      conservador: { rentabilidade: 0.09, inflacao: 0.05, ajusteAporte: -0.10 },
+      base: { rentabilidade: 0.11, inflacao: 0.045, ajusteAporte: 0 },
+      otimista: { rentabilidade: 0.13, inflacao: 0.04, ajusteAporte: 0 }
+    },
+    considerarInflacao: true, limiarRevisao: 0.9, capacidadeManual: null, iaPermitida: false,
+    usarPainel: true, mapa: {}
+  };
+}
+function estadoVazio() {
+  return { app: 'atlas', versao: 2, exemplo: false, config: configPadrao(), rendas: [], despesas: [], ativos: [], passivos: [], objetivos: [] };
+}
+function normalizar(d) {
+  const base = estadoVazio();
+  const s = Object.assign(base, d);
+  s.config = Object.assign(configPadrao(), d.config || {});
+  s.config.cenarios = Object.assign(configPadrao().cenarios, (d.config && d.config.cenarios) || {});
+  s.config.mapa = s.config.mapa || {};
+  ['rendas', 'despesas', 'ativos', 'passivos', 'objetivos'].forEach(k => { s[k] = (s[k] || []).map(x => Object.assign({ id: novoId() }, x)); });
+  s.objetivos.forEach(o => { o.acumulado = o.acumulado || 0; o.aporte = o.aporte || 0; o.prioridade = o.prioridade || 3; o.flex = o.flex || 'moderado'; o.categoria = o.categoria || 'outro'; o.vinculos = Array.isArray(o.vinculos) ? o.vinculos : []; delete o.vinculado; });
+  s.app = 'atlas'; s.exemplo = false;
+  return s;
+}
+let S = estadoVazio();   // o planejamento (salvo pelo Atlas)
+let P = null;            // resumo calculado e enviado pelo painel (somente leitura aqui)
+let _V = null;           // dados efetivos (planejamento + painel), recalculados a cada mudança
+let telaAtual = null;    // tela de login ou de aviso, quando o app ainda não pode abrir
+const CACHE = 'atlas.cache';
+
+const Nuvem = {
+  sb: null, user: null, status: 'load', erro: '', timer: null, retryT: null, tries: 0,
+  dirty: false, syncing: false, again: false, readonly: false, planoEm: '',
+  conectar(cfg) { this.sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }); },
+  async carregar() {
+    const { data, error } = await this.sb.from('atlas').select('resumo,resumo_em,plano,plano_em').maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  guardarCache() { try { localStorage.setItem(CACHE, JSON.stringify({ uid: this.user && this.user.id, resumo: P, plano: S })); } catch (e) { /* ok */ } },
+  salvar() {
+    _V = null; this.guardarCache();
+    if (this.readonly) { toast('Sem conexão com a nuvem: a alteração não foi salva.'); return; }
+    this.dirty = true; this.setStatus('sync'); clearTimeout(this.timer); this.timer = setTimeout(() => this.enviar(), 800);
+  },
+  async enviar() {
+    if (this.readonly || !this.user) return;
+    if (this.syncing) { this.again = true; return; }
+    this.syncing = true; clearTimeout(this.retryT);
+    try {
+      do {
+        this.again = false; this.dirty = false;
+        const em = new Date().toISOString();
+        const { error } = await this.sb.from('atlas').upsert({ user_id: this.user.id, plano: E.limparSegredos(S), plano_em: em }, { onConflict: 'user_id' });
+        if (error) throw error;
+        this.planoEm = em;
+      } while (this.again);
+      this.tries = 0; this.setStatus(this.dirty ? 'sync' : 'ok');
+    } catch (e) {
+      this.dirty = true; this.tries++; this.setStatus('err', (e && e.message) || String(e));
+      this.retryT = setTimeout(() => this.enviar(), Math.min(60000, 5000 * this.tries));
+    } finally { this.syncing = false; }
+  },
+  /* Ao voltar para a aba: pega o resumo mais recente do painel e mudanças feitas em outro aparelho. */
+  async atualizar() {
+    if (!this.user || this.readonly || this.syncing || this.dirty || telaAtual) return;
+    try {
+      const d = await this.carregar(); if (!d) return;
+      let mudou = JSON.stringify(d.resumo || null) !== JSON.stringify(P);
+      P = d.resumo || null;
+      if (d.plano && d.plano_em && d.plano_em !== this.planoEm) { S = normalizar(d.plano); this.planoEm = d.plano_em; mudou = true; }
+      if (mudou) { _V = null; this.guardarCache(); if (!ui.modal) render(); }
+    } catch (e) { /* tenta de novo na próxima vez */ }
+  },
+  setStatus(st, erro) { this.status = st; this.erro = erro || ''; marcarSalvo(); }
+};
+function salvar() { S.atualizadoEm = new Date().toISOString(); Nuvem.salvar(); }
+function marcarSalvo() {
+  const M = { ok: ['var(--ok)', 'Salvo na nuvem'], sync: ['var(--warn)', 'Salvando…'], load: ['var(--warn)', 'Carregando…'], err: ['var(--bad)', 'Não salvou · tocar para tentar'], off: ['var(--bad)', 'Sem conexão · somente leitura'] };
+  const [cor, txt] = M[Nuvem.status] || M.ok;
+  const html = '<button type="button" class="save-btn" data-act="retry" title="' + esc(Nuvem.erro) + '"><span class="save-dot" style="background:' + cor + '"></span>' + txt + '</button>';
+  $('#saveState').innerHTML = html; $('#saveStateM').innerHTML = html;
+}
+function commit(fn, msg) { fn(S); salvar(); render(); if (msg) toast(msg); }
+
+/* ---------- Dados do painel ---------- */
+const ORIGEM_CONTA = { corrente: 'Conta corrente', dinheiro: 'Dinheiro/Carteira', beneficio: 'Benefício (vale)', investimento: 'Investimentos', fgts: 'FGTS', terceiros: 'Conta transitória' };
+const TIPO_PADRAO = { corrente: 'conta', dinheiro: 'conta', beneficio: 'ignorar', investimento: 'investimento', fgts: 'outro', terceiros: 'ignorar' };
+const TIPO_FONTE = { investimento: 'Investimento', reserva: 'Reserva de emergência', conta: 'Dinheiro disponível', outro: 'Bem não financeiro', ignorar: 'Não considerar' };
+const usandoPainel = () => !!P && S.config.usarPainel !== false;
+/* Renda recorrente sem os rendimentos de investimentos: eles já estão na rentabilidade dos saldos. */
+const rendaTrabalho = () => Math.max(0, P.renda.recorrente - Math.max(0, P.renda.rendimentosLiquidos || 0));
+function fontesPainel() {
+  if (!P) return [];
+  const mapa = S.config.mapa || {}, cobertas = new Set(), out = [];
+  (P.instituicoes || []).forEach(i => {
+    (i.contas || []).forEach(c => cobertas.add(c));
+    const key = 'inst:' + i.nome;
+    out.push({ key, nome: i.nome, origem: 'Investimentos', detalhe: (i.contas || []).join(', '), saldo: i.saldo, tipoAtlas: mapa[key] || 'investimento', calibrada: i.calibrada !== false });
+  });
+  (P.contas || []).forEach(c => {
+    if (cobertas.has(c.nome) || c.tipo === 'investimento') return;
+    const key = 'conta:' + c.nome;
+    out.push({ key, nome: c.nome, origem: ORIGEM_CONTA[c.tipo] || 'Conta', detalhe: '', saldo: c.saldo, tipoAtlas: mapa[key] || TIPO_PADRAO[c.tipo] || 'conta', calibrada: true });
+  });
+  return out;
+}
+const fonteNome = key => { const f = fontesPainel().find(x => x.key === key); return f ? f.nome : key.replace(/^(inst|conta):/, ''); };
+/* Planejamento + painel, no formato que o motor espera. Itens do painel têm painel: true. */
+function efetivo() {
+  const usar = usandoPainel();
+  const fontes = usar ? fontesPainel() : [];
+  const sal = Object.fromEntries(fontes.map(f => [f.key, f.saldo]));
+  const objetivos = S.objetivos.map(o => (usar && o.vinculos && o.vinculos.length) ? Object.assign({}, o, { acumulado: E.acumuladoVinculado(o.vinculos, sal), vinculado: true }) : o);
+  if (!usar) return Object.assign({}, S, { objetivos });
+  const rendas = [{ id: 'p-rec', nome: 'Renda líquida recorrente', valor: rendaTrabalho(), tipo: 'fixa', painel: true }];
+  if (P.renda.sazonal > 0.5) rendas.push({ id: 'p-saz', nome: '13º, 1/3 de férias e PLR (média mensal)', valor: P.renda.sazonal, tipo: 'variavel', painel: true });
+  const despesas = [{ id: 'p-desp', nome: 'Despesas (média mensal)', valor: P.despesas.media, tipo: 'ordinaria', painel: true }];
+  const ativos = fontes.filter(f => f.tipoAtlas !== 'ignorar').map(f => ({ id: f.key, nome: f.nome, tipo: f.tipoAtlas, valor: Math.max(0, f.saldo), painel: true }));
+  // As parcelas de dívidas já aparecem nas despesas do painel; aqui entra só o saldo devedor.
+  const passivos = S.passivos.map(x => Object.assign({}, x, { parcela: 0 }));
+  return Object.assign({}, S, { rendas: rendas.concat(S.rendas), despesas: despesas.concat(S.despesas), ativos: ativos.concat(S.ativos), passivos, objetivos });
+}
+function V() { return _V || (_V = efetivo()); }
+const quando = iso => { try { return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return '—'; } };
+
+/* =================== Interface: estado efêmero =================== */
+const ui = { view: 'overview', goalId: null, arquivados: false, modo: 'real', sim: null, rendaDelta: 0, chat: [], aiBusy: false, modal: null, iaDisponivel: false };
+try { const v = sessionStorage.getItem('atlas.view'); if (v) ui.view = v; } catch (e) { /* ok */ }
+
+/* Capacidades da página publicada (nulas quando aberta como arquivo local) */
+const caps = {};
+function cap(nome) {
+  if (!(nome in caps)) caps[nome] = (window.claude && typeof window.claude.use === 'function') ? window.claude.use(nome).catch(() => null) : Promise.resolve(null);
+  return caps[nome];
+}
+
+/* =================== Cálculos derivados =================== */
+function analisar(o, nomeCen, ajustes, cenario) {
+  return E.analisarObjetivo(o, cenario || S.config.cenarios[nomeCen || 'base'], S.config.considerarInflacao, { hoje: hoje(), ajustes, limiar: S.config.limiarRevisao });
+}
+function ctx() {
+  const d = E.diagnostico(V());
+  const ativos = V().objetivos.filter(o => !o.arquivado).sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo));
+  const base = ativos.map(o => ({ o, a: analisar(o, 'base') }));
+  const prio = E.priorizar(V().objetivos, d.capacidade, S.config.cenarios.base, S.config.considerarInflacao, hoje());
+  return { d, ativos, base, prio };
+}
+const valoresLabel = () => S.config.considerarInflacao ? 'em valores de hoje' : 'em valores nominais';
+
+/* =================== Navegação =================== */
+const VIEWS = [
+  ['overview', 'Visão geral', 'overview', 'Início'], ['diagnostico', 'Diagnóstico', 'diag', 'Diagnóstico'], ['objetivos', 'Objetivos', 'goals', 'Objetivos'],
+  ['simulacoes', 'Simulações', 'sim', 'Simular'], ['priorizacao', 'Priorização', 'prio', 'Priorizar'], ['assistente', 'Assistente', 'ai', 'Assistente'], ['config', 'Ajustes e dados', 'config', 'Ajustes']
+];
+function renderNav() {
+  const cur = ui.view === 'objetivo' ? 'objetivos' : ui.view;
+  const html = VIEWS.map(([k, label, i]) => '<button class="nav-btn" data-act="go" data-view="' + k + '"' + (cur === k ? ' aria-current="page"' : '') + '>' + ico(i) + '<span>' + label + '</span></button>').join('');
+  $('#nav').innerHTML = html;
+  $('#tabbar').innerHTML = VIEWS.map(([k, label, i, curto]) => '<button class="nav-btn" data-act="go" data-view="' + k + '"' + (cur === k ? ' aria-current="page"' : '') + '>' + ico(i) + '<span>' + curto + '</span></button>').join('');
+  $('#todayLabel').textContent = 'Referência: ' + mesLongo(hoje());
+}
+function go(view, goalId) {
+  ui.view = view; if (goalId !== undefined) ui.goalId = goalId;
+  try { sessionStorage.setItem('atlas.view', view === 'objetivo' ? 'objetivos' : view); } catch (e) { /* ok */ }
+  render(); window.scrollTo({ top: 0 });
+}
+
+function render() {
+  renderNav();
+  const main = $('#main');
+  CHARTS.clear(); _V = null;
+  if (telaAtual) { main.innerHTML = '<div class="page">' + telaAtual + '</div>'; return; }
+  let html;
+  try {
+    const fn = { overview: vOverview, diagnostico: vDiagnostico, objetivos: vObjetivos, objetivo: vObjetivo, simulacoes: vSimulacoes, priorizacao: vPriorizacao, assistente: vAssistente, config: vConfig }[ui.view] || vOverview;
+    html = fn();
+  } catch (e) {
+    console.error(e);
+    html = '<div class="page"><div class="notice notice-bad">' + ico('warn') + '<div><b>Algo nos seus dados impediu o cálculo.</b> ' + esc(e.message) + '. Revise o item mais recente ou restaure um backup em Ajustes e dados.</div></div></div>';
+  }
+  main.innerHTML = html;
+  afterRender();
+}
+function afterRender() {
+  drawContours();
+  const log = $('#chatLog'); if (log) log.scrollTop = log.scrollHeight;
+}
+
+function demoBanner() {
+  if (!S.exemplo) return '';
+  return '<div class="demo-banner"><div><b>Dados de exemplo.</b> Os valores abaixo são fictícios e servem para você explorar o Atlas.</div><div class="btn-row"><button class="btn btn-sm btn-primary" data-act="limparExemplo">Começar com meus dados</button></div></div>';
+}
+function head(eyebrow, title, lede, actions) {
+  return '<div class="page-head"><div><div class="eyebrow">' + eyebrow + '</div><h1>' + title + '</h1>' + (lede ? '<p class="lede">' + lede + '</p>' : '') + '</div>' + (actions ? '<div class="btn-row">' + actions + '</div>' : '') + '</div>';
+}
+const stat = (label, value, note, missing) => '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + (missing ? '<span class="missing">' + missing + '</span>' : value) + '</div>' + (note ? '<div class="stat-note">' + note + '</div>' : '') + '</div>';
+
+/* =================== Visão geral =================== */
+function vOverview() {
+  const c = ctx(), d = c.d;
+  const planejado = c.ativos.reduce((t, o) => t + (o.aporte || 0), 0);
+  const alerts = alertas(c);
+  const proximos = c.base.filter(x => x.a.status !== 'concluido').slice(0, 4);
+  return '<div class="page">' + demoBanner() +
+    '<section class="hero"><canvas id="contour" aria-hidden="true"></canvas>' +
+      '<div class="hero-top"><div><div class="eyebrow">Patrimônio líquido</div><div class="big">' + brl(d.patrimonioLiquido) + '</div></div>' +
+      '<div class="hero-figs">' +
+        '<div><span>Ativos</span><b>' + brl(d.totalAtivos) + '</b></div>' +
+        '<div><span>Dívidas</span><b>' + brl(d.totalPassivos) + '</b></div>' +
+        '<div><span>Patrimônio financeiro</span><b>' + brl(d.patrimonioFinanceiro) + '</b></div>' +
+        '<div><span>Investido</span><b>' + brl(d.patrimonioInvestido) + '</b></div>' +
+      '</div></div>' +
+      '<div class="small muted">' + (usandoPainel() ? '<span class="live-dot"></span> Saldos, renda e despesas do Painel financeiro, até ' + mesLabel(P.ultimoMesFechado) + ' · atualizado em ' + quando(P.geradoEm) + '. ' : '') + 'Patrimônio financeiro inclui contas, reserva e investimentos; imóveis, veículos e FGTS ficam fora do dinheiro disponível.</div>' +
+    '</section>' +
+    '<div class="grid g4">' +
+      stat('Capacidade de aporte', brl(d.capacidade) + '<small class="muted" style="font-size:.6em"> /mês</small>', d.capacidadeManual ? 'Valor definido manualmente' : 'Renda menos despesas e parcelas', d.capacidade == null ? 'Falta renda ou despesas' : null) +
+      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? 'Falta renda ou despesas' : null) +
+      stat('Reserva de emergência', fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '', brl(d.reserva) + ' em ativos de reserva', d.mesesReserva == null ? 'Falta cadastrar despesas' : null) +
+      stat('Aportes nos objetivos', brl(planejado) + '<small class="muted" style="font-size:.6em"> /mês</small>', 'Necessário no cenário base: ' + brl(c.prio.necessarioTotal), c.ativos.length ? null : 'Nenhum objetivo') +
+    '</div>' +
+    '<section class="card"><div class="card-head"><div><h2>Rota dos objetivos</h2><p>Cada parada é a data-alvo de um objetivo. A cor indica a situação no cenário base.</p></div><button class="btn btn-sm" data-act="go" data-view="objetivos">Ver objetivos</button></div>' + rota(c) + '</section>' +
+    '<div class="grid g-main">' +
+      '<section class="card"><div class="card-head"><div><h2>Dinheiro reservado aos objetivos</h2><p>Projeção no cenário base, ' + valoresLabel() + '. Metas de consumo (carro, viagem, imóvel) são usadas na data-alvo.</p></div></div>' + projecaoGeral(c) + '</section>' +
+      '<div class="stack" style="gap:16px">' +
+        '<section class="card"><div class="card-head"><h2>Atenção</h2></div><div class="stack">' + (alerts.length ? alerts.join('') : '<div class="notice notice-ok">' + ico('check') + '<div>Nenhum alerta. Todos os objetivos estão no caminho e os aportes cabem na sua capacidade.</div></div>') + '</div></section>' +
+        '<section class="card"><div class="card-head"><h2>Próximos marcos</h2></div>' + (proximos.length ? '<div class="stack">' + proximos.map(({ o, a }) =>
+          '<button class="goal-card" style="padding:12px 14px;gap:8px" data-act="openGoal" data-id="' + o.id + '"><div class="goal-top"><div class="goal-ico" style="width:34px;height:34px">' + ico(o.categoria) + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>' + mesLabel(o.dataAlvo) + ' · faltam ' + duracao(a.meses) + '</p></div>' + pill(a.status) + '</div></button>').join('') + '</div>' : '<div class="empty">Nenhum objetivo em andamento.<button class="btn btn-sm btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div>') + '</section>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+function alertas(c) {
+  const out = [];
+  const n = (cls, i, txt, act) => '<div class="notice notice-' + cls + '">' + ico(i) + '<div>' + txt + (act || '') + '</div></div>';
+  c.d.alertas.forEach(t => out.push(n('bad', 'warn', t)));
+  if (usandoPainel()) E.fontesSobrealocadas(S.objetivos).forEach(f => out.push(n('bad', 'warn', '<b>' + esc(fonteNome(f.key)) + '</b> está vinculado a objetivos que somam ' + Math.round(f.pct) + '% do saldo. O mesmo dinheiro está sendo contado mais de uma vez.')));
+  if (!P) out.push(n('info', 'info', '<b>Painel ainda não conectado.</b> Abra o Painel financeiro uma vez para que renda, despesas e saldos cheguem aqui sozinhos.'));
+  if (c.prio.deficit != null && c.prio.deficit > 0.5) out.push(n('warn', 'warn', 'Para cumprir todos os prazos você precisaria aportar <b>' + brl(c.prio.necessarioTotal) + '/mês</b>, mas sua capacidade é ' + brl(c.prio.capacidade) + '. Déficit de <b>' + brl(c.prio.deficit) + '</b>. ', ' <button class="btn btn-sm" style="margin-top:8px" data-act="go" data-view="priorizacao">Ver alternativas</button>'));
+  else if (c.d.capacidade != null && c.prio.planejadoTotal > c.d.capacidade + 0.5) out.push(n('warn', 'warn', 'Os aportes planejados (' + brl(c.prio.planejadoTotal) + ') passam da sua capacidade mensal (' + brl(c.d.capacidade) + ').'));
+  c.base.filter(x => x.a.status === 'abaixo' || x.a.status === 'revisao').forEach(({ o, a }) => {
+    const txt = a.prazoVencido ? '<b>' + esc(o.nome) + '</b>: a data-alvo já passou e a meta não foi atingida.' :
+      '<b>' + esc(o.nome) + '</b> ' + (a.status === 'abaixo' ? 'está abaixo do planejado' : 'exige revisão') + ': no prazo chega a ' + pct(a.cobertura, 0) + ' da meta. Aporte necessário: ' + brl(a.aporteNecessario) + '/mês.';
+    out.push(n(a.status === 'abaixo' ? 'bad' : 'warn', 'warn', txt));
+  });
+  if (c.d.pendencias.length) out.push(n('info', 'info', '<b>Para cálculos completos:</b> ' + c.d.pendencias.join('; ') + '.'));
+  return out;
+}
+
+/* Rota com escala de raiz quadrada: aproxima metas próximas sem esconder as distantes */
+function rota(c) {
+  const itens = c.base.filter(x => x.a.meses >= 0);
+  if (!itens.length) return '<div class="empty">Crie objetivos para traçar sua rota.<button class="btn btn-sm btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div>';
+  const W = window.innerWidth < 640 ? 640 : 1000, H = 176, x0 = 46, x1 = W - 70;
+  const maxN = Math.max(12, ...itens.map(x => x.a.meses));
+  const X = n => x0 + Math.sqrt(Math.max(0, n) / maxN) * (x1 - x0);
+  const Y = x => 92 + Math.sin(x / 85) * 9;
+  let path = ''; for (let x = x0; x <= x1 + 30; x += 6) path += (path ? 'L' : 'M') + x + ' ' + Y(x).toFixed(1);
+  const anos = [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50].filter(a => a * 12 <= maxN);
+  const cor = { concluido: 'var(--accent)', no_caminho: 'var(--ok)', revisao: 'var(--warn)', abaixo: 'var(--bad)' };
+  let ticks = anos.map(a => { const x = X(a * 12); return '<line x1="' + x + '" x2="' + x + '" y1="' + (H - 22) + '" y2="' + (H - 16) + '" style="stroke:var(--line-strong)"/><text x="' + x + '" y="' + (H - 3) + '" text-anchor="middle">' + (E.lerMes(hoje()).ano + a) + '</text>'; }).join('');
+  let ultimoX = -999, lado = 1;
+  const stops = itens.map(({ o, a }) => {
+    const x = X(a.meses), y = Y(x);
+    lado = (x - ultimoX < 120) ? -lado : -1; ultimoX = x;
+    const ty = lado < 0 ? y - 38 : y + 30;
+    const nome = o.nome.length > 22 ? o.nome.slice(0, 21) + '…' : o.nome;
+    return '<g style="cursor:pointer" data-act="openGoal" data-id="' + o.id + '"><line x1="' + x + '" x2="' + x + '" y1="' + y + '" y2="' + (lado < 0 ? ty + 6 : ty - 14) + '" style="stroke:var(--line-strong)"/>' +
+      '<circle cx="' + x + '" cy="' + y + '" r="9" style="fill:var(--surface);stroke:' + cor[a.status] + ';stroke-width:3"/><circle cx="' + x + '" cy="' + y + '" r="3.5" style="fill:' + cor[a.status] + '"/>' +
+      '<text class="stop-name" x="' + x + '" y="' + ty + '" text-anchor="middle">' + esc(nome) + '</text>' +
+      '<text x="' + x + '" y="' + (ty + 14) + '" text-anchor="middle">' + mesLabel(o.dataAlvo) + ' · ' + brlC(o.alvo) + '</text><title>' + esc(o.nome) + ': ' + STATUS[a.status] + '</title></g>';
+  }).join('');
+  return '<div class="route"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Linha do tempo dos objetivos">' +
+    '<path d="' + path + '" style="fill:none;stroke:var(--line-strong);stroke-width:2;stroke-dasharray:2 6;stroke-linecap:round"/>' +
+    '<circle cx="' + x0 + '" cy="' + Y(x0) + '" r="6" style="fill:var(--ink)"/><text class="stop-name" x="' + x0 + '" y="' + (Y(x0) + 26) + '" text-anchor="middle">Hoje</text>' +
+    ticks + stops + '</svg></div>';
+}
+function projecaoGeral(c) {
+  if (!c.base.length) return '<div class="empty">Sem objetivos para projetar.</div>';
+  const H = Math.min(480, Math.max(12, ...c.base.map(x => x.a.meses)));
+  const i = E.premissas(S.config.cenarios.base, S.config.considerarInflacao).taxaMensal;
+  const vals = new Array(H + 1).fill(0);
+  c.base.forEach(({ o, a }) => {
+    for (let k = 0; k <= H; k++) {
+      if (k <= a.meses) vals[k] += a.saldos[k];
+      else if (CAT_PERMANENTE.includes(o.categoria)) vals[k] += a.saldos[a.meses] * Math.pow(1 + i, k - a.meses);
+    }
+  });
+  const markers = c.base.filter(x => !CAT_PERMANENTE.includes(x.o.categoria) && x.a.meses <= H).map(x => ({ k: x.a.meses, label: x.o.nome }));
+  return lineChart('geral', { n: H, series: [{ name: 'Reservado', color: 'var(--accent)', values: vals, area: true }], markers });
+}
+
+/* =================== Gráficos =================== */
+const CHARTS = new Map();
+function niceTicks(max) {
+  if (!(max > 0)) max = 1;
+  const raw = max / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / p;
+  const step = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p;
+  const top = Math.ceil(max / step) * step, ticks = [];
+  for (let v = 0; v <= top + step / 2; v += step) ticks.push(v);
+  return { ticks, top };
+}
+function lineChart(id, opt) {
+  const narrow = window.innerWidth < 640;
+  const W = narrow ? 420 : 720, H = opt.height || (narrow ? 250 : 270), L = narrow ? 50 : 60, R = 14, T = 16, B = 28;
+  const n = Math.max(1, opt.n);
+  const all = opt.series.flatMap(s => s.values.filter(fin));
+  const { ticks, top } = niceTicks(Math.max(opt.target ? opt.target.value : 0, ...all) * 1.04);
+  const x = k => L + (k / n) * (W - L - R), y = v => T + (1 - Math.max(0, v) / top) * (H - T - B);
+  let g = '<g class="axis">' + ticks.map(v => '<line class="grid-line" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + brlC(v) + '</text>').join('');
+  const anos = n / 12, passo = [1, 2, 5, 10, 20].find(p => anos / p <= (narrow ? 4 : 6)) || 25;
+  const ano0 = E.lerMes(hoje()).ano;
+  for (let a = 0; a * 12 <= n; a += passo) if (n >= 24 || a === 0) g += '<text x="' + x(a * 12) + '" y="' + (H - 6) + '" text-anchor="' + (a === 0 ? 'start' : 'middle') + '">' + (a === 0 ? 'Hoje' : ano0 + a) + '</text>';
+  if (n < 24) { const m = Math.floor(n / 2); if (m > 0) g += '<text x="' + x(m) + '" y="' + (H - 6) + '" text-anchor="middle">' + mesLabel(E.somarMeses(hoje(), m)) + '</text>'; g += '<text x="' + x(n) + '" y="' + (H - 6) + '" text-anchor="end">' + mesLabel(E.somarMeses(hoje(), n)) + '</text>'; }
+  g += '</g>';
+  (opt.markers || []).forEach(m => { g += '<line x1="' + x(m.k) + '" x2="' + x(m.k) + '" y1="' + T + '" y2="' + (H - B) + '" style="stroke:var(--line-strong);stroke-dasharray:2 4"/><circle cx="' + x(m.k) + '" cy="' + (H - B) + '" r="3" style="fill:var(--gold)"><title>' + esc(m.label) + '</title></circle>'; });
+  if (opt.target) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(opt.target.value) + '" y2="' + y(opt.target.value) + '" style="stroke:var(--ink);stroke-opacity:.55;stroke-dasharray:6 5;stroke-width:1.5"/><text x="' + (W - R) + '" y="' + (y(opt.target.value) - 6) + '" text-anchor="end" style="fill:var(--ink);font:600 11px var(--font-body)">' + esc(opt.target.label || 'Meta') + ' ' + brlC(opt.target.value) + '</text>';
+  opt.series.forEach((s, si) => {
+    const d = s.values.map((v, k) => (k ? 'L' : 'M') + x(k).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
+    if (s.area) g += '<path d="' + d + 'L' + x(s.values.length - 1) + ' ' + y(0) + 'L' + x(0) + ' ' + y(0) + 'Z" style="fill:' + s.color + ';fill-opacity:.12"/>';
+    g += '<path d="' + d + '" style="fill:none;stroke:' + s.color + ';stroke-width:' + (s.dash ? 1.8 : 2.4) + ';stroke-linejoin:round;stroke-linecap:round' + (s.dash ? ';stroke-dasharray:5 5' : '') + '"/>';
+    const last = s.values.length - 1;
+    if (!s.dash) g += '<circle cx="' + x(last) + '" cy="' + y(s.values[last]) + '" r="3.5" style="fill:' + s.color + '"/>';
+  });
+  g += '<line class="x-line" data-x x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" style="visibility:hidden"/>';
+  opt.series.forEach((s, si) => { g += '<circle data-dot="' + si + '" r="4.5" style="fill:var(--surface);stroke:' + s.color + ';stroke-width:2.5;visibility:hidden"/>'; });
+  CHARTS.set(id, { W, H, L, R, T, B, n, top, opt, x, y });
+  const legend = opt.series.length > 1 || opt.target ? '<div class="legend">' + opt.series.map(s => '<span><i class="' + (s.dash ? 'dash' : '') + '" style="background:' + s.color + ';color:' + s.color + '"></i>' + esc(s.name) + '</span>').join('') + (opt.target ? '<span><i class="dash" style="color:var(--ink)"></i>' + esc(opt.target.label || 'Meta') + '</span>' : '') + '</div>' : '';
+  return '<div class="chart" data-chart="' + id + '"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Gráfico de projeção">' + g + '</svg><div class="chart-tip" hidden></div></div>' + legend;
+}
+function chartHover(e) {
+  const el = e.target.closest('.chart'); if (!el) return;
+  const c = CHARTS.get(el.dataset.chart); if (!c) return;
+  const svg = el.querySelector('svg'), r = svg.getBoundingClientRect();
+  const px = (e.clientX - r.left) * c.W / r.width;
+  const k = Math.max(0, Math.min(c.n, Math.round((px - c.L) / (c.W - c.L - c.R) * c.n)));
+  const xl = svg.querySelector('[data-x]'); xl.setAttribute('x1', c.x(k)); xl.setAttribute('x2', c.x(k)); xl.style.visibility = 'visible';
+  let rows = '';
+  c.opt.series.forEach((s, si) => {
+    const v = s.values[Math.min(k, s.values.length - 1)];
+    const dot = svg.querySelector('[data-dot="' + si + '"]');
+    if (k < s.values.length) { dot.setAttribute('cx', c.x(k)); dot.setAttribute('cy', c.y(v)); dot.style.visibility = 'visible'; } else dot.style.visibility = 'hidden';
+    rows += '<div class="row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + s.color + '"></i>' + esc(s.name) + '</span><b>' + brl(k < s.values.length ? v : NaN) + '</b></div>';
+  });
+  if (c.opt.target) rows += '<div class="row"><span>' + esc(c.opt.target.label || 'Meta') + '</span><b>' + brl(c.opt.target.value) + '</b></div>';
+  const tip = el.querySelector('.chart-tip');
+  tip.innerHTML = '<div class="t">' + mesLongo(E.somarMeses(hoje(), k)) + ' <span class="muted" style="font-weight:500">· mês ' + k + '</span></div>' + rows;
+  tip.hidden = false;
+  const left = c.x(k) / c.W * r.width;
+  tip.style.left = (left + 190 > r.width ? Math.max(0, left - 190) : left + 12) + 'px';
+  tip.style.top = '6px';
+}
+function chartLeave(e) {
+  const el = e.target.closest && e.target.closest('.chart'); if (!el) return;
+  el.querySelector('.chart-tip').hidden = true;
+  el.querySelectorAll('[data-x],[data-dot]').forEach(n => n.style.visibility = 'hidden');
+}
+
+/* =================== Diagnóstico =================== */
+function vDiagnostico() {
+  const D = V(), d = E.diagnostico(D), usar = usandoPainel();
+  const falta = 'Falta cadastrar';
+  const tabela = (tipo, titulo, sub, lista, cols) => '<section class="card"><div class="card-head"><div><h2>' + titulo + '</h2><p>' + sub + '</p></div><button class="btn btn-sm" data-act="addItem" data-tipo="' + tipo + '">' + ico('plus') + 'Adicionar</button></div>' +
+    (lista.length ? '<div class="table-wrap"><table><thead><tr>' + cols.map(c => '<th' + (c.r ? ' class="r"' : '') + '>' + c.h + '</th>').join('') + '<th></th></tr></thead><tbody>' +
+      lista.map(x => '<tr>' + cols.map(c => '<td' + (c.r ? ' class="r"' : '') + '>' + c.f(x) + '</td>').join('') + '<td class="row-actions"><button class="icon-btn" title="Editar" aria-label="Editar" data-act="editItem" data-tipo="' + tipo + '" data-id="' + x.id + '">' + ico('edit') + '</button><button class="icon-btn" title="Excluir" aria-label="Excluir" data-act="delItem" data-tipo="' + tipo + '" data-id="' + x.id + '">' + ico('trash') + '</button></td></tr>').join('') +
+      '</tbody></table></div>' : '<div class="empty">' + (usar ? 'Nada além do que vem do painel.' : 'Nada cadastrado ainda.') + '</div>') + '</section>';
+  const capManual = typeof S.config.capacidadeManual === 'number';
+  return '<div class="page">' + head('Módulo 1', 'Diagnóstico financeiro', usar ? 'Renda, despesas e saldos chegam do Painel financeiro. Aqui você só complementa com o que o painel não acompanha, como imóvel, veículo e dívidas.' : 'Registre o que você ganha, gasta, tem e deve. Campos vazios ficam vazios: o Atlas nunca preenche valores por conta própria.') +
+    (d.alertas.length ? '<div class="stack">' + d.alertas.map(a => '<div class="notice notice-bad">' + ico('warn') + '<div>' + a + '</div></div>').join('') + '</div>' : '') +
+    '<div class="grid g4">' +
+      stat('Patrimônio líquido', brl(d.patrimonioLiquido), 'Ativos menos dívidas') +
+      stat('Patrimônio financeiro', brl(d.patrimonioFinanceiro), 'Contas, reserva e investimentos') +
+      stat('Renda mensal', brl(d.rendaTotal), d.rendaVariavel ? brl(d.rendaVariavel) + ' é sazonal ou variável' : 'Soma das fontes de renda', d.rendaTotal == null ? falta : null) +
+      stat('Despesas mensais', brl(d.despesasOrdinarias != null ? d.despesasOrdinarias + d.despesasExtraordinarias : null), d.despesasExtraordinarias ? brl(d.despesasExtraordinarias) + ' extraordinárias (média)' : 'Custo médio de vida', d.despesasOrdinarias == null ? falta : null) +
+      stat('Capacidade de aporte', brl(d.capacidade), capManual ? 'Definida manualmente' : 'Num mês típico garantido: ' + brl(d.capacidadeRecorrente), d.capacidade == null ? falta : null) +
+      stat('Taxa de poupança', pct(d.taxaPoupanca), 'Parte da renda que sobra', d.taxaPoupanca == null ? falta : null) +
+      stat('Reserva de emergência', fin(d.mesesReserva) ? d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses' : '', d.reserva > 0 ? brl(d.reserva) + ' cobre as despesas' : 'Marque abaixo qual saldo é a reserva', d.mesesReserva == null ? falta : null) +
+      stat('Livre para novos objetivos', brl(d.livreParaObjetivos), brl(d.alocadoEmObjetivos) + ' já reservados em objetivos') +
+    '</div>' +
+    cardPainel() +
+    '<section class="card"><div class="card-head"><div><h2>Capacidade de aporte</h2><p>Quanto você consegue destinar aos objetivos por mês.</p></div></div>' +
+      '<div class="grid g3" style="align-items:end">' +
+        '<div class="field"><span class="label">Calculada</span><b class="num" style="font-size:1.1rem">' + brl(d.capacidadeCalculada) + '</b><span class="hint">' + (usar ? 'Renda líquida − despesas, médias do painel' : 'Renda total − despesas − parcelas') + '</span></div>' +
+        '<div class="field"><span class="label">Recorrente (conservadora)</span><b class="num" style="font-size:1.1rem">' + brl(d.capacidadeRecorrente) + '</b><span class="hint">Sem 13º, férias, PLR e outras rendas variáveis</span></div>' +
+        '<div class="field"><label class="switch"><input type="checkbox" id="capManualOn" data-act="toggleCapManual"' + (capManual ? ' checked' : '') + '>Definir manualmente</label>' +
+          (capManual ? '<div class="input-pre"><span>R$</span><input class="input" id="capManual" type="number" min="0" step="50" value="' + S.config.capacidadeManual + '" data-change="capManual"></div>' : '<span class="hint">Use se você prefere aportar menos do que sobra.</span>') + '</div>' +
+      '</div></section>' +
+    '<div class="grid g2">' +
+      tabela('rendas', usar ? 'Outras rendas' : 'Renda', usar ? 'Só o que não é lançado no app de finanças.' : 'Valores líquidos mensais.', S.rendas, [{ h: 'Fonte', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'variavel' ? 'Variável' : 'Fixa') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
+      tabela('despesas', usar ? 'Outras despesas' : 'Despesas', usar ? 'Só o que não é lançado no app, como parcelas pagas por fora.' : 'Não inclua parcelas de dívidas, elas ficam no quadro de dívidas.', S.despesas, [{ h: 'Despesa', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (x.tipo === 'extraordinaria' ? 'Extraordinária' : 'Mensal') + '</span>' }, { h: 'Por mês', r: 1, f: x => brl(x.valor) }]) +
+      tabela('ativos', usar ? 'Outros bens' : 'Ativos', usar ? 'Imóvel, veículo ou contas que o painel não acompanha.' : 'Cada valor entra uma única vez.', S.ativos, [{ h: 'Ativo', f: x => esc(x.nome) }, { h: 'Tipo', f: x => '<span class="tag">' + (TIPOS_ATIVO[x.tipo] || 'Outro') + '</span>' }, { h: 'Valor', r: 1, f: x => brl(x.valor) }]) +
+      tabela('passivos', 'Dívidas', usar ? 'Saldo devedor. As parcelas já estão nas despesas do painel e não são descontadas de novo.' : 'Saldo devedor atual e parcela mensal.', S.passivos, [{ h: 'Dívida', f: x => esc(x.nome) + (x.taxaAnual ? '<div class="small muted">' + pct(x.taxaAnual) + ' a.a.</div>' : '') }, { h: 'Parcela', r: 1, f: x => brl(x.parcela || 0) }, { h: 'Saldo', r: 1, f: x => brl(x.saldo) }]) +
+    '</div>' +
+    '<section class="card"><details class="explain"><summary>' + ico('info', ' width="16" height="16"') + 'Como cada indicador é calculado</summary><div class="stack">' +
+      '<div class="formula">Patrimônio líquido      = soma dos ativos − soma dos saldos devedores\nPatrimônio financeiro   = contas + reserva + investimentos\nCapacidade de aporte    = renda líquida − despesas' + (usar ? '' : ' − parcelas') + '\nTaxa de poupança        = capacidade ÷ renda\nReserva (meses)         = saldo marcado como reserva ÷ despesas mensais\nLivre p/ objetivos      = patrimônio financeiro − valores reservados nos objetivos</div>' +
+      (usar ? '<p>Renda e despesas são as médias mensais dos últimos ' + P.janela.meses + ' meses fechados, com as mesmas regras do painel: deduções da folha saem da renda e transferências não contam como despesa. A diferença: os rendimentos de investimentos não entram como renda, porque o Atlas já os considera na rentabilidade dos saldos. Por isso a capacidade aqui pode ficar abaixo da sobra mostrada no painel.</p>' : '<p>Despesas extraordinárias (IPVA, matrícula, seguro anual) entram pela média mensal.</p>') +
+      '<p>O valor reservado em cada objetivo é parte do patrimônio financeiro, por isso não é somado de novo.</p></div></details></section>' +
+  '</div>';
+}
+function cardPainel() {
+  if (!P) return '<div class="notice notice-warn">' + ico('info') + '<div style="flex:1"><b>Ainda não recebi dados do painel.</b> O painel envia renda, despesas e saldos ao Atlas sempre que abre ou salva. Abra o Painel financeiro uma vez e volte para esta aba.<div style="margin-top:8px"><a class="btn btn-sm" href="' + PAINEL_URL + '">Abrir o painel</a></div></div></div>';
+  const usar = usandoPainel(), fontes = fontesPainel(), descal = fontes.filter(f => !f.calibrada);
+  const opts = k => Object.entries(TIPO_FONTE).map(([v, l]) => '<option value="' + v + '"' + (k === v ? ' selected' : '') + '>' + l + '</option>').join('');
+  const kv = (l, v, n) => '<div><span>' + l + '</span><b>' + v + '</b>' + (n ? '<span>' + n + '</span>' : '') + '</div>';
+  return '<section class="card painel-card"><div class="card-head"><div><div class="eyebrow" style="display:flex;gap:8px;align-items:center"><span class="live-dot"></span>Conectado ao Painel financeiro</div><h2 style="margin-top:4px">Dados do painel</h2><p>Médias de ' + mesLabel(P.janela.de) + ' a ' + mesLabel(P.janela.ate) + ' e saldos do fim de ' + mesLabel(P.ultimoMesFechado) + '. Atualizado em ' + quando(P.geradoEm) + '.</p></div>' +
+      '<label class="switch"><input type="checkbox" data-act="toggleUsarPainel"' + (usar ? ' checked' : '') + '>Usar no planejamento</label></div>' +
+    (usar ? '<div class="kv kv-painel">' +
+      kv('Renda líquida recorrente', brl(rendaTrabalho()) + '/mês', 'sem rendimentos de investimentos') +
+      kv('13º, férias e PLR', brl(P.renda.sazonal) + '/mês', 'média mensal') +
+      kv('Despesas', brl(P.despesas.media) + '/mês') +
+      kv('Rendimentos de investimentos', brl(P.renda.rendimentosLiquidos || 0) + '/mês', 'ficam na rentabilidade, não na renda') +
+      kv('Aportes líquidos em investimentos', brl(P.aportesLiquidosMes) + '/mês', 'o que de fato foi investido') +
+    '</div>' +
+    '<div class="fontes"><div class="fonte-row fonte-head"><span>Saldo no painel</span><span class="r">Valor</span><span>No Atlas conta como</span></div>' +
+      fontes.map(f => '<div class="fonte-row"><div class="fonte-nome"><b>' + esc(f.nome) + '</b><span class="tag">' + esc(f.origem) + '</span>' + (f.detalhe && f.detalhe !== f.nome ? '<small>' + esc(f.detalhe) + '</small>' : '') + '</div>' +
+        '<div class="r num fonte-valor' + (f.saldo < 0 ? ' delta-down' : '') + '">' + brl(f.saldo) + '</div>' +
+        '<select class="input" data-change="mapa" data-key="' + esc(f.key) + '" aria-label="Como considerar ' + esc(f.nome) + '">' + opts(f.tipoAtlas) + '</select></div>').join('') +
+    '</div>' +
+    '<p class="small muted" style="margin-top:10px">Marque como <b>Reserva de emergência</b> o saldo que cumpre esse papel. FGTS e vales entram fora do dinheiro disponível; contas transitórias (a receber ou a pagar) ficam de fora. Para corrigir um valor, ajuste no painel.</p>' +
+    (descal.length ? '<div class="notice notice-warn" style="margin-top:10px">' + ico('warn') + '<div>Sem calibração no painel: ' + descal.map(f => esc(f.nome)).join(', ') + '. O saldo pode estar subestimado; informe o saldo real na aba Investimentos do painel.</div></div>' : '')
+    : '<p class="small muted">Os dados do painel estão desligados. O Atlas usa só o que você cadastrar aqui.</p>') +
+  '</section>';
+}
+
+/* =================== Objetivos =================== */
+function vObjetivos() {
+  const lista = V().objetivos.filter(o => !!o.arquivado === ui.arquivados).sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo));
+  const ativos = V().objetivos.filter(o => !o.arquivado);
+  const arq = V().objetivos.length - ativos.length;
+  const reservado = ativos.reduce((t, o) => t + (o.acumulado || 0), 0), aportes = ativos.reduce((t, o) => t + (o.aporte || 0), 0);
+  return '<div class="page">' + demoBanner() + head('Módulo 2', 'Objetivos', ativos.length + (ativos.length === 1 ? ' objetivo ativo' : ' objetivos ativos') + ' · ' + brl(reservado) + ' reservados · ' + brl(aportes) + '/mês em aportes planejados. Situação calculada no cenário base.', '<button class="btn btn-primary" data-act="newGoal">' + ico('plus') + 'Novo objetivo</button>') +
+    '<div><div class="seg" role="group" aria-label="Filtro"><button data-act="arquivados" data-v="0" aria-pressed="' + !ui.arquivados + '">Ativos</button><button data-act="arquivados" data-v="1" aria-pressed="' + ui.arquivados + '">Arquivados (' + arq + ')</button></div></div>' +
+    (lista.length ? '<div class="goals">' + lista.map(goalCard).join('') + '</div>' : '<div class="empty">' + (ui.arquivados ? 'Nenhum objetivo arquivado.' : 'Você ainda não tem objetivos. Comece por uma reserva de emergência ou pela meta mais próxima.') + (ui.arquivados ? '' : '<button class="btn btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button>') + '</div>') +
+  '</div>';
+}
+function goalCard(o) {
+  const a = analisar(o, 'base');
+  const nec = a.status === 'concluido' ? 'Meta atingida' : fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'Prazo vencido';
+  return '<button class="goal-card" data-act="openGoal" data-id="' + o.id + '">' +
+    '<div class="goal-top"><div class="goal-ico">' + ico(o.categoria) + '</div><div class="goal-title"><h3>' + esc(o.nome) + '</h3><p>' + mesLabel(o.dataAlvo) + ' · ' + (a.meses > 0 ? 'faltam ' + duracao(a.meses) : 'prazo atingido') + '</p></div></div>' +
+    '<div class="btn-row" style="gap:6px">' + pill(a.status) + (o.vinculado ? '<span class="tag">Saldo do painel</span>' : '') + '</div>' +
+    '<div><div class="progress-line"><span>' + brl(a.acumulado) + ' de ' + brl(a.alvo) + '</span><b class="num">' + pct(a.progresso, 0) + '</b></div><div class="bar"><span style="width:' + (a.progresso * 100).toFixed(1) + '%"></span></div></div>' +
+    '<div class="kv"><div><span>Aporte planejado</span><b>' + brl(o.aporte) + '</b></div><div><span>Aporte necessário</span><b>' + nec + '</b></div>' +
+    '<div><span>Projeção no prazo</span><b>' + brl(a.projetado) + '</b></div><div><span>Da meta</span><b>' + pct(a.cobertura, 0) + '</b></div></div>' +
+  '</button>';
+}
+
+function vObjetivo() {
+  const o = V().objetivos.find(x => x.id === ui.goalId);
+  if (!o) { ui.view = 'objetivos'; return vObjetivos(); }
+  const inf = S.config.considerarInflacao, nominal = inf && ui.modo === 'nominal';
+  const an = {}; Object.keys(CEN).forEach(k => an[k] = analisar(o, k));
+  const a = an.base;
+  const conv = (vals, k) => nominal ? vals.map((v, m) => v * Math.pow(1 + S.config.cenarios[k].inflacao, m / 12)) : vals;
+  const series = Object.keys(CEN).map(k => ({ name: CEN[k], color: CEN_COR[k], values: conv(an[k].saldos, k) }));
+  const alvoGraf = nominal ? a.alvoNominal : a.alvo;
+  const i = a.premissas.taxaMensal;
+
+  // Caminhos alternativos (cenário base)
+  let caminhos = '';
+  if (a.status === 'concluido') {
+    caminhos = '<div class="notice notice-ok">' + ico('check') + '<div>Meta atingida. Você pode marcar este objetivo como concluído arquivando-o.</div></div>';
+  } else if (!fin(a.aporteNecessario)) {
+    const n2 = E.mesesParaMeta(a.alvo, a.acumulado, i, o.aporte || 0);
+    caminhos = '<div class="notice notice-bad">' + ico('warn') + '<div>A data-alvo já chegou e faltam ' + brl(a.alvo - a.acumulado) + '. ' + (fin(n2) ? 'Com o aporte atual, a meta seria atingida em <b>' + mesLongo(E.somarMeses(hoje(), n2)) + '</b>.' : 'Com o aporte atual a meta não é alcançada.') + '</div></div>' +
+      (fin(n2) ? '<div class="btn-row"><button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="dataAlvo" data-valor="' + E.somarMeses(hoje(), n2) + '">Mudar data para ' + mesLabel(E.somarMeses(hoje(), n2)) + '</button></div>' : '');
+  } else {
+    const nAdiar = E.mesesParaMeta(a.alvo, a.acumulado, i, o.aporte || 0);
+    const metaPossivel = E.valorFuturo(a.acumulado, i, a.meses, o.aporte || 0);
+    const linha = (num, titulo, texto, botao) => '<div class="alt"><div class="alt-head"><div class="alt-num">' + num + '</div><div style="flex:1;min-width:0"><h3>' + titulo + '</h3><p class="small muted" style="margin-top:2px">' + texto + '</p></div></div>' + (botao ? '<div style="padding-left:40px">' + botao + '</div>' : '') + '</div>';
+    if (a.status === 'no_caminho') {
+      caminhos = '<div class="notice notice-ok">' + ico('check') + '<div>No cenário base, o aporte planejado leva a ' + brl(a.projetado) + ' no prazo, ' + brl(a.diferenca) + ' acima da meta.</div></div>' +
+        (o.aporte - a.aporteNecessario > 1 ? linha(1, 'Liberar parte do aporte', 'O aporte necessário é ' + brl(a.aporteNecessario) + '/mês. A diferença de ' + brl(o.aporte - a.aporteNecessario) + ' poderia ir para outro objetivo. Considere a margem de segurança do cenário conservador antes de reduzir.', '<button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="aporte" data-valor="' + Math.ceil(a.aporteNecessario) + '">Usar ' + brl(Math.ceil(a.aporteNecessario)) + '/mês</button>') : '');
+    } else {
+      caminhos = '<div class="stack" style="gap:16px">' +
+        linha(1, 'Aumentar o aporte', 'Manter prazo e meta exige ' + brl(a.aporteNecessario) + '/mês, ' + brl(a.aporteNecessario - o.aporte) + ' a mais do que o planejado.', '<button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="aporte" data-valor="' + Math.ceil(a.aporteNecessario) + '">Aplicar ' + brl(Math.ceil(a.aporteNecessario)) + '/mês</button>') +
+        linha(2, 'Adiar o prazo', fin(nAdiar) ? 'Com ' + brl(o.aporte) + '/mês, a meta chega em ' + mesLongo(E.somarMeses(hoje(), nAdiar)) + ' (' + duracao(nAdiar - a.meses) + ' depois).' : 'Com o aporte atual, a meta não é alcançada em nenhum prazo razoável.', fin(nAdiar) ? '<button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="dataAlvo" data-valor="' + E.somarMeses(hoje(), nAdiar) + '">Mudar para ' + mesLabel(E.somarMeses(hoje(), nAdiar)) + '</button>' : '') +
+        linha(3, 'Reduzir a meta', 'Mantendo prazo e aporte, o valor alcançável é ' + brl(metaPossivel) + ' (' + pct((a.alvo - metaPossivel) / a.alvo, 0) + ' menos).', '<button class="btn btn-sm" data-act="applyGoal" data-id="' + o.id + '" data-campo="alvo" data-valor="' + Math.floor(metaPossivel) + '">Mudar meta para ' + brl(Math.floor(metaPossivel)) + '</button>') +
+      '</div>';
+    }
+  }
+  const cenRows = Object.keys(CEN).map(k => {
+    const x = an[k], p = x.premissas;
+    const proj = nominal ? x.projetadoNominal : x.projetado, dif = nominal ? x.projetadoNominal - x.alvoNominal : x.diferenca;
+    return '<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + CEN_COR[k] + ';margin-right:8px"></span><b>' + CEN[k] + '</b><div class="small muted">' + pct(p.rentabilidadeAnual) + ' a.a.' + (inf ? ' − inflação ' + pct(p.inflacaoAnual) + ' = ' + pct(p.taxaAnualUsada, 2) + ' real' : '') + (p.ajusteAporte ? ' · aporte ' + (p.ajusteAporte > 0 ? '+' : '') + pct(p.ajusteAporte, 0) : '') + '</div></td>' +
+      '<td class="r">' + brl(proj) + '</td><td class="r ' + (dif >= 0 ? 'delta-up' : 'delta-down') + '">' + (dif >= 0 ? '+' : '−') + brl(Math.abs(dif)) + '</td>' +
+      '<td class="r">' + (x.status === 'concluido' ? '—' : fin(x.aporteNecessario) ? brl(x.aporteNecessario) : 'vencido') + '</td><td class="r">' + (x.dataEstimada ? mesLabel(x.dataEstimada) : 'não alcança') + '</td></tr>';
+  }).join('');
+  return '<div class="page">' +
+    '<div><button class="back" data-act="go" data-view="objetivos">' + ico('back') + 'Objetivos</button></div>' +
+    '<div class="page-head"><div class="goal-top" style="align-items:flex-start"><div class="goal-ico" style="width:52px;height:52px;border-radius:14px">' + ico(o.categoria, ' style="width:26px;height:26px"') + '</div><div><div class="eyebrow">' + CATS[o.categoria] + ' · prioridade ' + o.prioridade + ' · ' + FLEX[o.flex] + '</div><h1>' + esc(o.nome) + '</h1>' + (o.descricao ? '<p class="lede">' + esc(o.descricao) + '</p>' : '') + '<div style="margin-top:10px">' + pill(a.status) + (o.arquivado ? ' <span class="tag">Arquivado</span>' : '') + '</div></div></div>' +
+      '<div class="btn-row"><button class="btn" data-act="editGoal" data-id="' + o.id + '">' + ico('edit') + 'Editar</button><button class="btn" data-act="simGoal" data-id="' + o.id + '">' + ico('sim') + 'Simular</button><button class="btn btn-ghost" data-act="archiveGoal" data-id="' + o.id + '">' + ico('archive') + (o.arquivado ? 'Reativar' : 'Arquivar') + '</button><button class="btn btn-ghost btn-danger" data-act="delGoal" data-id="' + o.id + '">' + ico('trash') + 'Excluir</button></div></div>' +
+    '<div class="grid g4">' +
+      stat('Meta', brl(a.alvo), inf ? 'Em valores de hoje. Na data-alvo: ' + brl(a.alvoNominal) + ' (cenário base)' : 'Valor nominal') +
+      stat('Reservado', brl(a.acumulado), pct(a.progresso, 0) + ' da meta' + (o.vinculado ? '<br>Do painel: ' + o.vinculos.map(v => esc(fonteNome(v.key)) + (v.pct < 100 ? ' (' + v.pct + '%)' : '')).join(', ') : '')) +
+      stat('Prazo', mesLabel(o.dataAlvo), a.meses > 0 ? 'Faltam ' + duracao(a.meses) : 'Data-alvo atingida') +
+      stat('Aporte planejado', brl(o.aporte), a.status === 'concluido' ? 'Meta atingida' : 'Necessário: ' + (fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'prazo vencido')) +
+    '</div>' +
+    '<div class="grid g-main">' +
+      '<section class="card"><div class="card-head"><div><h2>Projeção da evolução</h2><p>Aporte planejado em cada cenário. Linha tracejada: a meta.</p></div>' +
+        (inf ? '<div class="seg"><button data-act="modo" data-v="real" aria-pressed="' + !nominal + '">Valores de hoje</button><button data-act="modo" data-v="nominal" aria-pressed="' + nominal + '">Nominais</button></div>' : '') + '</div>' +
+        (a.meses > 0 ? lineChart('goal', { n: a.meses, series, target: { value: alvoGraf, label: 'Meta' } }) : '<div class="empty">A data-alvo já chegou, não há evolução para projetar.</div>') +
+      '</section>' +
+      '<section class="card"><div class="card-head"><div><h2>Caminhos para chegar lá</h2><p>Cenário base. Nada muda sem sua confirmação.</p></div></div>' + caminhos + '</section>' +
+    '</div>' +
+    '<section class="card"><div class="card-head"><div><h2>Comparação de cenários</h2><p>' + (nominal ? 'Valores nominais, na moeda da data-alvo.' : inf ? 'Valores em poder de compra de hoje.' : 'Valores nominais, sem considerar inflação.') + '</p></div></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Cenário e premissas</th><th class="r">Saldo no prazo</th><th class="r">Diferença p/ meta</th><th class="r">Aporte necessário</th><th class="r">Data estimada</th></tr></thead><tbody>' + cenRows + '</tbody></table></div>' +
+      '<p class="small muted" style="margin-top:12px">Cenários são hipóteses, não promessas. Rentabilidades maiores costumam vir com mais risco, menos liquidez ou prazos mais longos. Impostos e taxas não estão incluídos: informe a rentabilidade já líquida.</p>' +
+    '</section>' +
+  '</div>';
+}
+
+/* =================== Simulações =================== */
+function simDe(o) {
+  const c = JSON.parse(JSON.stringify(S.config.cenarios));
+  return { goalId: o.id, aporte: o.aporte || 0, dataAlvo: o.dataAlvo, saldo: o.acumulado || 0, alvo: o.alvo, pausaMeses: 0, pausaInicio: 1, cen: c, preset: null };
+}
+function vSimulacoes() {
+  const ativos = V().objetivos.filter(o => !o.arquivado);
+  if (!ativos.length) return '<div class="page">' + head('Módulo 3', 'Simulações') + '<div class="empty">Crie um objetivo para simular cenários.<button class="btn btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div></div>';
+  let o = ui.sim && V().objetivos.find(x => x.id === ui.sim.goalId);
+  if (!o) { o = ativos[0]; ui.sim = simDe(o); }
+  const s = ui.sim;
+  const maxAporte = Math.max(2000, Math.ceil(Math.max(o.aporte * 3, analisar(o, 'base').aporteNecessario || 0, s.aporte) * 1.2 / 100) * 100);
+  const cenInputs = Object.keys(CEN).map(k => '<tr><td><b>' + CEN[k] + '</b></td>' +
+    '<td><div class="input-suf"><input class="input" type="number" step="0.1" id="sim-r-' + k + '" data-sim="rent" data-cen="' + k + '" value="' + pctIn(s.cen[k].rentabilidade) + '"><span>%</span></div></td>' +
+    '<td><div class="input-suf"><input class="input" type="number" step="0.1" id="sim-i-' + k + '" data-sim="infl" data-cen="' + k + '" value="' + pctIn(s.cen[k].inflacao) + '"><span>%</span></div></td></tr>').join('');
+  const presets = [['mais200', '+ R$ 200/mês'], ['adiar12', 'Adiar 1 ano'], ['rentMenos2', 'Rentabilidade 2 p.p. menor'], ['pausa6', 'Pausar aportes por 6 meses'], ['inflMais2', 'Inflação 2 p.p. maior']];
+  return '<div class="page">' + head('Módulo 3', 'Simulações', 'Teste mudanças sem tocar no plano oficial. Para valer, use “Aplicar ao plano” e confirme.') +
+    '<div class="chips">' + presets.map(([k, l]) => '<button class="chip" data-act="preset" data-k="' + k + '">' + l + '</button>').join('') + '<button class="chip" data-act="simReset">Restaurar valores do plano</button></div>' +
+    '<div class="grid g-main" style="align-items:start">' +
+      '<div id="simResults" class="stack" style="gap:16px">' + simResultados() + '</div>' +
+      '<section class="card stack" style="gap:16px"><div><h2>Parâmetros</h2></div>' +
+        '<div class="field"><label for="simGoal">Objetivo</label><select class="input" id="simGoal" data-change="simGoal">' + ativos.map(x => '<option value="' + x.id + '"' + (x.id === o.id ? ' selected' : '') + '>' + esc(x.nome) + '</option>').join('') + '</select></div>' +
+        '<div class="field"><label for="sim-aporte">Aporte mensal</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="50" id="sim-aporte" data-sim="aporte" value="' + s.aporte + '"></div><input type="range" min="0" max="' + maxAporte + '" step="50" id="sim-aporte-r" data-sim="aporte" value="' + s.aporte + '" aria-label="Aporte mensal"></div>' +
+        '<div class="form-grid"><div class="field"><label for="sim-data">Data-alvo</label><input class="input" type="month" id="sim-data" data-sim="dataAlvo" value="' + s.dataAlvo + '"></div>' +
+        '<div class="field"><label for="sim-saldo">Saldo inicial</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="100" id="sim-saldo" data-sim="saldo" value="' + s.saldo + '"></div></div></div>' +
+        '<div class="field"><label for="sim-alvo">Meta</label><div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="500" id="sim-alvo" data-sim="alvo" value="' + s.alvo + '"></div></div>' +
+        '<div class="form-grid"><div class="field"><label for="sim-pausa">Pausar aportes (meses)</label><input class="input" type="number" min="0" max="120" id="sim-pausa" data-sim="pausaMeses" value="' + s.pausaMeses + '"></div>' +
+        '<div class="field"><label for="sim-pini">A partir do mês nº</label><input class="input" type="number" min="1" id="sim-pini" data-sim="pausaInicio" value="' + s.pausaInicio + '"></div></div>' +
+        '<div class="field"><span class="label">Premissas por cenário (ao ano)</span><div class="table-wrap"><table><thead><tr><th></th><th>Rentab.</th><th>Inflação</th></tr></thead><tbody>' + cenInputs + '</tbody></table></div></div>' +
+        '<div class="btn-row"><button class="btn btn-primary" data-act="simApply">Aplicar ao plano</button></div>' +
+      '</section>' +
+    '</div></div>';
+}
+function simObj() {
+  const o = V().objetivos.find(x => x.id === ui.sim.goalId), s = ui.sim;
+  return Object.assign({}, o, { aporte: s.aporte, dataAlvo: s.dataAlvo, acumulado: s.saldo, alvo: s.alvo });
+}
+function simResultados() {
+  const s = ui.sim, o = V().objetivos.find(x => x.id === s.goalId);
+  let erro = null;
+  try { E.lerMes(s.dataAlvo); [s.aporte, s.saldo, s.alvo].forEach(v => { if (!fin(v) || v < 0) throw new Error('valores precisam ser números ≥ 0'); }); Object.values(s.cen).forEach(c => { if (!(c.rentabilidade > -1) || !(c.inflacao > -1)) throw new Error('taxas precisam ser maiores que −100%'); }); }
+  catch (e) { erro = e.message; }
+  if (erro) return '<div class="notice notice-bad">' + ico('warn') + '<div>Revise os parâmetros: ' + esc(erro) + '.</div></div>';
+  const pausa = s.pausaMeses > 0 ? { inicio: s.pausaInicio || 1, meses: s.pausaMeses } : null;
+  const so = simObj();
+  const sim = {}, orig = {};
+  Object.keys(CEN).forEach(k => { sim[k] = analisar(so, k, { pausa }, s.cen[k]); orig[k] = analisar(o, k); });
+  const n = Math.max(sim.base.meses, orig.base.meses, 1);
+  const series = Object.keys(CEN).map(k => ({ name: CEN[k] + ' (simulado)', color: CEN_COR[k], values: sim[k].saldos }));
+  series.push({ name: 'Plano atual (base)', color: 'var(--muted)', values: orig.base.saldos, dash: true });
+  const linha = (rot, f, fmtDelta) => '<tr><td>' + rot + '</td>' + Object.keys(CEN).map(k => { const a = f(orig[k]), b = f(sim[k]); return '<td class="r">' + b.txt + (fmtDelta ? '<div class="small">' + fmtDelta(a, b) + '</div>' : '') + '</td>'; }).join('') + '</tr>';
+  const dMoney = (a, b) => { if (!fin(a.v) || !fin(b.v)) return '<span class="muted">antes: ' + a.txt + '</span>'; const d = b.v - a.v; return Math.abs(d) < 0.5 ? '<span class="muted">sem mudança</span>' : '<span class="' + (d > 0 ? 'delta-up' : 'delta-down') + '">' + (d > 0 ? '+' : '−') + brl(Math.abs(d)) + '</span>'; };
+  const dCost = (a, b) => { if (!fin(a.v) || !fin(b.v)) return '<span class="muted">antes: ' + a.txt + '</span>'; const d = b.v - a.v; return Math.abs(d) < 0.5 ? '<span class="muted">sem mudança</span>' : '<span class="' + (d < 0 ? 'delta-up' : 'delta-down') + '">' + (d > 0 ? '+' : '−') + brl(Math.abs(d)) + '</span>'; };
+  const dData = (a, b) => { if (!fin(a.v) || !fin(b.v)) return '<span class="muted">antes: ' + a.txt + '</span>'; const d = b.v - a.v; return d === 0 ? '<span class="muted">sem mudança</span>' : '<span class="' + (d < 0 ? 'delta-up' : 'delta-down') + '">' + (d > 0 ? duracao(d) + ' depois' : duracao(-d) + ' antes') + '</span>'; };
+  const tabela = '<div class="table-wrap"><table><thead><tr><th></th>' + Object.keys(CEN).map(k => '<th class="r">' + CEN[k] + '</th>').join('') + '</tr></thead><tbody>' +
+    linha('Saldo no prazo', a => ({ v: a.projetado, txt: brl(a.projetado) }), dMoney) +
+    linha('Diferença p/ meta', a => ({ v: a.diferenca, txt: (a.diferenca >= 0 ? '+' : '−') + brl(Math.abs(a.diferenca)) }), dMoney) +
+    linha('Aporte necessário', a => ({ v: a.status === 'concluido' ? 0 : a.aporteNecessario, txt: a.status === 'concluido' ? 'R$ 0' : fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'vencido' }), dCost) +
+    linha('Meta atingida em', a => ({ v: a.mesesAteMeta, txt: a.dataEstimada ? mesLabel(a.dataEstimada) : 'não alcança' }), dData) +
+    linha('Situação', a => ({ v: 0, txt: pill(a.status) }), null) +
+  '</tbody></table></div>';
+  // Impacto no orçamento total
+  const d = E.diagnostico(V());
+  const totalPlan = V().objetivos.filter(x => !x.arquivado).reduce((t, x) => t + (x.id === o.id ? s.aporte : (x.aporte || 0)), 0);
+  const capTxt = d.capacidade == null ? 'Cadastre renda e despesas para comparar com sua capacidade.' :
+    'Com esta simulação, os aportes de todos os objetivos somam <b>' + brl(totalPlan) + '/mês</b> para uma capacidade de ' + brl(d.capacidade) + (totalPlan > d.capacidade + 0.5 ? ': <b>' + brl(totalPlan - d.capacidade) + ' acima</b>.' : ': cabe no orçamento.');
+  const pausaTxt = pausa ? ' Pausa de ' + pausa.meses + (pausa.meses === 1 ? ' mês' : ' meses') + ' a partir do mês ' + pausa.inicio + '; o aporte necessário considera a pausa.' : '';
+  return '<section class="card"><div class="card-head"><div><h2>' + esc(o.nome) + '</h2><p>Simulado ' + valoresLabel() + '.' + pausaTxt + '</p></div></div>' +
+      lineChart('sim', { n, series, target: { value: s.alvo, label: 'Meta' } }) + '</section>' +
+    '<section class="card"><div class="card-head"><div><h2>Antes e depois</h2><p>Valor simulado e a mudança em relação ao plano atual.</p></div></div>' + tabela + '</section>' +
+    '<div class="notice ' + (d.capacidade != null && totalPlan > d.capacidade + 0.5 ? 'notice-warn' : 'notice-info') + '">' + ico('info') + '<div>' + capTxt + '</div></div>';
+}
+function simInput(el) {
+  const s = ui.sim, f = el.dataset.sim;
+  if (f === 'dataAlvo') s.dataAlvo = el.value;
+  else if (f === 'rent' || f === 'infl') { const v = num(el.value) / 100; s.cen[el.dataset.cen][f === 'rent' ? 'rentabilidade' : 'inflacao'] = v; }
+  else { const v = num(el.value); s[f] = (f === 'pausaMeses' || f === 'pausaInicio') ? Math.max(f === 'pausaInicio' ? 1 : 0, Math.round(v || 0)) : v; }
+  if (f === 'aporte') { const other = el.id === 'sim-aporte' ? $('#sim-aporte-r') : $('#sim-aporte'); if (other) other.value = el.value; }
+  $('#simResults').innerHTML = simResultados();
+}
+const PRESETS = {
+  mais200: s => { s.aporte = (s.aporte || 0) + 200; },
+  adiar12: s => { s.dataAlvo = E.somarMeses(s.dataAlvo, 12); },
+  rentMenos2: s => { Object.values(s.cen).forEach(c => { c.rentabilidade = Math.max(-0.99, c.rentabilidade - 0.02); }); },
+  pausa6: s => { s.pausaMeses = 6; s.pausaInicio = 1; },
+  inflMais2: s => { Object.values(s.cen).forEach(c => { c.inflacao += 0.02; }); }
+};
+
+/* =================== Priorização =================== */
+function vPriorizacao() {
+  const c = ctx(), p = c.prio, d = c.d;
+  const abertos = p.analises.filter(a => a.status !== 'concluido');
+  if (!c.ativos.length) return '<div class="page">' + head('Módulo 4', 'Priorização') + '<div class="empty">Crie objetivos para comparar com sua capacidade.<button class="btn btn-primary" data-act="newGoal">' + ico('plus') + 'Criar objetivo</button></div></div>';
+  const cores = {}; c.ativos.forEach((o, k) => cores[o.id] = SERIE_CORES[k % SERIE_CORES.length]);
+  const totalNec = p.necessarioTotal;
+  let barra = '';
+  if (d.capacidade != null) {
+    const escala = Math.max(totalNec, d.capacidade, 1) * 1.08;
+    barra = '<div class="cap-wrap"><div style="position:relative"><div class="cap-bar">' + abertos.filter(a => fin(a.aporteNecessario) && a.aporteNecessario > 0).map(a => '<span style="width:' + (a.aporteNecessario / escala * 100).toFixed(2) + '%;background:' + cores[a.id] + '" title="' + esc(a.nome) + ': ' + brl(a.aporteNecessario) + '"></span>').join('') +
+      '</div><div class="cap-mark" style="left:' + Math.min(99.5, d.capacidade / escala * 100).toFixed(2) + '%" data-label="Capacidade ' + brlC(d.capacidade) + '"></div></div>' +
+      '<div class="cap-legend">' + abertos.filter(a => fin(a.aporteNecessario) && a.aporteNecessario > 0).map(a => '<span><i style="background:' + cores[a.id] + '"></i>' + esc(a.nome) + ' · ' + brl(a.aporteNecessario) + '</span>').join('') + '</div></div>';
+  }
+  const tabela = '<div class="table-wrap"><table><thead><tr><th>Objetivo</th><th>Prioridade</th><th class="r">Prazo</th><th class="r">Necessário</th><th class="r">Planejado</th><th>Situação</th></tr></thead><tbody>' +
+    p.analises.map(a => { const o = V().objetivos.find(x => x.id === a.id); return '<tr><td><button class="back" style="color:var(--ink)" data-act="openGoal" data-id="' + o.id + '"><i style="display:inline-block;width:9px;height:9px;border-radius:3px;background:' + cores[o.id] + '"></i>' + esc(o.nome) + '</button></td>' +
+      '<td><div class="prio" role="group" aria-label="Prioridade">' + [1, 2, 3, 4, 5].map(v => '<button data-act="setPrio" data-id="' + o.id + '" data-v="' + v + '" aria-pressed="' + (o.prioridade === v) + '" title="Prioridade ' + v + '">' + v + '</button>').join('') + '</div></td>' +
+      '<td class="r">' + mesLabel(o.dataAlvo) + '</td><td class="r">' + (a.status === 'concluido' ? '—' : fin(a.aporteNecessario) ? brl(a.aporteNecessario) : 'vencido') + '</td><td class="r">' + brl(o.aporte) + '</td><td>' + pill(a.status) + '</td></tr>'; }).join('') +
+    '</tbody></table></div><p class="small muted" style="margin-top:10px">Prioridade 1 é a mais importante. Só você define essa ordem; o Atlas apenas calcula as consequências.</p>';
+
+  let alternativas = '';
+  if (d.capacidade == null) {
+    alternativas = '<div class="notice notice-info">' + ico('info') + '<div>Cadastre renda e despesas no Diagnóstico para comparar os objetivos com sua capacidade de aporte.</div></div>';
+  } else if (p.deficit > 0.5) {
+    const A = p.alternativas;
+    const tbl = (head, rows) => '<div class="table-wrap"><table><thead><tr>' + head.map(h => '<th' + (h[1] ? ' class="r"' : '') + '>' + h[0] + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    const altCard = (nn, titulo, texto, corpo, largo) => '<section class="card alt"' + (largo ? ' style="grid-column:1/-1"' : '') + '><div class="alt-head"><div class="alt-num">' + nn + '</div><div style="min-width:0"><h2>' + titulo + '</h2><p class="small muted" style="margin-top:3px">' + texto + '</p></div></div>' + corpo + '</section>';
+    const pctRenda = d.rendaTotal ? ' (' + pct(A.aumentar.valor / d.rendaTotal) + ' da renda)' : '';
+    alternativas = '<div class="notice notice-warn">' + ico('warn') + '<div>Para cumprir todos os prazos são necessários <b>' + brl(totalNec) + '/mês</b>. Sua capacidade é ' + brl(d.capacidade) + '. Faltam <b>' + brl(p.deficit) + '/mês</b>. Abaixo estão as consequências de cada caminho; você pode aplicar um e depois combinar com outro.</div></div>' +
+      '<div class="grid g2" style="align-items:start">' +
+      altCard(1, 'Aumentar os aportes', 'Encontrar mais ' + brl(A.aumentar.valor) + ' por mês' + pctRenda + ', com aumento de renda ou corte de despesas.',
+        '<button class="btn btn-sm" data-act="aportesNecessarios">Ajustar aportes planejados ao necessário</button><p class="small muted">Isso faz os aportes somarem ' + brl(totalNec) + '/mês, acima da capacidade atual.</p>') +
+      altCard(2, 'Adiar um objetivo', 'Quanto cada objetivo precisaria ser adiado para, sozinho, absorver o déficit.',
+        tbl([['Objetivo'], ['Nova data', 1], ['Atraso', 1], ['']], A.adiar.map(x => '<tr><td>' + esc(x.nome) + '</td><td class="r">' + (x.suficiente && x.novaData ? mesLabel(x.novaData) : '—') + '</td><td class="r">' + (!x.suficiente ? '<span class="muted">não basta</span>' : fin(x.adiamento) ? duracao(x.adiamento) : 'inalcançável') + '</td><td class="row-actions">' + (x.suficiente && x.novaData ? '<button class="btn btn-sm" data-act="applyPrio" data-tipo="adiar" data-id="' + x.id + '" data-valor="' + x.novaData + '" data-aporte="' + x.aporte + '">Aplicar</button>' : '') + '</td></tr>').join(''))) +
+      altCard(3, 'Reduzir uma meta', 'Quanto cada meta precisaria diminuir, mantendo o prazo, para absorver o déficit.',
+        tbl([['Objetivo'], ['Nova meta', 1], ['Redução', 1], ['']], A.reduzir.map(x => '<tr><td>' + esc(x.nome) + '</td><td class="r">' + (x.suficiente ? brl(x.novaMeta) : '—') + '</td><td class="r">' + (x.suficiente ? '−' + pct(x.reducaoPct, 0) : '<span class="muted">não basta</span>') + '</td><td class="row-actions">' + (x.suficiente ? '<button class="btn btn-sm" data-act="applyPrio" data-tipo="reduzir" data-id="' + x.id + '" data-valor="' + Math.floor(x.novaMeta) + '" data-aporte="' + x.aporte + '">Aplicar</button>' : '') + '</td></tr>').join(''))) +
+      altCard(4, 'Distribuir pela sua prioridade', 'A capacidade vai primeiro para a prioridade 1, depois 2, e assim por diante. Empates: prazo mais curto primeiro.', distTabela(A.porPrioridade, 'prioridade'), true) +
+      altCard(5, 'Distribuir proporcionalmente', 'Todos recebem a mesma fração do que precisam (' + pct(Math.min(1, d.capacidade / totalNec), 0) + ').', distTabela(A.proporcional, 'proporcional'), true) +
+      '</div>';
+  } else {
+    alternativas = '<div class="notice notice-ok">' + ico('check') + '<div>Os aportes necessários (' + brl(totalNec) + '/mês) cabem na sua capacidade. Sobram <b>' + brl(p.folga) + '/mês</b>.' + (p.planejadoTotal > d.capacidade + 0.5 ? ' Porém seus aportes planejados (' + brl(p.planejadoTotal) + ') passam da capacidade.' : '') + '</div></div>' +
+      (Math.abs(p.planejadoTotal - totalNec) > 1 ? '<div class="btn-row"><button class="btn btn-sm" data-act="aportesNecessarios">Ajustar aportes planejados ao necessário (' + brl(totalNec) + ')</button></div>' : '');
+  }
+  return '<div class="page">' + demoBanner() + head('Módulo 4', 'Priorização', 'Quando nem tudo cabe no orçamento, compare as consequências de cada escolha. Cálculos no cenário base, ' + valoresLabel() + '.') +
+    '<div class="grid g4">' +
+      stat('Capacidade de aporte', brl(d.capacidade), 'Por mês', d.capacidade == null ? 'Falta cadastrar' : null) +
+      stat('Necessário para todos os prazos', brl(totalNec), abertos.length + ' objetivos em andamento') +
+      stat('Planejado hoje', brl(p.planejadoTotal), 'Soma dos aportes planejados') +
+      (p.deficit == null ? stat('Déficit', '', '', 'Sem capacidade') : p.deficit > 0.5 ? stat('Déficit mensal', '<span style="color:var(--bad)">' + brl(p.deficit) + '</span>', 'Necessário − capacidade') : stat('Folga mensal', '<span style="color:var(--ok)">' + brl(p.folga) + '</span>', 'Capacidade − necessário')) +
+    '</div>' +
+    (p.vencidos.length ? '<div class="notice notice-bad">' + ico('warn') + '<div>Com prazo vencido e meta não atingida: ' + p.vencidos.map(a => '<b>' + esc(a.nome) + '</b>').join(', ') + '. Defina uma nova data para incluí-los na conta.</div></div>' : '') +
+    '<section class="card"><div class="card-head"><div><h2>Necessidade x capacidade</h2><p>Cada faixa é o aporte que um objetivo exige para cumprir o prazo.</p></div></div>' + (barra || '<div class="empty">Sem capacidade cadastrada.</div>') + '</section>' +
+    '<section class="card"><div class="card-head"><div><h2>Seus objetivos</h2></div></div>' + tabela + '</section>' +
+    alternativas +
+    (d.capacidade != null ? '<section class="card"><div class="card-head"><div><h2>E se minha renda mudar?</h2><p>Variação aplicada sobre a renda total; despesas mantidas.</p></div></div>' +
+      '<div class="grid g2" style="align-items:center"><div class="field"><label for="rendaDelta">Variação da renda: <b id="rendaDeltaLbl">' + (ui.rendaDelta >= 0 ? '+' : '') + pct(ui.rendaDelta, 0) + '</b></label><input type="range" id="rendaDelta" min="-30" max="50" step="1" value="' + Math.round(ui.rendaDelta * 100) + '" data-input="rendaDelta"></div><div id="rendaWhatIf">' + rendaWhatIf(c) + '</div></div></section>' : '') +
+  '</div>';
+}
+function distTabela(lista, modo) {
+  return '<div class="table-wrap"><table><thead><tr><th>Objetivo</th><th class="r">Aporte</th><th class="r">Da meta no prazo</th><th class="r">Meta atingida em</th></tr></thead><tbody>' +
+    lista.map(x => '<tr><td>' + esc(x.nome) + '</td><td class="r">' + brl(x.aporte) + '</td><td class="r">' + pct(Math.min(9.99, x.cobertura), 0) + '</td><td class="r">' + (x.novaData ? mesLabel(x.novaData) + (x.atraso > 0 ? '<div class="small delta-down">' + duracao(x.atraso) + ' depois</div>' : '') : 'não alcança') + '</td></tr>').join('') +
+    '</tbody></table></div><div class="btn-row"><button class="btn btn-sm" data-act="applyDist" data-modo="' + modo + '">Aplicar estes aportes</button></div>';
+}
+function rendaWhatIf(c) {
+  const d = c.d, p = c.prio;
+  if (d.capacidadeManual) return '<p class="small muted">Sua capacidade está definida manualmente (' + brl(d.capacidade) + '); a variação de renda não a altera.</p>';
+  const nova = d.capacidade + ui.rendaDelta * (d.rendaTotal || 0);
+  const saldo = nova - p.necessarioTotal;
+  return '<div class="kv"><div><span>Nova capacidade</span><b>' + brl(nova) + '/mês</b></div><div><span>' + (saldo >= 0 ? 'Folga' : 'Déficit') + '</span><b style="color:' + (saldo >= 0 ? 'var(--ok)' : 'var(--bad)') + '">' + brl(Math.abs(saldo)) + '/mês</b></div></div>';
+}
+
+/* =================== Assistente =================== */
+const PERGUNTAS = [
+  ['distante', 'Qual objetivo está mais distante do planejado?'],
+  ['mais15', 'O que acontece se eu aumentar meus aportes em 15%?'],
+  ['otimista', 'Minhas premissas de rentabilidade são otimistas demais?'],
+  ['revisar', 'Quais informações preciso revisar?'],
+  ['carro', 'Posso comprar um carro de R$ 70 mil sem comprometer a meta do imóvel?']
+];
+function vAssistente() {
+  const permitido = S.config.iaPermitida && ui.iaDisponivel;
+  const msgs = ui.chat.length ? ui.chat.map(m => '<div class="msg ' + (m.role === 'user' ? 'msg-user' : 'msg-ai') + '">' + (m.role === 'user' ? esc(m.text) : md(m.text)) + (m.meta ? '<div class="msg-meta">' + esc(m.meta) + '</div>' : '') + '</div>').join('') :
+    '<div class="msg msg-ai"><p>Olá. Eu explico os resultados do seu planejamento usando os números que o Atlas calcula. Não faço contas por conta própria, não prometo rentabilidade e não mudo nada no plano.</p><p>Escolha uma pergunta abaixo ou escreva a sua.</p></div>';
+  return '<div class="page">' + head('Módulo 5', 'Assistente', 'Perguntas em linguagem natural sobre o seu plano. As respostas usam os cálculos do Atlas e mostram as premissas.') +
+    (ui.iaDisponivel ? '<div class="notice ' + (permitido ? 'notice-info' : 'notice-warn') + '">' + ico(permitido ? 'info' : 'warn') + '<div style="flex:1">' +
+      (permitido ? 'Perguntas abertas enviam um resumo do seu planejamento ao Claude para gerar a resposta. ' : '<b>Modo local.</b> As perguntas rápidas são respondidas aqui mesmo, só com os cálculos do Atlas. Para perguntas abertas, permita o envio do resumo do seu planejamento à IA. ') +
+      '<div style="margin-top:8px"><label class="switch"><input type="checkbox" data-act="toggleIA"' + (S.config.iaPermitida ? ' checked' : '') + '>Permitir que o assistente use IA com meus dados</label></div></div></div>'
+      : '<div class="notice notice-info">' + ico('info') + '<div>As respostas são calculadas aqui mesmo, com os números do Atlas e do painel. Nada é enviado a serviços de IA.</div></div>') +
+    '<section class="card chat"><div class="chat-log" id="chatLog" aria-live="polite">' + msgs + (ui.aiBusy ? '<div class="msg msg-ai" id="aiPending"><span class="typing"><i></i><i></i><i></i></span></div>' : '') + '</div>' +
+      '<div><div class="chips" style="padding:12px 12px 0">' + PERGUNTAS.map(([k, q]) => '<button class="chip" data-act="ask" data-k="' + k + '"' + (ui.aiBusy ? ' disabled' : '') + '>' + q + '</button>').join('') + '</div>' +
+      (ui.iaDisponivel ? '<form class="chat-input" data-form="chat"><textarea class="input" id="chatText" rows="1" placeholder="' + (permitido ? 'Pergunte sobre seu planejamento…' : 'Ative a IA acima para perguntas abertas') + '"' + (permitido ? '' : ' disabled') + '></textarea><button class="btn btn-primary" type="submit" aria-label="Enviar"' + (permitido && !ui.aiBusy ? '' : ' disabled') + '>' + ico('send') + '</button></form>' : '<div style="height:12px"></div>') + '</div>' +
+    '</section></div>';
+}
+function md(t) {
+  const linhas = esc(t).split('\n');
+  let out = '', lista = false;
+  const inl = s => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*(?!\s)(.+?)\*(?=[\s).,;:!?]|$)/g, '$1<i>$2</i>');
+  linhas.forEach(l => {
+    const m = /^\s*[-•*]\s+(.*)$/.exec(l);
+    if (m) { if (!lista) { out += '<ul>'; lista = true; } out += '<li>' + inl(m[1]) + '</li>'; return; }
+    if (lista) { out += '</ul>'; lista = false; }
+    if (/^#{1,4}\s/.test(l)) { out += '<p><b>' + inl(l.replace(/^#+\s/, '')) + '</b></p>'; return; }
+    if (l.trim()) out += '<p>' + inl(l) + '</p>';
+  });
+  if (lista) out += '</ul>';
+  return out;
+}
+
+/* Respostas locais: só fatos calculados pelo motor */
+function respostaLocal(k) {
+  const c = ctx(), abertos = c.base.filter(x => x.a.status !== 'concluido');
+  if (k === 'distante') {
+    if (!abertos.length) return 'Você não tem objetivos em andamento.';
+    const pior = [...abertos].sort((x, y) => x.a.cobertura - y.a.cobertura)[0];
+    const a = pior.a;
+    return '**' + pior.o.nome + '** é o objetivo mais distante do planejado. No cenário base, o aporte atual de ' + brl(pior.o.aporte) + '/mês leva a ' + brl(a.projetado) + ' em ' + mesLabel(pior.o.dataAlvo) + ', ou ' + pct(a.cobertura, 0) + ' da meta de ' + brl(a.alvo) + '.\n' +
+      (fin(a.aporteNecessario) ? '- Para cumprir o prazo seriam necessários ' + brl(a.aporteNecessario) + '/mês.\n' : '- A data-alvo já passou.\n') +
+      (a.dataEstimada ? '- Mantendo o aporte, a meta chega em ' + mesLabel(a.dataEstimada) + '.\n' : '- Mantendo o aporte, a meta não é alcançada.\n') +
+      'Premissas: rentabilidade de ' + pct(a.premissas.rentabilidadeAnual) + ' a.a.' + (S.config.considerarInflacao ? ' e inflação de ' + pct(a.premissas.inflacaoAnual) + ' a.a., valores de hoje.' : ', valores nominais.');
+  }
+  if (k === 'mais15') {
+    if (!abertos.length) return 'Você não tem objetivos em andamento.';
+    let t = 'Aumentando cada aporte em 15% (cenário base):\n';
+    let total = 0;
+    abertos.forEach(({ o, a }) => {
+      const b = analisar(o, 'base', { aporteDelta: (o.aporte || 0) * 0.15 });
+      total += (o.aporte || 0) * 1.15;
+      t += '- **' + o.nome + '**: ' + brl(o.aporte) + ' → ' + brl(o.aporte * 1.15) + '/mês. ' + STATUS[a.status] + ' → ' + STATUS[b.status] + '; ' + (b.dataEstimada ? 'meta em ' + mesLabel(b.dataEstimada) + (a.dataEstimada && b.mesesAteMeta < a.mesesAteMeta ? ' (' + duracao(a.mesesAteMeta - b.mesesAteMeta) + ' antes)' : '') : 'ainda não alcança') + '.\n';
+    });
+    const capac = c.d.capacidade;
+    t += capac != null ? 'Os aportes somariam ' + brl(total) + '/mês para uma capacidade de ' + brl(capac) + (total > capac ? ', ou seja, ' + brl(total - capac) + ' acima do que sobra hoje.' : ', dentro do orçamento.') : 'Cadastre renda e despesas para saber se esse aumento cabe no orçamento.';
+    return t;
+  }
+  if (k === 'otimista') {
+    const cen = S.config.cenarios, out = [];
+    Object.keys(CEN).forEach(n => { const p = E.premissas(cen[n], true); out.push('- **' + CEN[n] + '**: ' + pct(cen[n].rentabilidade) + ' a.a. com inflação de ' + pct(cen[n].inflacao) + ' = ' + pct(p.taxaAnualUsada, 2) + ' real ao ano.'); });
+    const realBase = E.premissas(cen.base, true).taxaAnualUsada, realOt = E.premissas(cen.otimista, true).taxaAnualUsada;
+    let aval = [];
+    if (realBase > 0.06) aval.push('O cenário base supõe ganho real acima de 6% ao ano por todo o prazo. Isso é exigente e costuma depender de mais risco; compare com o que seus investimentos rendem de fato, já descontados impostos e taxas.');
+    if (realOt > 0.09) aval.push('O cenário otimista supõe ganho real acima de 9% ao ano, o que dificilmente deve servir de referência para metas com prazo rígido.');
+    if (cen.conservador.rentabilidade >= cen.base.rentabilidade) aval.push('O cenário conservador não está abaixo do base; ele perde a função de teste de estresse.');
+    if (!S.config.considerarInflacao) aval.push('A inflação está desligada: os resultados estão em valores nominais e superestimam o poder de compra futuro.');
+    const sens = c.base.filter(x => x.a.status !== 'concluido').map(({ o }) => ({ o, b: analisar(o, 'base').status, c: analisar(o, 'conservador').status })).filter(x => x.b !== x.c && x.c !== 'no_caminho');
+    if (sens.length) aval.push('Objetivos que saem do caminho no cenário conservador: ' + sens.map(x => x.o.nome).join(', ') + '. Eles dependem da rentabilidade mais alta.');
+    return 'Suas premissas atuais:\n' + out.join('\n') + '\n\n' + (aval.length ? aval.join('\n\n') : 'As premissas não chamam atenção pelos critérios do Atlas (ganho real até 6% a.a. no base e conservador abaixo do base). Ainda assim, são hipóteses, não garantias.');
+  }
+  if (k === 'revisar') {
+    const d = c.d, out = [...d.pendencias];
+    if (d.rendaVariavel > 0) out.push('Parte da renda (' + brl(d.rendaVariavel) + '/mês) é variável. A capacidade num mês típico garantido é ' + brl(d.capacidadeRecorrente) + '.');
+    if (d.mesesReserva != null && d.mesesReserva < 3) out.push('A reserva cobre ' + d.mesesReserva.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' meses de despesas.');
+    d.alertas.forEach(a => out.push(a));
+    c.base.forEach(({ o, a }) => { if (a.prazoVencido) out.push('A data-alvo de "' + o.nome + '" já passou.'); if (!o.aporte && a.status !== 'concluido') out.push('"' + o.nome + '" não tem aporte planejado.'); });
+    if (S.exemplo) out.unshift('Você está usando dados de exemplo. Substitua-os pelos seus para obter conclusões reais.');
+    return out.length ? 'Pontos para revisar:\n' + out.map(x => '- ' + x).join('\n') : 'Não encontrei lacunas nos dados cadastrados. Revise as premissas de rentabilidade e inflação pelo menos uma vez por ano.';
+  }
+  if (k === 'carro') {
+    const d = c.d, valor = 70000, livre = d.livreParaObjetivos;
+    const imovel = c.base.find(x => x.o.categoria === 'imovel' && x.a.status !== 'concluido');
+    let t = 'Para um carro de **R$ 70.000** (cenário base, ' + valoresLabel() + '):\n';
+    if (livre >= valor) t += '- **À vista agora:** seu dinheiro livre, fora dos objetivos, é ' + brl(livre) + '. A compra cabe nele sem tocar nas metas e sobram ' + brl(livre - valor) + '.\n';
+    else {
+      const falta = valor - Math.max(0, livre);
+      t += '- **À vista agora:** o dinheiro livre (' + brl(Math.max(0, livre)) + ') não basta. Faltariam ' + brl(falta) + ', que sairiam das reservas dos objetivos.';
+      if (imovel) { const a2 = analisar(Object.assign({}, imovel.o, { acumulado: Math.max(0, imovel.o.acumulado - falta) }), 'base'); t += ' Se saírem da reserva de "' + imovel.o.nome + '", o aporte necessário para manter o prazo passa de ' + brl(imovel.a.aporteNecessario) + ' para ' + brl(a2.aporteNecessario) + '/mês.'; }
+      t += '\n';
+    }
+    const novo = { id: 'novo', nome: 'Carro', alvo: valor, acumulado: 0, dataAlvo: E.somarMeses(hoje(), 24), aporte: 0, prioridade: 3 };
+    const an = analisar(novo, 'base');
+    const p2 = E.priorizar(V().objetivos.concat([novo]), d.capacidade, S.config.cenarios.base, S.config.considerarInflacao, hoje());
+    t += '- **Juntando por 24 meses:** seriam ' + brl(an.aporteNecessario) + '/mês. ' + (d.capacidade == null ? 'Sem renda e despesas não dá para comparar com sua capacidade.' : p2.deficit > 0.5 ? 'Somado aos outros objetivos, faltariam ' + brl(p2.deficit) + '/mês na sua capacidade de ' + brl(d.capacidade) + '.' : 'Cabe na sua capacidade, com folga de ' + brl(p2.folga) + '/mês.') + '\n';
+    t += imovel ? 'Hoje "' + imovel.o.nome + '" está como ' + STATUS[imovel.a.status].toLowerCase() + '.' : 'Você não tem um objetivo de imóvel em andamento.';
+    return t;
+  }
+  return 'Não sei responder isso no modo local.';
+}
+
+function resumoParaIA() {
+  const c = ctx(), d = c.d, cfg = S.config;
+  const r2 = v => fin(v) ? Math.round(v * 100) / 100 : v;
+  return {
+    referencia: hoje(), valores: cfg.considerarInflacao ? 'reais (poder de compra de hoje); aportes corrigidos pela inflação' : 'nominais, sem inflação',
+    dados_de_exemplo: !!S.exemplo,
+    diagnostico: { renda_total: r2(d.rendaTotal), renda_variavel: r2(d.rendaVariavel), despesas_ordinarias: r2(d.despesasOrdinarias), despesas_extraordinarias_media: r2(d.despesasExtraordinarias), parcelas_dividas: r2(d.parcelas), capacidade_aporte: r2(d.capacidade), capacidade_recorrente: r2(d.capacidadeRecorrente), taxa_poupanca: r2(d.taxaPoupanca), patrimonio_liquido: r2(d.patrimonioLiquido), patrimonio_financeiro: r2(d.patrimonioFinanceiro), reserva_meses: r2(d.mesesReserva), livre_para_objetivos: r2(d.livreParaObjetivos), pendencias: d.pendencias, alertas: d.alertas },
+    cenarios: Object.fromEntries(Object.keys(CEN).map(k => { const p = E.premissas(cfg.cenarios[k], cfg.considerarInflacao); return [k, { rentabilidade_anual: p.rentabilidadeAnual, inflacao_anual: p.inflacaoAnual, taxa_usada_anual: r2(p.taxaAnualUsada * 100) / 100, ajuste_aporte: p.ajusteAporte }]; })),
+    objetivos: c.base.map(({ o, a }) => ({ id: o.id, nome: o.nome, categoria: CATS[o.categoria], prioridade: o.prioridade, flexibilidade: FLEX[o.flex], meta: o.alvo, reservado: o.acumulado, data_alvo: o.dataAlvo, meses_restantes: a.meses, aporte_planejado: o.aporte, aporte_necessario_base: fin(a.aporteNecessario) ? r2(a.aporteNecessario) : 'prazo vencido', saldo_projetado_base: r2(a.projetado), cobertura_base: r2(a.cobertura), situacao_base: STATUS[a.status], data_estimada_com_aporte_atual: a.dataEstimada })),
+    priorizacao: { necessario_total: r2(c.prio.necessarioTotal), planejado_total: r2(c.prio.planejadoTotal), capacidade: r2(c.prio.capacidade), deficit: r2(c.prio.deficit) }
+  };
+}
+const FERRAMENTAS = [
+  { name: 'resumo_planejamento', description: 'Retorna o diagnóstico, as premissas dos cenários, cada objetivo analisado no cenário base e a comparação entre aportes necessários e capacidade. Use primeiro.', inputSchema: { type: 'object', properties: {} }, execute: () => resumoParaIA() },
+  { name: 'analisar_objetivo', description: 'Recalcula um objetivo existente com mudanças hipotéticas (aporte, data, saldo, meta, pausa) em um cenário. Retorna saldo projetado, aporte necessário, data estimada e situação. Não altera o plano.', inputSchema: { type: 'object', properties: { id: { type: 'string' }, cenario: { type: 'string', enum: ['conservador', 'base', 'otimista'] }, aporte_mensal: { type: 'number' }, data_alvo: { type: 'string', description: 'AAAA-MM' }, saldo_inicial: { type: 'number' }, meta: { type: 'number' }, pausa_meses: { type: 'number' } }, required: ['id'] },
+    execute: inp => { const o = V().objetivos.find(x => x.id === inp.id); if (!o) throw new Error('Objetivo não encontrado'); const ob = Object.assign({}, o); if (fin(inp.aporte_mensal)) ob.aporte = inp.aporte_mensal; if (inp.data_alvo) ob.dataAlvo = inp.data_alvo; if (fin(inp.saldo_inicial)) ob.acumulado = inp.saldo_inicial; if (fin(inp.meta)) ob.alvo = inp.meta; const a = analisar(ob, inp.cenario || 'base', inp.pausa_meses ? { pausa: { inicio: 1, meses: inp.pausa_meses } } : undefined); return { cenario: inp.cenario || 'base', meta: a.alvo, saldo_projetado: Math.round(a.projetado), diferenca: Math.round(a.diferenca), aporte_usado: Math.round(a.aporte), aporte_necessario: fin(a.aporteNecessario) ? Math.round(a.aporteNecessario) : 'prazo vencido', data_estimada: a.dataEstimada, situacao: STATUS[a.status], premissas: a.premissas }; } },
+  { name: 'simular_novo_objetivo', description: 'Simula incluir um objetivo novo (ex.: compra de um bem) e retorna o aporte necessário para ele e o novo déficit ou folga do conjunto. Se usar_saldo for informado, esse valor sai do patrimônio livre. Não altera o plano.', inputSchema: { type: 'object', properties: { nome: { type: 'string' }, meta: { type: 'number' }, data_alvo: { type: 'string', description: 'AAAA-MM' }, usar_saldo: { type: 'number' } }, required: ['nome', 'meta', 'data_alvo'] },
+    execute: inp => { E.lerMes(inp.data_alvo); const novo = { id: 'novo', nome: inp.nome, alvo: inp.meta, acumulado: inp.usar_saldo || 0, dataAlvo: inp.data_alvo, aporte: 0, prioridade: 3 }; const a = analisar(novo, 'base'); const d = E.diagnostico(V()); const p = E.priorizar(V().objetivos.concat([novo]), d.capacidade, S.config.cenarios.base, S.config.considerarInflacao, hoje()); return { aporte_necessario_novo: fin(a.aporteNecessario) ? Math.round(a.aporteNecessario) : 'prazo vencido', livre_para_objetivos_antes: Math.round(d.livreParaObjetivos), livre_depois: Math.round(d.livreParaObjetivos - (inp.usar_saldo || 0)), necessario_total_com_novo: Math.round(p.necessarioTotal), capacidade: d.capacidade, deficit_com_novo: p.deficit == null ? null : Math.round(p.deficit) }; } },
+  { name: 'priorizacao', description: 'Retorna as alternativas calculadas para cobrir um déficit: aumento de aporte, adiamento por objetivo, redução de meta por objetivo e distribuições por prioridade e proporcional.', inputSchema: { type: 'object', properties: {} },
+    execute: () => { const c = ctx(); return { deficit: c.prio.deficit, alternativas: c.prio.alternativas }; } }
+];
+async function perguntar(texto, chave) {
+  ui.chat.push({ role: 'user', text: texto });
+  if (!S.config.iaPermitida || !ui.iaDisponivel) {
+    ui.chat.push({ role: 'ai', text: respostaLocal(chave || ''), meta: 'Resposta calculada localmente pelo Atlas' });
+    render(); return;
+  }
+  ui.aiBusy = true; render();
+  const sample = await cap('sample');
+  if (!sample) {
+    ui.aiBusy = false;
+    ui.chat.push({ role: 'ai', text: chave ? respostaLocal(chave) : 'A IA não está disponível nesta forma de abrir o Atlas (por exemplo, como arquivo no computador). As perguntas rápidas continuam funcionando com os cálculos locais.', meta: chave ? 'Resposta calculada localmente pelo Atlas' : '' });
+    render(); return;
+  }
+  const instrucoes = 'Você é o assistente do Atlas, um planejador financeiro pessoal. Responda em português do Brasil, em até 200 palavras, com frases diretas.\n' +
+    'Regras obrigatórias:\n- Use apenas números obtidos pelas ferramentas. Nunca calcule valores financeiros por conta própria; para qualquer hipótese, chame a ferramenta que recalcula.\n' +
+    '- Mostre as premissas usadas (cenário, rentabilidade, inflação) e diga que projeções não são garantias.\n- Não recomende produtos financeiros específicos. Não altere o plano: sugira o que o usuário pode mudar na tela adequada.\n' +
+    '- Se faltar informação, diga qual. Formate valores como R$ 1.234 e datas como mês/ano. A data de referência (hoje) é ' + mesLongo(hoje()) + '.';
+  const hist = [];
+  ui.chat.slice(0, -1).filter(m => m.text).slice(-6).forEach(m => {
+    const role = m.role === 'user' ? 'user' : 'assistant';
+    if (hist.length && hist[hist.length - 1].role === role) hist[hist.length - 1].content += '\n\n' + m.text;
+    else hist.push({ role, content: m.text });
+  });
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+  if (hist.length && hist[hist.length - 1].role === 'user') hist.pop();
+  hist.push({ role: 'user', content: instrucoes + '\n\nPergunta: ' + texto });
+  const msg = { role: 'ai', text: '', meta: 'Claude · números calculados pelo Atlas' };
+  try {
+    const r = await sample(hist, { tools: FERRAMENTAS, cache: false, onText: u => { msg.text = u.text; const el = $('#aiPending'); if (el && u.text) el.innerHTML = md(u.text); } });
+    msg.text = r.text || 'Sem resposta.';
+  } catch (e) {
+    msg.text = e && e.code === 'not_granted' ? 'O acesso à IA não foi autorizado. As perguntas rápidas continuam funcionando no modo local.' : e && e.code === 'rate_limited' ? 'Muitas perguntas em pouco tempo. Aguarde um instante e tente de novo.' : 'Não consegui obter resposta da IA agora.' + (chave ? '\n\n' + respostaLocal(chave) : '');
+    msg.meta = chave ? 'Resposta calculada localmente pelo Atlas' : '';
+  }
+  ui.aiBusy = false; ui.chat.push(msg); render();
+}
+
+/* =================== Ajustes e dados =================== */
+function vConfig() {
+  const cfg = S.config;
+  const rows = Object.keys(CEN).map(k => { const c = cfg.cenarios[k]; let real = '—'; try { real = pct(E.taxaReal(c.rentabilidade, c.inflacao), 2); } catch (e) { /* ok */ }
+    return '<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + CEN_COR[k] + ';margin-right:8px"></span><b>' + CEN[k] + '</b></td>' +
+      '<td><div class="input-suf"><input class="input" style="min-width:90px" type="number" step="0.1" id="cfg-r-' + k + '" data-change="cen" data-cen="' + k + '" data-f="rentabilidade" value="' + pctIn(c.rentabilidade) + '"><span>%</span></div></td>' +
+      '<td><div class="input-suf"><input class="input" style="min-width:90px" type="number" step="0.1" id="cfg-i-' + k + '" data-change="cen" data-cen="' + k + '" data-f="inflacao" value="' + pctIn(c.inflacao) + '"><span>%</span></div></td>' +
+      '<td><div class="input-suf"><input class="input" style="min-width:90px" type="number" step="1" id="cfg-a-' + k + '" data-change="cen" data-cen="' + k + '" data-f="ajusteAporte" value="' + pctIn(c.ajusteAporte) + '"><span>%</span></div></td>' +
+      '<td class="r num">' + real + '</td></tr>'; }).join('');
+  return '<div class="page">' + head('Configurações', 'Ajustes e dados', 'Premissas dos cenários, regras de classificação, backup e as fórmulas que o Atlas usa.') +
+    '<section class="card"><div class="card-head"><div><h2>Premissas dos cenários</h2><p>Taxas anuais, já líquidas de impostos e taxas. O ajuste de aporte simula meses em que você aporta menos (ou mais).</p></div></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Cenário</th><th>Rentabilidade</th><th>Inflação</th><th>Ajuste do aporte</th><th class="r">Taxa real</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      (function () {
+        const r = P && P.rentabilidade12m;
+        if (r && r.todasCalibradas && r.meses >= 3) {
+          const anual = Math.pow(1 + r.carteira, 12 / r.meses) - 1, cdiA = Math.pow(1 + r.cdiLiquido, 12 / r.meses) - 1;
+          return '<div class="notice notice-info" style="margin-top:14px">' + ico('info') + '<div style="flex:1">Segundo o painel, sua carteira rendeu <b>' + pct(r.carteira, 2) + '</b> nos últimos ' + r.meses + ' meses (' + pct(anual) + ' ao ano), contra ' + pct(r.cdiLiquido, 2) + ' do CDI líquido (' + pct(cdiA) + ' ao ano). Rentabilidade passada não garante a futura, mas é uma boa referência para o cenário base.' +
+            '<div style="margin-top:8px"><button class="btn btn-sm" data-act="usarRent" data-v="' + anual + '">Usar ' + pct(anual) + ' no cenário base</button></div></div></div>';
+        }
+        return '<div class="notice notice-info" style="margin-top:14px">' + ico('info') + '<div>Os valores iniciais são apenas pontos de partida. Ajuste-os ao que seus investimentos rendem de fato e às suas expectativas de inflação.</div></div>';
+      })() + '</section>' +
+    '<div class="grid g2" style="align-items:start">' +
+      '<section class="card stack" style="gap:14px"><h2>Regras de cálculo</h2>' +
+        '<label class="switch"><input type="checkbox" data-act="toggleInfl"' + (cfg.considerarInflacao ? ' checked' : '') + '>Considerar inflação (valores em poder de compra de hoje)</label>' +
+        '<p class="small muted">Ligado: metas em valores de hoje, rentabilidade real e aportes corrigidos pela inflação. Desligado: tudo em valores nominais.</p>' +
+        '<div class="field"><label for="cfg-limiar">“Exige revisão” quando a projeção atinge pelo menos</label><div class="input-suf" style="max-width:160px"><input class="input" type="number" min="50" max="99" step="1" id="cfg-limiar" data-change="limiar" value="' + Math.round(cfg.limiarRevisao * 100) + '"><span>%</span></div><span class="hint">Abaixo disso: “Abaixo do planejado”. 100% ou mais: “No caminho”.</span></div>' +
+      '</section>' +
+      '<section class="card stack" style="gap:14px"><h2>Backup do planejamento</h2><p class="small muted">Objetivos, premissas e itens manuais ficam salvos no Supabase, na sua conta. Os números do painel não entram no backup, porque continuam no painel. O arquivo não contém senhas nem chaves.</p>' +
+        '<div class="btn-row"><button class="btn btn-primary" data-act="exportar">' + ico('download') + 'Exportar backup (.json)</button><button class="btn" data-act="copiar">' + ico('copy') + 'Copiar JSON</button></div>' +
+        '<div class="sep"></div>' +
+        '<div class="field"><label for="importFile">Restaurar de um arquivo</label><input class="input" type="file" id="importFile" accept=".json,application/json" data-change="importFile"></div>' +
+        '<div class="field"><label for="importText">Ou cole o conteúdo do backup</label><textarea class="input" id="importText" rows="3" placeholder="{&quot;app&quot;:&quot;atlas&quot;, …}"></textarea><div class="btn-row"><button class="btn btn-sm" data-act="importarTexto">' + ico('upload') + 'Validar e restaurar</button></div></div>' +
+        '<div id="importErr"></div>' +
+        '<div class="sep"></div>' +
+        '<div class="btn-row"><button class="btn btn-sm btn-danger" data-act="apagarTudo">' + ico('trash') + 'Apagar o planejamento</button></div>' +
+      '</section>' +
+    '</div>' +
+    '<section class="card"><div class="card-head"><div><h2>Fórmulas e convenções</h2><p>Os cálculos são feitos por funções testadas, sem arredondar valores intermediários.</p></div></div><div class="stack">' +
+      '<div class="formula">Valor futuro (aporte no fim do mês):\n  VF = VP·(1+i)^n + PMT·[(1+i)^n − 1] / i\n  se i = 0:  VF = VP + PMT·n\n\nAporte necessário:\n  PMT = [Meta − VP·(1+i)^n] · i / [(1+i)^n − 1]      (0 se o saldo já basta)\n\nPrazo até a meta:\n  n = ln[(Meta·i + PMT) / (VP·i + PMT)] / ln(1+i)     (arredondado para cima)\n\nTaxa mensal equivalente:  i = (1 + taxa anual)^(1/12) − 1\nTaxa real (Fisher):       r = (1 + rentabilidade) / (1 + inflação) − 1</div>' +
+      '<p class="small muted">Convenções: aportes no fim de cada mês; com pausa, os meses pausados não recebem aporte e o aporte necessário é redistribuído entre os meses restantes. Com a inflação ligada, a meta e os aportes estão em valores de hoje e a taxa usada é a real. Prazos acima de 100 anos são tratados como inalcançáveis. Os valores só são arredondados na exibição.</p>' +
+    '</div></section>' +
+  '</div>';
+}
+function exportarTexto() { const d = E.limparSegredos(S); d.exportadoEm = new Date().toISOString(); return JSON.stringify(d, null, 2); }
+async function baixar(nome, texto) {
+  const dl = await cap('downloads');
+  if (dl) {
+    try { await dl.save({ filename: nome, data: texto }); toast('Backup salvo'); }
+    catch (e) { if (!e || e.code !== 'declined') toast('Não foi possível salvar o arquivo. Use “Copiar JSON”.'); }
+    return;
+  }
+  try {
+    const url = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000); toast('Backup exportado');
+  } catch (e) { toast('Não foi possível baixar aqui. Use “Copiar JSON”.'); }
+}
+function importar(texto) {
+  const r = E.validarBackup(texto);
+  const box = $('#importErr');
+  if (!r.ok) { if (box) box.innerHTML = '<div class="notice notice-bad">' + ico('warn') + '<div><b>O backup não foi restaurado.</b><ul style="margin:6px 0 0;padding-left:18px">' + r.erros.slice(0, 8).map(e => '<li>' + esc(e) + '</li>').join('') + '</ul></div></div>'; return; }
+  const dados = normalizar(r.dados);
+  confirmar({ titulo: 'Restaurar backup?', corpo: '<p>Isso substitui todos os dados atuais por: ' + dados.rendas.length + ' rendas, ' + dados.despesas.length + ' despesas, ' + dados.ativos.length + ' ativos, ' + dados.passivos.length + ' dívidas e ' + dados.objetivos.length + ' objetivos.</p>', ok: 'Restaurar', perigo: true,
+    acao: () => { S = dados; salvar(); render(); toast('Backup restaurado'); } });
+}
+
+/* =================== Modais e formulários =================== */
+function abrirModal(html, onSubmit) {
+  ui.modal = { onSubmit };
+  $('#modalRoot').innerHTML = '<div class="scrim" data-act="closeModalScrim"><div class="modal" role="dialog" aria-modal="true">' + html + '</div></div>';
+  const f = $('#modalRoot input:not([type=hidden]), #modalRoot select, #modalRoot button.btn-primary'); if (f) setTimeout(() => f.focus(), 30);
+}
+function fecharModal() { $('#modalRoot').innerHTML = ''; ui.modal = null; }
+function confirmar({ titulo, corpo, ok, perigo, acao }) {
+  abrirModal('<div class="modal-head"><h2>' + titulo + '</h2><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div><div class="stack small">' + corpo + '</div>' +
+    '<form data-form="modal" class="modal-foot"><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary"' + (perigo ? ' style="background:var(--bad);border-color:var(--bad);color:#fff"' : '') + '>' + ok + '</button></form>', () => { acao(); return true; });
+}
+const campo = (id, label, input, hint, full) => '<div class="field' + (full ? ' full' : '') + '"><label for="' + id + '">' + label + '</label>' + input + (hint ? '<span class="hint">' + hint + '</span>' : '') + '</div>';
+const inpMoney = (id, v, extra) => '<div class="input-pre"><span>R$</span><input class="input" type="number" min="0" step="0.01" id="' + id + '" value="' + (v == null ? '' : v) + '"' + (extra || '') + '></div>';
+const ITENS = {
+  rendas: { titulo: 'renda', campos: x => campo('f-nome', 'Fonte', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Salário líquido">', '', true) + campo('f-valor', 'Valor líquido mensal', inpMoney('f-valor', x.valor, ' required')) + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo"><option value="fixa"' + (x.tipo !== 'variavel' ? ' selected' : '') + '>Fixa</option><option value="variavel"' + (x.tipo === 'variavel' ? ' selected' : '') + '>Variável (use a média)</option></select>'), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
+  despesas: { titulo: 'despesa', campos: x => campo('f-nome', 'Despesa', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Alimentação">', '', true) + campo('f-valor', 'Valor mensal', inpMoney('f-valor', x.valor, ' required'), 'Extraordinárias: valor anual ÷ 12') + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo"><option value="ordinaria"' + (x.tipo !== 'extraordinaria' ? ' selected' : '') + '>Mensal recorrente</option><option value="extraordinaria"' + (x.tipo === 'extraordinaria' ? ' selected' : '') + '>Extraordinária (média)</option></select>'), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
+  ativos: { titulo: 'ativo', campos: x => campo('f-nome', 'Nome', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: CDB do banco X">', '', true) + campo('f-tipo', 'Tipo', '<select class="input" id="f-tipo">' + Object.entries(TIPOS_ATIVO).map(([k, l]) => '<option value="' + k + '"' + (x.tipo === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>', 'Reserva conta como financeiro e mede os meses cobertos') + campo('f-valor', 'Valor atual', inpMoney('f-valor', x.valor, ' required')), ler: () => ({ nome: $('#f-nome').value.trim(), valor: num($('#f-valor').value), tipo: $('#f-tipo').value }) },
+  passivos: { titulo: 'dívida', campos: x => campo('f-nome', 'Dívida', '<input class="input" id="f-nome" required maxlength="80" value="' + esc(x.nome || '') + '" placeholder="Ex.: Financiamento imobiliário">', '', true) + campo('f-saldo', 'Saldo devedor', inpMoney('f-saldo', x.saldo, ' required')) + campo('f-parcela', 'Parcela mensal', inpMoney('f-parcela', x.parcela)) + campo('f-taxa', 'Juros ao ano (opcional)', '<div class="input-suf"><input class="input" type="number" step="0.01" min="0" id="f-taxa" value="' + (x.taxaAnual ? pctIn(x.taxaAnual) : '') + '"><span>%</span></div>'), ler: () => ({ nome: $('#f-nome').value.trim(), saldo: num($('#f-saldo').value), parcela: num($('#f-parcela').value) || 0, taxaAnual: (num($('#f-taxa').value) || 0) / 100 }) }
+};
+function formItem(tipo, id) {
+  const cfg = ITENS[tipo], x = id ? S[tipo].find(i => i.id === id) : {};
+  abrirModal('<div class="modal-head"><h2>' + (id ? 'Editar ' : 'Adicionar ') + cfg.titulo + '</h2><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
+    '<form data-form="modal" class="stack" style="gap:16px" novalidate><div class="form-grid">' + cfg.campos(x) + '</div><div id="formErr" class="err"></div><div class="modal-foot"><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>', () => {
+      const v = cfg.ler();
+      const valorCampo = tipo === 'passivos' ? v.saldo : v.valor;
+      if (!v.nome) return erroForm('Informe um nome.');
+      if (!fin(valorCampo) || valorCampo < 0) return erroForm('Informe um valor maior ou igual a zero.');
+      if (tipo === 'passivos' && (!fin(v.parcela) || v.parcela < 0)) return erroForm('A parcela precisa ser zero ou positiva.');
+      commit(s => { if (id) Object.assign(s[tipo].find(i => i.id === id), v); else s[tipo].push(Object.assign({ id: novoId() }, v)); }, id ? 'Alterações salvas' : 'Item adicionado');
+      return true;
+    });
+}
+function erroForm(t) { const el = $('#formErr'); if (el) el.textContent = t; return false; }
+function formGoal(id) {
+  const o = id ? S.objetivos.find(x => x.id === id) : { categoria: 'outro', prioridade: 3, flex: 'moderado', acumulado: 0, aporte: 0, dataAlvo: E.somarMeses(hoje(), 24), vinculos: [] };
+  const segP = [1, 2, 3, 4, 5].map(v => '<button type="button" data-act="formPrio" data-v="' + v + '" aria-pressed="' + (o.prioridade === v) + '">' + v + '</button>').join('');
+  const segF = Object.entries(FLEX).map(([k, l]) => '<button type="button" data-act="formFlex" data-v="' + k + '" aria-pressed="' + (o.flex === k) + '">' + l.replace('Prazo ', '') + '</button>').join('');
+  const d = E.diagnostico(V());
+  const fontes = usandoPainel() ? fontesPainel().filter(f => ['investimento', 'reserva', 'conta'].includes(f.tipoAtlas)) : [];
+  const vinc = o.vinculos || [];
+  const modo = vinc.length && fontes.length ? 'painel' : 'manual';
+  const efetivoO = id ? V().objetivos.find(x => x.id === id) : null;
+  const livre = d.livreParaObjetivos + (efetivoO ? (efetivoO.acumulado || 0) : 0);
+  const blocoReserva = fontes.length ?
+    '<div class="field full"><span class="label">Valor já reservado</span><div class="seg" id="g-modo" data-v="' + modo + '"><button type="button" data-act="formModo" data-v="manual" aria-pressed="' + (modo === 'manual') + '">Informar valor</button><button type="button" data-act="formModo" data-v="painel" aria-pressed="' + (modo === 'painel') + '">Usar saldos do painel</button></div></div>' +
+    '<div class="full" id="g-manual"' + (modo === 'painel' ? ' hidden' : '') + '>' + campo('g-acum', 'Quanto já está separado', inpMoney('g-acum', o.acumulado), 'Livre no patrimônio financeiro: ' + brl(livre)) + '</div>' +
+    '<div class="full stack" id="g-painel" style="gap:8px"' + (modo === 'manual' ? ' hidden' : '') + '>' +
+      fontes.map((f, k) => { const v = vinc.find(x => x.key === f.key); return '<div class="vinc"><label class="vinc-chk"><input type="checkbox" data-vk="' + esc(f.key) + '"' + (v ? ' checked' : '') + '><span><b>' + esc(f.nome) + '</b><small>' + TIPO_FONTE[f.tipoAtlas] + ' · ' + brl(f.saldo) + '</small></span></label><div class="input-suf vinc-pct"><input class="input" type="number" min="1" max="100" step="1" id="g-vp-' + k + '" data-vpct="' + esc(f.key) + '" value="' + (v ? v.pct : 100) + '" aria-label="Porcentagem de ' + esc(f.nome) + '"><span>%</span></div></div>'; }).join('') +
+      '<span class="hint">O valor reservado acompanha o saldo do painel sozinho. Use menos de 100% quando um saldo financia mais de um objetivo.</span></div>'
+    : campo('g-acum', 'Já reservado para ela', inpMoney('g-acum', o.acumulado), 'Livre no patrimônio financeiro: ' + brl(livre));
+  abrirModal('<div class="modal-head"><h2>' + (id ? 'Editar objetivo' : 'Novo objetivo') + '</h2><button class="icon-btn" data-act="closeModal" aria-label="Fechar">' + ico('x') + '</button></div>' +
+    '<form data-form="modal" class="stack" style="gap:16px" novalidate><div class="form-grid">' +
+      campo('g-nome', 'Nome', '<input class="input" id="g-nome" maxlength="80" value="' + esc(o.nome || '') + '" placeholder="Ex.: Trocar de carro">', '', true) +
+      campo('g-cat', 'Categoria', '<select class="input" id="g-cat">' + Object.entries(CATS).map(([k, l]) => '<option value="' + k + '"' + (o.categoria === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>') +
+      campo('g-data', 'Data-alvo', '<input class="input" type="month" id="g-data" value="' + esc(o.dataAlvo || '') + '" min="' + E.somarMeses(hoje(), 1) + '">') +
+      campo('g-alvo', 'Valor da meta', inpMoney('g-alvo', o.alvo), S.config.considerarInflacao ? 'Em valores de hoje; o Atlas corrige pela inflação' : 'Valor nominal') +
+      campo('g-aporte', 'Aporte mensal planejado', inpMoney('g-aporte', o.aporte)) +
+      blocoReserva +
+      '<div class="field"><span class="label">Prioridade (1 = mais alta)</span><div class="prio" id="g-prio" data-v="' + o.prioridade + '">' + segP + '</div></div>' +
+      '<div class="field"><span class="label">Flexibilidade do prazo</span><div class="seg" id="g-flex" data-v="' + o.flex + '">' + segF + '</div></div>' +
+      campo('g-desc', 'Descrição (opcional)', '<textarea class="input" id="g-desc" rows="2" maxlength="300">' + esc(o.descricao || '') + '</textarea>', '', true) +
+    '</div><div id="formErr" class="err"></div><div class="modal-foot"><button type="button" class="btn" data-act="closeModal">Cancelar</button><button type="submit" class="btn btn-primary">' + (id ? 'Salvar' : 'Criar objetivo') + '</button></div></form>', () => {
+      const v = { nome: $('#g-nome').value.trim(), categoria: $('#g-cat').value, dataAlvo: $('#g-data').value, alvo: num($('#g-alvo').value), aporte: num($('#g-aporte').value) || 0, prioridade: +$('#g-prio').dataset.v, flex: $('#g-flex').dataset.v, descricao: $('#g-desc').value.trim() };
+      const modoEsc = $('#g-modo') ? $('#g-modo').dataset.v : 'manual';
+      if (!v.nome) return erroForm('Dê um nome ao objetivo.');
+      if (!fin(v.alvo) || v.alvo <= 0) return erroForm('Informe o valor da meta.');
+      if (v.aporte < 0) return erroForm('O aporte não pode ser negativo.');
+      try { E.lerMes(v.dataAlvo); } catch (e) { return erroForm('Escolha a data-alvo (mês e ano).'); }
+      if (!id && E.mesesEntre(hoje(), v.dataAlvo) <= 0) return erroForm('A data-alvo precisa estar no futuro.');
+      if (modoEsc === 'painel') {
+        v.vinculos = $$('[data-vk]').filter(c => c.checked).map(c => ({ key: c.dataset.vk, pct: num($$('[data-vpct]').find(i => i.dataset.vpct === c.dataset.vk).value) }));
+        if (!v.vinculos.length) return erroForm('Escolha ao menos um saldo do painel.');
+        if (v.vinculos.some(x => !fin(x.pct) || x.pct <= 0 || x.pct > 100)) return erroForm('Use porcentagens entre 1% e 100%.');
+      } else {
+        v.vinculos = []; v.acumulado = num($('#g-acum').value) || 0;
+        if (v.acumulado < 0) return erroForm('O valor reservado não pode ser negativo.');
+      }
+      let novoId_;
+      commit(s => { if (id) Object.assign(s.objetivos.find(x => x.id === id), v); else { novoId_ = novoId(); s.objetivos.push(Object.assign({ id: novoId_, arquivado: false, acumulado: 0 }, v)); } }, id ? 'Objetivo atualizado' : 'Objetivo criado');
+      if (novoId_) go('objetivo', novoId_);
+      return true;
+    });
+}
+
+/* =================== Ações =================== */
+const CAMPO_LABEL = { aporte: 'aporte mensal', dataAlvo: 'data-alvo', alvo: 'meta' };
+const fmtCampo = (c, v) => c === 'dataAlvo' ? mesLongo(v) : brl(+v);
+const ACT = {
+  go: el => go(el.dataset.view),
+  openGoal: el => go('objetivo', el.dataset.id),
+  newGoal: () => formGoal(),
+  editGoal: el => formGoal(el.dataset.id),
+  simGoal: el => { const o = V().objetivos.find(x => x.id === el.dataset.id); ui.sim = simDe(o); go('simulacoes'); },
+  archiveGoal: el => { const o = S.objetivos.find(x => x.id === el.dataset.id); commit(() => { o.arquivado = !o.arquivado; }, o.arquivado ? 'Objetivo arquivado' : 'Objetivo reativado'); },
+  delGoal: el => { const o = S.objetivos.find(x => x.id === el.dataset.id); confirmar({ titulo: 'Excluir “' + esc(o.nome) + '”?', corpo: '<p>O objetivo e seu histórico de premissas serão removidos. Se quiser só tirá-lo das contas, arquive.</p>', ok: 'Excluir', perigo: true, acao: () => { commit(s => { s.objetivos = s.objetivos.filter(x => x.id !== o.id); }, 'Objetivo excluído'); go('objetivos'); } }); },
+  arquivados: el => { ui.arquivados = el.dataset.v === '1'; render(); },
+  modo: el => { ui.modo = el.dataset.v; render(); },
+  applyGoal: el => {
+    const o = S.objetivos.find(x => x.id === el.dataset.id), c = el.dataset.campo, v = el.dataset.valor;
+    confirmar({ titulo: 'Atualizar o plano?', corpo: '<p><b>' + esc(o.nome) + '</b>: ' + CAMPO_LABEL[c] + ' de ' + fmtCampo(c, o[c]) + ' para <b>' + fmtCampo(c, v) + '</b>.</p>', ok: 'Aplicar',
+      acao: () => commit(() => { o[c] = c === 'dataAlvo' ? v : +v; }, 'Plano atualizado') });
+  },
+  addItem: el => formItem(el.dataset.tipo),
+  editItem: el => formItem(el.dataset.tipo, el.dataset.id),
+  delItem: el => { const t = el.dataset.tipo, x = S[t].find(i => i.id === el.dataset.id); confirmar({ titulo: 'Excluir “' + esc(x.nome) + '”?', corpo: '<p>Os indicadores serão recalculados sem este item.</p>', ok: 'Excluir', perigo: true, acao: () => commit(s => { s[t] = s[t].filter(i => i.id !== x.id); }, 'Item excluído') }); },
+  toggleCapManual: el => { const d = E.diagnostico(V()); commit(s => { s.config.capacidadeManual = el.checked ? Math.max(0, Math.round(d.capacidadeCalculada || 0)) : null; }); },
+  setPrio: el => commit(s => { s.objetivos.find(x => x.id === el.dataset.id).prioridade = +el.dataset.v; }),
+  formPrio: el => { const g = el.parentNode; g.dataset.v = el.dataset.v; $$('button', g).forEach(b => b.setAttribute('aria-pressed', b === el)); },
+  formFlex: el => { const g = el.parentNode; g.dataset.v = el.dataset.v; $$('button', g).forEach(b => b.setAttribute('aria-pressed', b === el)); },
+  preset: el => { PRESETS[el.dataset.k](ui.sim); render(); },
+  simReset: () => { const o = V().objetivos.find(x => x.id === ui.sim.goalId); ui.sim = simDe(o); render(); },
+  simApply: () => {
+    const s = ui.sim, o = V().objetivos.find(x => x.id === s.goalId), mud = [];
+    try { E.lerMes(s.dataAlvo); } catch (e) { toast('Data-alvo inválida'); return; }
+    if (s.aporte !== o.aporte) mud.push(['aporte', 'Aporte mensal', brl(o.aporte), brl(s.aporte)]);
+    if (s.dataAlvo !== o.dataAlvo) mud.push(['dataAlvo', 'Data-alvo', mesLabel(o.dataAlvo), mesLabel(s.dataAlvo)]);
+    if (s.saldo !== o.acumulado && !o.vinculado) mud.push(['acumulado', 'Saldo reservado', brl(o.acumulado), brl(s.saldo)]);
+    if (s.alvo !== o.alvo) mud.push(['alvo', 'Meta', brl(o.alvo), brl(s.alvo)]);
+    const premMudou = JSON.stringify(s.cen) !== JSON.stringify(S.config.cenarios);
+    if (!mud.length && !premMudou && !(o.vinculado && s.saldo !== o.acumulado)) { toast('A simulação é igual ao plano atual'); return; }
+    confirmar({ titulo: 'Aplicar ao plano?', ok: 'Aplicar',
+      corpo: (mud.length ? '<p><b>' + esc(o.nome) + '</b></p><ul style="margin:0;padding-left:18px">' + mud.map(m => '<li>' + m[1] + ': ' + m[2] + ' → <b>' + m[3] + '</b></li>').join('') + '</ul>' : '') +
+        (premMudou ? '<label class="switch" style="margin-top:6px"><input type="checkbox" id="aplPrem">Aplicar também as premissas dos cenários a todos os objetivos</label>' : '') +
+        (s.pausaMeses > 0 ? '<p class="muted">A pausa de aportes é só uma simulação e não é gravada.</p>' : '') + (o.vinculado && s.saldo !== o.acumulado ? '<p class="muted">O saldo reservado vem do painel e não é alterado.</p>' : ''),
+      acao: () => { const prem = $('#aplPrem') && $('#aplPrem').checked; commit(st => { const g = st.objetivos.find(x => x.id === o.id); g.aporte = s.aporte; g.dataAlvo = s.dataAlvo; if (!o.vinculado) g.acumulado = s.saldo; g.alvo = s.alvo; if (prem) st.config.cenarios = JSON.parse(JSON.stringify(s.cen)); }, 'Plano atualizado'); } });
+  },
+  applyPrio: el => {
+    const o = S.objetivos.find(x => x.id === el.dataset.id), adiar = el.dataset.tipo === 'adiar', ap = Math.ceil(+el.dataset.aporte);
+    confirmar({ titulo: adiar ? 'Adiar este objetivo?' : 'Reduzir esta meta?', ok: 'Aplicar',
+      corpo: '<p><b>' + esc(o.nome) + '</b></p><ul style="margin:0;padding-left:18px">' + (adiar ? '<li>Data-alvo: ' + mesLabel(o.dataAlvo) + ' → <b>' + mesLabel(el.dataset.valor) + '</b></li>' : '<li>Meta: ' + brl(o.alvo) + ' → <b>' + brl(+el.dataset.valor) + '</b></li>') + '<li>Aporte planejado: ' + brl(o.aporte) + ' → <b>' + brl(ap) + '</b></li></ul><p class="muted">Os demais objetivos terão o aporte ajustado ao necessário.</p>',
+      acao: () => commit(s => {
+        const g = s.objetivos.find(x => x.id === o.id); if (adiar) g.dataAlvo = el.dataset.valor; else g.alvo = +el.dataset.valor;
+        s.objetivos.filter(x => !x.arquivado).forEach(x => { if (x.id === o.id) { x.aporte = ap; return; } const a = analisar(V().objetivos.find(y => y.id === x.id) || x, 'base'); if (fin(a.aporteNecessario)) x.aporte = Math.ceil(a.aporteNecessario); });
+      }, 'Plano atualizado') });
+  },
+  applyDist: el => {
+    const c = ctx(), lista = el.dataset.modo === 'prioridade' ? c.prio.alternativas.porPrioridade : c.prio.alternativas.proporcional;
+    confirmar({ titulo: 'Aplicar esta distribuição?', ok: 'Aplicar', corpo: '<ul style="margin:0;padding-left:18px">' + lista.map(x => '<li>' + esc(x.nome) + ': ' + brl((S.objetivos.find(o => o.id === x.id) || {}).aporte) + ' → <b>' + brl(Math.floor(x.aporte)) + '</b></li>').join('') + '</ul><p class="muted">Os prazos e metas continuam os mesmos; objetivos com aporte menor que o necessário ficarão abaixo do planejado.</p>',
+      acao: () => commit(s => { lista.forEach(x => { const o = s.objetivos.find(y => y.id === x.id); if (o) o.aporte = Math.floor(x.aporte); }); }, 'Aportes atualizados') });
+  },
+  aportesNecessarios: () => {
+    const c = ctx(), lista = c.base.filter(x => x.a.status !== 'concluido' && fin(x.a.aporteNecessario));
+    confirmar({ titulo: 'Ajustar aportes ao necessário?', ok: 'Aplicar', corpo: '<ul style="margin:0;padding-left:18px">' + lista.map(({ o, a }) => '<li>' + esc(o.nome) + ': ' + brl(o.aporte) + ' → <b>' + brl(Math.ceil(a.aporteNecessario)) + '</b></li>').join('') + '</ul>',
+      acao: () => commit(s => { lista.forEach(({ o, a }) => { s.objetivos.find(x => x.id === o.id).aporte = Math.ceil(a.aporteNecessario); }); }, 'Aportes atualizados') });
+  },
+  toggleIA: el => { commit(s => { s.config.iaPermitida = el.checked; }, el.checked ? 'Assistente com IA ativado' : 'Modo local ativado'); },
+  toggleInfl: el => commit(s => { s.config.considerarInflacao = el.checked; }, el.checked ? 'Valores em poder de compra de hoje' : 'Valores nominais'),
+  ask: el => { if (ui.aiBusy) return; const q = PERGUNTAS.find(p => p[0] === el.dataset.k); perguntar(q[1], q[0]); },
+  exportar: () => baixar('atlas-backup-' + hoje() + '.json', exportarTexto()),
+  copiar: () => { const t = exportarTexto(); const fallback = () => { const ta = $('#importText'); if (ta) { ta.value = t; ta.select(); toast('Selecionado. Copie com Ctrl+C'); } }; try { navigator.clipboard.writeText(t).then(() => toast('JSON copiado'), fallback); } catch (e) { fallback(); } },
+  importarTexto: () => { const t = $('#importText').value.trim(); if (!t) { $('#importErr').innerHTML = '<p class="err">Cole o conteúdo do backup.</p>'; return; } importar(t); },
+  apagarTudo: () => confirmar({ titulo: 'Apagar o planejamento?', corpo: '<p>Objetivos, itens manuais e premissas do Atlas serão apagados da nuvem. Os dados do painel não são afetados.</p>', ok: 'Apagar tudo', perigo: true, acao: () => { S = estadoVazio(); salvar(); ui.chat = []; go('diagnostico'); toast('Dados apagados'); } }),
+  retry: () => { if (Nuvem.status === 'err') Nuvem.enviar(); else if (Nuvem.status === 'off') location.reload(); else Nuvem.atualizar().then(() => toast('Dados atualizados')); },
+  tema: () => { const atual = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const n = atual === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = n; try { localStorage.setItem('mf_theme', n); } catch (e) { /* ok */ } drawContours(); },
+  formModo: el => { const g = el.parentNode; g.dataset.v = el.dataset.v; $$('button', g).forEach(b => b.setAttribute('aria-pressed', b === el)); $('#g-manual').hidden = el.dataset.v !== 'manual'; $('#g-painel').hidden = el.dataset.v !== 'painel'; },
+  toggleUsarPainel: el => commit(s => { s.config.usarPainel = el.checked; }, el.checked ? 'Usando os dados do painel' : 'Dados do painel desligados'),
+  usarRent: el => { const v = +el.dataset.v; confirmar({ titulo: 'Usar a rentabilidade do painel?', corpo: '<p>Rentabilidade do cenário base: ' + pct(S.config.cenarios.base.rentabilidade) + ' → <b>' + pct(v) + '</b> ao ano. Os outros cenários não mudam.</p>', ok: 'Aplicar', acao: () => commit(s => { s.config.cenarios.base.rentabilidade = Math.round(v * 10000) / 10000; }, 'Premissa atualizada') }); },
+  sair: async () => { try { await Nuvem.sb.auth.signOut(); } catch (e) { /* ok */ } try { localStorage.removeItem(CACHE); } catch (e) { /* ok */ } location.reload(); },
+  closeModal: () => fecharModal(),
+  closeModalScrim: (el, e) => { if (e.target === el) fecharModal(); }
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const fn = ACT[el.dataset.act]; if (!fn) return;
+  if (el.type === 'checkbox') { fn(el, e); return; }
+  if (el.dataset.act !== 'closeModalScrim') e.preventDefault();
+  fn(el, e);
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('form'); if (!f) return;
+  e.preventDefault();
+  if (f.dataset.form === 'modal' && ui.modal) { if (ui.modal.onSubmit() !== false) fecharModal(); }
+  if (f.dataset.form === 'login') { entrar(); return; }
+  if (f.dataset.form === 'chat') { const t = $('#chatText').value.trim(); if (t && !ui.aiBusy) perguntar(t); }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.sim) simInput(el);
+  if (el.dataset.input === 'rendaDelta') { ui.rendaDelta = +el.value / 100; $('#rendaDeltaLbl').textContent = (ui.rendaDelta >= 0 ? '+' : '') + pct(ui.rendaDelta, 0); $('#rendaWhatIf').innerHTML = rendaWhatIf(ctx()); }
+});
+document.addEventListener('change', e => {
+  const el = e.target, k = el.dataset.change; if (!k) return;
+  if (k === 'mapa') { const key = el.dataset.key, v = el.value; commit(s => { s.config.mapa = Object.assign({}, s.config.mapa, { [key]: v }); }, 'Classificação atualizada'); return; }
+  if (k === 'capManual') { const v = num(el.value); if (fin(v) && v >= 0) commit(s => { s.config.capacidadeManual = v; }, 'Capacidade atualizada'); }
+  if (k === 'simGoal') { ui.sim = simDe(V().objetivos.find(x => x.id === el.value)); render(); }
+  if (k === 'cen') { const v = num(el.value) / 100; if (!fin(v) || v <= -1) { toast('Use um valor maior que −100%'); render(); return; } commit(s => { s.config.cenarios[el.dataset.cen][el.dataset.f] = v; }, 'Premissa atualizada'); }
+  if (k === 'limiar') { const v = num(el.value); if (fin(v) && v >= 50 && v < 100) commit(s => { s.config.limiarRevisao = v / 100; }, 'Regra atualizada'); else { toast('Use um valor entre 50% e 99%'); render(); } }
+  if (k === 'importFile') { const f = el.files && el.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importar(String(r.result)); r.onerror = () => toast('Não foi possível ler o arquivo'); r.readAsText(f); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && ui.modal) fecharModal();
+  if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'chatText') { e.preventDefault(); e.target.form.requestSubmit(); }
+});
+document.addEventListener('pointermove', e => { if (e.target.closest && e.target.closest('.chart')) chartHover(e); });
+document.addEventListener('pointerout', e => { if (e.target.closest && e.target.closest('.chart') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.chart') === e.target.closest('.chart'))) chartLeave(e); });
+
+let toastT;
+function toast(t) { clearTimeout(toastT); $('#toastRoot').innerHTML = '<div class="toast" role="status">' + esc(t) + '</div>'; toastT = setTimeout(() => { $('#toastRoot').innerHTML = ''; }, 2600); }
+
+/* =================== Curvas de nível do topo =================== */
+function drawContours() {
+  const cv = $('#contour'); if (!cv) return;
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement);
+  const cor = css.getPropertyValue('--accent').trim() || '#0D6B57';
+  g.strokeStyle = cor; g.lineWidth = 1;
+  const centros = [[r.width * 0.86, r.height * 0.25, 1], [r.width * 0.62, r.height * 1.1, 0.7]];
+  centros.forEach(([cx, cy, s], ci) => {
+    for (let k = 1; k <= 11; k++) {
+      const R = k * 19 * s + 8;
+      g.globalAlpha = 0.05 + (k % 4 === 0 ? 0.13 : 0.07);
+      g.beginPath();
+      for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.05) {
+        const w = 1 + 0.13 * Math.sin(3 * t + k * 0.35 + ci) + 0.07 * Math.sin(5 * t - k * 0.5) + 0.04 * Math.cos(2 * t + k);
+        const x = cx + Math.cos(t) * R * w * 1.25, y = cy + Math.sin(t) * R * w * 0.82;
+        t ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke();
+    }
+  });
+  g.globalAlpha = 1;
+}
+let resizeT, larguraAnt = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { const w = window.innerWidth; if ((w < 640) !== (larguraAnt < 640)) { larguraAnt = w; render(); } else drawContours(); }, 150); });
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawContours); } catch (e) { /* ok */ }
+new MutationObserver(drawContours).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* =================== Início =================== */
+function aplicarTema() {
+  let th = null; try { th = localStorage.getItem('mf_theme'); } catch (e) { /* ok */ }
+  if (th === 'dark' || th === 'light') document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
+}
+window.addEventListener('storage', e => { if (e.key === 'mf_theme') { aplicarTema(); drawContours(); } });
+function tela(html) { telaAtual = html; render(); }
+function telaLogin(msg) {
+  tela('<div class="card login-card stack" style="gap:16px"><div><div class="eyebrow">Atlas · planejamento</div><h1 style="margin-top:6px">Entre com a conta do painel</h1><p class="lede">O Atlas usa o mesmo login do Painel financeiro. Se você já entrou no painel neste navegador, basta abri-lo e voltar.</p></div>' +
+    '<form data-form="login" class="stack" style="gap:12px" autocomplete="on"><div class="field"><label for="lgEmail">E-mail</label><input class="input" type="email" id="lgEmail" autocomplete="username" required></div>' +
+    '<div class="field"><label for="lgPass">Senha</label><input class="input" type="password" id="lgPass" autocomplete="current-password" required></div>' +
+    '<div id="lgMsg" class="err" role="alert">' + esc(msg || '') + '</div>' +
+    '<div class="btn-row"><button class="btn btn-primary" type="submit" id="lgGo">Entrar</button><a class="btn" href="' + PAINEL_URL + '">Abrir o painel</a></div></form></div>');
+}
+function telaAviso(titulo, corpo, botoes) {
+  tela('<div class="card login-card stack" style="gap:14px"><div class="eyebrow">Atlas · planejamento</div><h1>' + titulo + '</h1><div class="lede stack" style="gap:10px">' + corpo + '</div><div class="btn-row">' + (botoes || '<button class="btn btn-primary" onclick="location.reload()">Tentar de novo</button><a class="btn" href="' + PAINEL_URL + '">Abrir o painel</a>') + '</div></div>');
+}
+async function entrar() {
+  const msg = t => { const el = $('#lgMsg'); if (el) el.textContent = t; };
+  const email = $('#lgEmail').value.trim(), pass = $('#lgPass').value;
+  if (!email || !pass) { msg('Informe e-mail e senha.'); return; }
+  const b = $('#lgGo'); b.disabled = true; b.textContent = 'Entrando…';
+  const { data, error } = await Nuvem.sb.auth.signInWithPassword({ email, password: pass });
+  b.disabled = false; b.textContent = 'Entrar';
+  if (error) { msg(/invalid/i.test(error.message) ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar: ' + error.message); return; }
+  Nuvem.user = data.user; await abrir();
+}
+const SQL_FALTANDO = '<p>Falta criar a tabela <b>atlas</b> no Supabase. Abra o projeto no Supabase, vá em <b>SQL Editor</b>, cole o conteúdo do arquivo <b>atlas_setup.sql</b> e clique em <b>Run</b>. Depois recarregue esta página.</p>';
+async function abrir() {
+  telaAtual = null; Nuvem.setStatus('load');
+  $('#main').innerHTML = '<div class="page"><div class="empty">Carregando seu planejamento…</div></div>';
+  try {
+    const d = await Nuvem.carregar();
+    P = (d && d.resumo) || null;
+    if (d && d.plano) { S = normalizar(d.plano); Nuvem.planoEm = d.plano_em || ''; }
+    Nuvem.readonly = false; Nuvem.guardarCache(); Nuvem.setStatus('ok');
+  } catch (e) {
+    if (e && (e.code === 'PGRST205' || e.code === '42P01' || /relation .*atlas|atlas/.test(e.message || ''))) { telaAviso('Falta um passo no Supabase', SQL_FALTANDO); return; }
+    let c = null; try { c = JSON.parse(localStorage.getItem(CACHE) || 'null'); } catch (x) { /* ok */ }
+    if (c && c.uid === Nuvem.user.id) { P = c.resumo || null; if (c.plano) S = normalizar(c.plano); Nuvem.readonly = true; Nuvem.setStatus('off', e.message); toast('Sem conexão: mostrando a cópia do último acesso, só para leitura.'); }
+    else { telaAviso('Não consegui carregar o planejamento', '<p>' + esc((e && e.message) || String(e)) + '</p>'); return; }
+  }
+  if (ui.view === 'objetivo') ui.view = 'objetivos';
+  render();
+}
+async function iniciar() {
+  aplicarTema();
+  cap('sample').then(x => { ui.iaDisponivel = !!x; if (ui.view === 'assistente' && !telaAtual) render(); });
+  if (!window.supabase) {
+    let c = null; try { c = JSON.parse(localStorage.getItem(CACHE) || 'null'); } catch (x) { /* ok */ }
+    if (c && c.plano) { Nuvem.user = { id: c.uid }; P = c.resumo || null; S = normalizar(c.plano); Nuvem.readonly = true; Nuvem.setStatus('off'); render(); return; }
+    telaAviso('Sem conexão', '<p>Não foi possível carregar as bibliotecas da internet. Conecte-se e recarregue a página.</p>'); return;
+  }
+  const cfg = sbCfg();
+  if (!cfg.url || !cfg.key) { telaAviso('Painel não configurado', '<p>Abra o painel neste navegador primeiro, para que ele guarde os dados de acesso ao Supabase.</p>'); return; }
+  Nuvem.conectar(cfg);
+  Nuvem.sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT' && Nuvem.user) { Nuvem.user = null; telaLogin('Sua sessão terminou. Entre de novo.'); } });
+  let sess = null; try { sess = (await Nuvem.sb.auth.getSession()).data.session; } catch (e) { /* ok */ }
+  if (!sess) { telaLogin(); return; }
+  Nuvem.user = sess.user; await abrir();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Nuvem.atualizar(); });
+window.addEventListener('beforeunload', e => { if (Nuvem.dirty || Nuvem.syncing) { e.preventDefault(); e.returnValue = ''; } });
+marcarSalvo();
+iniciar();
+})();
+
+</script>
+
+</body>
+</html>
